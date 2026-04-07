@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+    "allow": [
+      "Bash(*)",
+      "Write(*)",
+      "Edit(*)",
+      "Read(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "WebFetch(*)",
+      "Agent(*)",
+      "TodoWrite(*)",
+      "NotebookEdit(*)"
+    ]
+  },
+  "skipDangerousModePermissionPrompt": true
+}
