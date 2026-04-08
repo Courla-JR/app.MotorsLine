@@ -206,18 +206,11 @@ export default function AdminPage() {
 
     setDeleting(c.id);
 
-    // 1. Supprimer le profil auth via RPC (SECURITY DEFINER, accès auth.users)
-    if (c.email) {
-      await supabase.rpc("delete_profile_by_email", { target_email: c.email });
-    }
-
-    // 2. Supprimer les invitations liées
-    if (c.email) {
-      await supabase.from("invitations").delete().eq("email", c.email);
-    }
-
-    // 3. Supprimer le client
-    await supabase.from("clients").delete().eq("id", c.id);
+    await fetch("/api/admin/delete-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ client_id: c.id }),
+    });
 
     await fetchClients();
     setDeleting(null);

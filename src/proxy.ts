@@ -63,9 +63,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL(dest, request.url))
   }
 
-  if (isConvoyeurRoute && (role === 'admin' || role === 'client')) {
-    const dest = role === 'admin' ? '/admin' : '/client/dashboard'
-    return NextResponse.redirect(new URL(dest, request.url))
+  // Admins can access convoyeur routes (e.g. /missions/new)
+  if (isConvoyeurRoute && role === 'client') {
+    return NextResponse.redirect(new URL('/client/dashboard', request.url))
   }
 
   return response
