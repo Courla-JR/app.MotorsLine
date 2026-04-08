@@ -67,7 +67,11 @@ function RegisterForm() {
     });
 
     if (signUpError) {
-      console.error("[register] signUp error:", JSON.stringify(signUpError));
+      console.error("[register] signUp error message:", signUpError.message);
+      console.error("[register] signUp error status:", signUpError.status);
+      console.error("[register] signUp error name:", signUpError.name);
+      console.error("[register] signUp error full:", JSON.stringify(signUpError, null, 2));
+      console.error("[register] signUp error raw:", signUpError);
       setError(signUpError.message);
       setSubmitting(false);
       return;
