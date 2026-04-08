@@ -41,6 +41,13 @@ type Convoyeur = {
 type Tab = "missions" | "clients";
 type Filter = "toutes" | "a_faire" | "en_cours" | "terminee" | "annulee";
 
+type CreateClientForm = {
+  company_name: string;
+  contact_name: string;
+  email: string;
+  phone: string;
+};
+
 // ─── Helpers ──────────────────────────────────────────────
 
 const STATUS_LABELS: Record<MissionStatus, string> = {
@@ -81,6 +88,13 @@ export default function AdminPage() {
   const [convoyeurs, setConvoyeurs] = useState<Convoyeur[]>([]);
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState<string | null>(null);
+  const [showCreateClient, setShowCreateClient] = useState(false);
+  const [createClientForm, setCreateClientForm] = useState<CreateClientForm>({
+    company_name: "", contact_name: "", email: "", phone: "",
+  });
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createSuccess, setCreateSuccess] = useState<string | null>(null);
 
   // Stats
   const stats = {
@@ -157,6 +171,33 @@ export default function AdminPage() {
   async function updateStatus(missionId: string, status: MissionStatus) {
     await supabase.from("missions").update({ status }).eq("id", missionId);
     await fetchMissions();
+  }
+
+  async function handleCreateClient(e: React.FormEvent) {
+    e.preventDefault();
+    setCreating(true);
+    setCreateError(null);
+    setCreateSuccess(null);
+
+    const res = await fetch("/api/invite-client", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(createClientForm),
+    });
+    const json = await res.json();
+
+    if (!res.ok) {
+      setCreateError(json.error ?? "Erreur lors de la création.");
+    } else {
+      setCreateSuccess(`Invitation envoyée à ${createClientForm.email}.`);
+      setCreateClientForm({ company_name: "", contact_name: "", email: "", phone: "" });
+      await fetchClients();
+      setTimeout(() => {
+        setShowCreateClient(false);
+        setCreateSuccess(null);
+      }, 2000);
+    }
+    setCreating(false);
   }
 
   async function handleLogout() {
@@ -359,6 +400,114 @@ export default function AdminPage() {
         {/* ── CLIENTS TAB ── */}
         {tab === "clients" && (
           <>
+            {/* Create client button */}
+            <div className="flex justify-end mb-6">
+              <button
+                onClick={() => { setShowCreateClient((v) => !v); setCreateError(null); setCreateSuccess(null); }}
+                className="flex items-center gap-2 px-4 py-2 bg-white text-[#0A0A0A] rounded-full text-sm font-bold hover:bg-zinc-100 transition-colors active:scale-95"
+              >
+                <span className="material-symbols-outlined text-base">person_add</span>
+                Inviter un client
+              </button>
+            </div>
+
+            {/* Create client form */}
+            {showCreateClient && (
+              <div className="mb-8 bg-[#141414] border border-white/10 rounded-2xl p-6">
+                <h3 className="text-white font-bold text-base mb-5" style={{ fontFamily: "Inter, sans-serif" }}>
+                  Nouveau client
+                </h3>
+                <form onSubmit={handleCreateClient} className="grid gap-4 sm:grid-cols-2">
+                  {/* Company name */}
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className="text-[11px] font-semibold uppercase tracking-widest text-[#949493]" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      Raison sociale *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={createClientForm.company_name}
+                      onChange={(e) => setCreateClientForm((f) => ({ ...f, company_name: e.target.value }))}
+                      placeholder="Acme SAS"
+                      className="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-xl px-4 py-3 focus:outline-none focus:border-white/20 text-sm placeholder:text-zinc-600"
+                      style={{ fontFamily: "Montserrat, sans-serif" }}
+                    />
+                  </div>
+                  {/* Contact name */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold uppercase tracking-widest text-[#949493]" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      Nom du contact
+                    </label>
+                    <input
+                      type="text"
+                      value={createClientForm.contact_name}
+                      onChange={(e) => setCreateClientForm((f) => ({ ...f, contact_name: e.target.value }))}
+                      placeholder="Jean Dupont"
+                      className="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-xl px-4 py-3 focus:outline-none focus:border-white/20 text-sm placeholder:text-zinc-600"
+                      style={{ fontFamily: "Montserrat, sans-serif" }}
+                    />
+                  </div>
+                  {/* Phone */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold uppercase tracking-widest text-[#949493]" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      Téléphone
+                    </label>
+                    <input
+                      type="tel"
+                      value={createClientForm.phone}
+                      onChange={(e) => setCreateClientForm((f) => ({ ...f, phone: e.target.value }))}
+                      placeholder="+33 6 00 00 00 00"
+                      className="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-xl px-4 py-3 focus:outline-none focus:border-white/20 text-sm placeholder:text-zinc-600"
+                      style={{ fontFamily: "Montserrat, sans-serif" }}
+                    />
+                  </div>
+                  {/* Email */}
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className="text-[11px] font-semibold uppercase tracking-widest text-[#949493]" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      Email d'invitation *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={createClientForm.email}
+                      onChange={(e) => setCreateClientForm((f) => ({ ...f, email: e.target.value }))}
+                      placeholder="contact@acme.fr"
+                      className="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-xl px-4 py-3 focus:outline-none focus:border-white/20 text-sm placeholder:text-zinc-600"
+                      style={{ fontFamily: "Montserrat, sans-serif" }}
+                    />
+                  </div>
+
+                  {createError && (
+                    <p className="sm:col-span-2 text-[#ffb4ab] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      {createError}
+                    </p>
+                  )}
+                  {createSuccess && (
+                    <p className="sm:col-span-2 text-[#66ff8e] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      {createSuccess}
+                    </p>
+                  )}
+
+                  <div className="sm:col-span-2 flex gap-3 pt-2">
+                    <button
+                      type="submit"
+                      disabled={creating}
+                      className="flex-1 bg-white text-[#0A0A0A] font-bold py-3 rounded-full text-sm hover:bg-zinc-100 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {creating ? "Envoi…" : "Créer et envoyer l'invitation"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateClient(false)}
+                      className="px-5 py-3 bg-[#1A1A1A] text-[#949493] font-semibold rounded-full text-sm hover:text-white transition-colors"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
             {loading && (
               <div className="flex justify-center py-20">
                 <p className="text-[#949493] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>Chargement...</p>

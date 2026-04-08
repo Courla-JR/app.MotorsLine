@@ -152,15 +152,6 @@ export default function ClientLoginPage() {
                 {loading ? "Connexion…" : "Se connecter"}
               </button>
 
-              <div className="flex flex-col items-center">
-                <a
-                  href="#"
-                  className="text-sm text-[#949493] underline decoration-zinc-700 underline-offset-4 hover:text-white transition-colors"
-                  style={{ fontFamily: "Montserrat, sans-serif" }}
-                >
-                  Connexion par lien magique
-                </a>
-              </div>
             </div>
           </form>
         </section>
