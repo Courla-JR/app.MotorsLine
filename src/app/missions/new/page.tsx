@@ -158,9 +158,33 @@ export default function NewMissionPage() {
     if (insertError) {
       setError(insertError.message);
       setLoading(false);
-    } else {
-      router.push("/missions");
+      return;
     }
+
+    // Send confirmation email (best-effort, non-blocking for navigation)
+    if (user.email && routeInfo) {
+      fetch("/api/send-mission-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: user.email,
+          vehicleBrand: brand,
+          vehicleModel: model,
+          vehiclePlate: plate,
+          pickupAddress: pickupInputRef.current?.value ?? "",
+          deliveryAddress: deliveryInputRef.current?.value ?? "",
+          distance: routeInfo.distance,
+          duration: routeInfo.duration,
+          serviceLevel: selectedLevel,
+          price: selectedPrice,
+          pickupDate: pickupDate && pickupTime
+            ? new Date(`${pickupDate}T${pickupTime}`).toISOString()
+            : pickupDate ? new Date(pickupDate).toISOString() : null,
+        }),
+      }).catch(() => {}); // silent — email failure must not block navigation
+    }
+
+    router.push("/missions");
   }
 
   return (
