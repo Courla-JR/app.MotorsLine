@@ -95,6 +95,11 @@ CREATE POLICY "clients: select for convoyeur and admin"
     )
   );
 
+-- Clients can read their own record by email
+CREATE POLICY "clients: client select own"
+  ON clients FOR SELECT
+  USING (email = auth.jwt() ->> 'email');
+
 -- Only admins can insert/update/delete clients
 CREATE POLICY "clients: admin insert"
   ON clients FOR INSERT
@@ -189,18 +194,12 @@ CREATE POLICY "missions: convoyeur update own"
   ON missions FOR UPDATE
   USING (convoyeur_id = auth.uid());
 
--- Clients can see their own missions via profile matching
+-- Clients can see their own missions via email match
 CREATE POLICY "missions: client select own"
   ON missions FOR SELECT
   USING (
-    EXISTS (
-      SELECT 1 FROM profiles p
-      JOIN clients c ON c.email = (
-        SELECT email FROM auth.users WHERE id = auth.uid()
-      )
-      WHERE p.id = auth.uid()
-        AND p.role = 'client'
-        AND c.id = missions.client_id
+    client_id IN (
+      SELECT id FROM clients WHERE email = auth.jwt() ->> 'email'
     )
   );
 
