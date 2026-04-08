@@ -467,65 +467,85 @@ export default function NewMissionPage() {
                   </div>
                 ) : (
                   /* Essentiel / Premium selector */
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* ESSENTIEL */}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedLevel("essentiel")}
-                      className={`relative rounded-xl p-4 text-left transition-all duration-200 active:scale-95 ${
-                        selectedLevel === "essentiel"
-                          ? "bg-white/10 border border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.06)]"
-                          : "bg-[#1A1A1A] border border-[#2A2A2A] hover:border-white/15"
-                      }`}
-                    >
-                      {selectedLevel === "essentiel" && (
-                        <span className="absolute top-3 right-3 material-symbols-outlined text-white text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
-                          check_circle
-                        </span>
-                      )}
-                      <p className="text-[9px] uppercase tracking-[0.2em] font-semibold text-[#949493] mb-2" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                        Essentiel
-                      </p>
-                      <p className="text-white text-2xl font-bold leading-none" style={{ fontFamily: "Inter, sans-serif" }}>
-                        {pricing.essentiel}€
-                        <span className="text-[#949493] text-xs font-normal ml-1">HT</span>
-                      </p>
-                      <p className="text-[10px] text-[#949493] mt-2" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                        Convoyage point à point
-                      </p>
-                    </button>
-
-                    {/* PREMIUM */}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedLevel("premium")}
-                      className={`relative rounded-xl p-4 text-left transition-all duration-200 active:scale-95 ${
-                        selectedLevel === "premium"
-                          ? "bg-white/10 border border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.06)]"
-                          : "bg-[#1A1A1A] border border-[#2A2A2A] hover:border-white/15"
-                      }`}
-                    >
-                      {selectedLevel === "premium" && (
-                        <span className="absolute top-3 right-3 material-symbols-outlined text-white text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
-                          check_circle
-                        </span>
-                      )}
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <p className="text-[9px] uppercase tracking-[0.2em] font-semibold text-[#949493]" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                          Premium
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* ESSENTIEL */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedLevel("essentiel")}
+                        className={`relative rounded-xl p-4 text-left transition-all duration-200 active:scale-95 ${
+                          selectedLevel === "essentiel"
+                            ? "bg-white/10 border border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.06)]"
+                            : "bg-[#1A1A1A] border border-[#2A2A2A] hover:border-white/15"
+                        }`}
+                      >
+                        {selectedLevel === "essentiel" && (
+                          <span className="absolute top-3 right-3 material-symbols-outlined text-white text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
+                            check_circle
+                          </span>
+                        )}
+                        <p className="text-[9px] uppercase tracking-[0.2em] font-semibold text-[#949493] mb-2" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          Essentiel
                         </p>
-                        <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-white/10 text-white/60 font-medium uppercase tracking-wider">
-                          +35%
+                        <p className={`text-2xl font-bold leading-none transition-colors ${selectedLevel === "essentiel" ? "text-white" : "text-[#666]"}`} style={{ fontFamily: "Inter, sans-serif" }}>
+                          {pricing.essentiel}€
+                          <span className="text-xs font-normal ml-1">HT</span>
+                        </p>
+                        <p className="text-[10px] text-[#949493] mt-2" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          Convoyage point à point
+                        </p>
+                      </button>
+
+                      {/* PREMIUM */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedLevel("premium")}
+                        className={`relative rounded-xl p-4 text-left transition-all duration-200 active:scale-95 ${
+                          selectedLevel === "premium"
+                            ? "bg-white/10 border border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.06)]"
+                            : "bg-[#1A1A1A] border border-[#2A2A2A] hover:border-white/15"
+                        }`}
+                      >
+                        {selectedLevel === "premium" && (
+                          <span className="absolute top-3 right-3 material-symbols-outlined text-white text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
+                            check_circle
+                          </span>
+                        )}
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <p className="text-[9px] uppercase tracking-[0.2em] font-semibold text-[#949493]" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                            Premium
+                          </p>
+                          <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-white/10 text-white/60 font-medium uppercase tracking-wider">
+                            +35%
+                          </span>
+                        </div>
+                        <p className={`text-2xl font-bold leading-none transition-colors ${selectedLevel === "premium" ? "text-white" : "text-[#666]"}`} style={{ fontFamily: "Inter, sans-serif" }}>
+                          {pricing.premium}€
+                          <span className="text-xs font-normal ml-1">HT</span>
+                        </p>
+                        <p className="text-[10px] text-[#949493] mt-2" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          Livraison avec mise en main
+                        </p>
+                      </button>
+                    </div>
+
+                    {/* Prix sélectionné — barre récapitulative dynamique */}
+                    {selectedLevel && selectedPrice !== null && (
+                      <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10">
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[#949493] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
+                            payments
+                          </span>
+                          <span className="text-[11px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                            Prix sélectionné — {selectedLevel === "essentiel" ? "Essentiel" : "Premium"}
+                          </span>
+                        </div>
+                        <span className="text-white text-xl font-bold" style={{ fontFamily: "Inter, sans-serif" }}>
+                          {selectedPrice}€
+                          <span className="text-[#949493] text-xs font-normal ml-1">HT</span>
                         </span>
                       </div>
-                      <p className="text-white text-2xl font-bold leading-none" style={{ fontFamily: "Inter, sans-serif" }}>
-                        {pricing.premium}€
-                        <span className="text-[#949493] text-xs font-normal ml-1">HT</span>
-                      </p>
-                      <p className="text-[10px] text-[#949493] mt-2" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                        Livraison avec mise en main
-                      </p>
-                    </button>
+                    )}
                   </div>
                 )}
               </section>
