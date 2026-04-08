@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type InvitationState = "loading" | "invalid" | "valid" | "success";
 
-export default function ClientRegisterPage() {
+function RegisterForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get("token");
@@ -61,7 +61,6 @@ export default function ClientRegisterPage() {
 
     setSubmitting(true);
 
-    // Create Supabase auth account
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email: invitationEmail,
       password,
@@ -76,7 +75,6 @@ export default function ClientRegisterPage() {
     const userId = signUpData.user?.id;
 
     if (userId) {
-      // Create profile with client role
       await supabase.from("profiles").upsert({
         id: userId,
         role: "client",
@@ -84,20 +82,17 @@ export default function ClientRegisterPage() {
       });
     }
 
-    // Mark invitation as used
     await supabase
       .from("invitations")
       .update({ used: true })
       .eq("token", token!);
 
-    // Set role cookie so proxy can route correctly
     document.cookie = `user-role=client; path=/; SameSite=Lax; Max-Age=2592000`;
 
     setState("success");
     setTimeout(() => router.push("/client/dashboard"), 1500);
   }
 
-  // ── Loading ──
   if (state === "loading") {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
@@ -108,7 +103,6 @@ export default function ClientRegisterPage() {
     );
   }
 
-  // ── Invalid token ──
   if (state === "invalid") {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center gap-4 px-6">
@@ -130,7 +124,6 @@ export default function ClientRegisterPage() {
     );
   }
 
-  // ── Success ──
   if (state === "success") {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center gap-4 px-6">
@@ -148,7 +141,6 @@ export default function ClientRegisterPage() {
     );
   }
 
-  // ── Registration form ──
   return (
     <div
       className="relative min-h-screen flex flex-col items-center justify-center p-6 overflow-hidden"
@@ -158,7 +150,6 @@ export default function ClientRegisterPage() {
       <div className="absolute bottom-[-5%] right-[-5%] w-[30%] h-[30%] bg-white/5 rounded-full blur-[100px] pointer-events-none" />
 
       <main className="w-full max-w-sm md:max-w-[480px] flex flex-col items-center space-y-10 z-10">
-        {/* Branding */}
         <header className="text-center space-y-2">
           <h1
             className="silver-gradient-text text-4xl font-semibold italic tracking-tighter"
@@ -174,7 +165,6 @@ export default function ClientRegisterPage() {
           </p>
         </header>
 
-        {/* Form card */}
         <section
           className="w-full p-8 rounded-[32px] shadow-2xl"
           style={{ background: "rgba(28, 27, 27, 0.4)", backdropFilter: "blur(12px)" }}
@@ -188,7 +178,6 @@ export default function ClientRegisterPage() {
           </p>
 
           <form onSubmit={handleSubmit} className="flex flex-col space-y-5">
-            {/* Password */}
             <div className="space-y-2">
               <label
                 htmlFor="password"
@@ -216,7 +205,6 @@ export default function ClientRegisterPage() {
               </div>
             </div>
 
-            {/* Confirm password */}
             <div className="space-y-2">
               <label
                 htmlFor="confirm"
@@ -243,7 +231,6 @@ export default function ClientRegisterPage() {
               </div>
             </div>
 
-            {/* Error */}
             {error && (
               <p
                 className="text-[#ffb4ab] text-sm text-center"
@@ -267,5 +254,21 @@ export default function ClientRegisterPage() {
         </section>
       </main>
     </div>
+  );
+}
+
+export default function ClientRegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+          <p className="text-[#949493] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>
+            Chargement…
+          </p>
+        </div>
+      }
+    >
+      <RegisterForm />
+    </Suspense>
   );
 }
