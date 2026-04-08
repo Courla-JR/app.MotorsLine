@@ -29,8 +29,8 @@ const FILTERS: { label: string; value: Filter }[] = [
 const CLIENT_NAV = [
   { icon: "dashboard", label: "Dashboard", href: "/client/dashboard" },
   { icon: "local_shipping", label: "Missions", href: "/client/missions" },
-  { icon: "receipt_long", label: "Facturation", href: "#" },
-  { icon: "settings", label: "Paramètres", href: "#" },
+  { icon: "receipt_long", label: "Facturation", href: "/client/billing" },
+  { icon: "settings", label: "Paramètres", href: "/client/settings" },
 ];
 
 function StatusBadge({ status }: { status: DbMission["status"] }) {
@@ -53,6 +53,12 @@ function formatDate(iso: string | null) {
 export default function ClientMissionsPage() {
   const router = useRouter();
   const [missions, setMissions] = useState<DbMission[]>([]);
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    document.cookie = "user-role=; path=/; Max-Age=0";
+    router.push("/client/login");
+  }
   const [filter, setFilter] = useState<Filter>("toutes");
   const [clientId, setClientId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -108,7 +114,7 @@ export default function ClientMissionsPage() {
             Espace Client
           </p>
         </div>
-        <nav className="flex flex-col gap-1">
+        <nav className="flex flex-col gap-1 flex-1">
           {CLIENT_NAV.map((item) => (
             <Link
               key={item.label}
@@ -127,6 +133,13 @@ export default function ClientMissionsPage() {
             </Link>
           ))}
         </nav>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-3 rounded-xl text-[#949493] hover:text-white hover:bg-white/5 transition-colors w-full mt-2"
+        >
+          <span className="material-symbols-outlined text-xl">logout</span>
+          <span className="font-medium text-sm" style={{ fontFamily: "Inter, sans-serif" }}>Déconnexion</span>
+        </button>
       </aside>
 
       {/* ── Main Content ── */}

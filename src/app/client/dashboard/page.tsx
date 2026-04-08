@@ -31,12 +31,13 @@ function formatPickup(iso: string | null) {
 const CLIENT_NAV = [
   { icon: "dashboard", label: "Dashboard", href: "/client/dashboard" },
   { icon: "local_shipping", label: "Missions", href: "/client/missions" },
-  { icon: "receipt_long", label: "Facturation", href: "#" },
-  { icon: "settings", label: "Paramètres", href: "#" },
+  { icon: "receipt_long", label: "Facturation", href: "/client/billing" },
+  { icon: "settings", label: "Paramètres", href: "/client/settings" },
 ];
 
 export default function ClientDashboardPage() {
   const router = useRouter();
+  const [contactName, setContactName] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [activeMissions, setActiveMissions] = useState<DbMission[]>([]);
   const [upcomingMissions, setUpcomingMissions] = useState<DbMission[]>([]);
@@ -52,6 +53,13 @@ export default function ClientDashboardPage() {
     async function fetchData() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/client/login"); return; }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+      setContactName(profile?.full_name ?? null);
 
       const { data: client } = await supabase
         .from("clients")
@@ -89,7 +97,13 @@ export default function ClientDashboardPage() {
     fetchData();
   }, [router]);
 
-  const displayName = companyName ?? "—";
+  const displayName = contactName?.split(" ")[0] ?? companyName ?? "—";
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    document.cookie = "user-role=; path=/; Max-Age=0";
+    router.push("/client/login");
+  }
 
   return (
     <div className="bg-[#0A0A0A] text-[#e5e2e1] min-h-screen antialiased">
@@ -104,7 +118,7 @@ export default function ClientDashboardPage() {
             Espace Client
           </p>
         </div>
-        <nav className="flex flex-col gap-1">
+        <nav className="flex flex-col gap-1 flex-1">
           {CLIENT_NAV.map((item) => (
             <Link
               key={item.label}
@@ -123,6 +137,13 @@ export default function ClientDashboardPage() {
             </Link>
           ))}
         </nav>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-3 rounded-xl text-[#949493] hover:text-white hover:bg-white/5 transition-colors w-full mt-2"
+        >
+          <span className="material-symbols-outlined text-xl">logout</span>
+          <span className="font-medium text-sm" style={{ fontFamily: "Inter, sans-serif" }}>Déconnexion</span>
+        </button>
       </aside>
 
       {/* ── Main Content ── */}

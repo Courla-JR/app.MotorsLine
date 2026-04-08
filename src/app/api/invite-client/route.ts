@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
   const token = randomUUID();
   const { error: inviteError } = await supabase
     .from("invitations")
-    .insert({ email, token });
+    .insert({ email, token, contact_name: contact_name ?? null });
 
   if (inviteError) {
     return NextResponse.json({ error: inviteError.message }, { status: 500 });

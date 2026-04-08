@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type DbMission = {
@@ -100,6 +101,7 @@ const CONVOYEUR_NAV = [
 ];
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const [stats, setStats] = useState<Stats>({ total: 0, en_cours: 0, a_faire: 0 });
   const [todayMissions, setTodayMissions] = useState<DbMission[]>([]);
@@ -154,6 +156,12 @@ export default function DashboardPage() {
 
   const displayName = profile?.full_name?.split(" ")[0] ?? "Convoyeur";
 
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    document.cookie = "user-role=; path=/; Max-Age=0";
+    router.push("/login");
+  }
+
   return (
     <div className="bg-[#0A0A0A] min-h-screen">
 
@@ -167,7 +175,7 @@ export default function DashboardPage() {
             Espace Convoyeur
           </p>
         </div>
-        <nav className="flex flex-col gap-1">
+        <nav className="flex flex-col gap-1 flex-1">
           {CONVOYEUR_NAV.map((item) => (
             <Link
               key={item.label}
@@ -186,6 +194,13 @@ export default function DashboardPage() {
             </Link>
           ))}
         </nav>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-3 rounded-xl text-[#949493] hover:text-white hover:bg-white/5 transition-colors w-full mt-2"
+        >
+          <span className="material-symbols-outlined text-xl">logout</span>
+          <span className="font-medium text-sm" style={{ fontFamily: "Inter, sans-serif" }}>Déconnexion</span>
+        </button>
       </aside>
 
       {/* ── Main Content ── */}

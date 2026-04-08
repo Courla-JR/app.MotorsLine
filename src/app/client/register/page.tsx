@@ -13,6 +13,7 @@ function RegisterForm() {
 
   const [state, setState] = useState<InvitationState>("loading");
   const [invitationEmail, setInvitationEmail] = useState("");
+  const [invitationContactName, setInvitationContactName] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -29,7 +30,7 @@ function RegisterForm() {
 
       const { data } = await supabase
         .from("invitations")
-        .select("id, email, used, created_at")
+        .select("id, email, contact_name, used, created_at")
         .eq("token", token!)
         .eq("used", false)
         .gte("created_at", sevenDaysAgo)
@@ -39,6 +40,7 @@ function RegisterForm() {
         setState("invalid");
       } else {
         setInvitationEmail(data.email);
+        setInvitationContactName(data.contact_name ?? null);
         setState("valid");
       }
     }
@@ -84,7 +86,7 @@ function RegisterForm() {
       const { error: profileError } = await supabase.from("profiles").upsert({
         id: userId,
         role: "client",
-        full_name: null,
+        full_name: invitationContactName ?? null,
       });
       if (profileError) {
         console.error("[register] profile upsert error:", JSON.stringify(profileError));

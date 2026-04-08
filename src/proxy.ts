@@ -46,7 +46,9 @@ export async function proxy(request: NextRequest) {
   const isAdminRoute = pathname.startsWith('/admin')
   const isClientRoute =
     pathname.startsWith('/client/dashboard') ||
-    pathname.startsWith('/client/missions')
+    pathname.startsWith('/client/missions') ||
+    pathname.startsWith('/client/billing') ||
+    pathname.startsWith('/client/settings')
   const isConvoyeurRoute =
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/missions')
@@ -76,5 +78,7 @@ export const config = {
     '/admin/:path*',
     '/client/dashboard/:path*',
     '/client/missions/:path*',
+    '/client/billing/:path*',
+    '/client/settings/:path*',
   ],
 }
