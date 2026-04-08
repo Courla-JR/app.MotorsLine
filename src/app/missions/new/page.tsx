@@ -51,8 +51,11 @@ export default function NewMissionPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Maps state
-  const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string; pricing: Pricing } | null>(null);
+  const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string; distanceMeters: number } | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
+
+  // Derive pricing from distanceMeters at render time — avoids stale/missing state issues
+  const pricing: Pricing | null = routeInfo ? getPricing(routeInfo.distanceMeters) : null;
 
   // Refs for autocomplete inputs and place results
   const pickupInputRef = useRef<HTMLInputElement>(null);
@@ -77,7 +80,7 @@ export default function NewMissionPage() {
           setRouteInfo({
             distance: leg.distance?.text ?? "—",
             duration: leg.duration?.text ?? "—",
-            pricing: getPricing(leg.distance?.value ?? 0),
+            distanceMeters: leg.distance?.value ?? 0,
           });
         }
       }
@@ -140,7 +143,7 @@ export default function NewMissionPage() {
       pickup_date: pickupDatetime,
       delivery_address: deliveryInputRef.current?.value ?? "",
       notes: notes || null,
-      price: routeInfo?.pricing.price ?? null,
+      price: pricing?.price ?? null,
     });
 
     if (insertError) {
@@ -365,64 +368,26 @@ export default function NewMissionPage() {
                   </div>
                 )}
                 {routeInfo && !routeLoading && (
-                  <>
-                    {/* Distance + durée */}
-                    <div className="flex items-center gap-5 pt-4 border-t border-white/5">
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[#949493] text-base">route</span>
-                        <div>
-                          <p className="text-[10px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>Distance</p>
-                          <p className="text-white text-sm font-bold" style={{ fontFamily: "Inter, sans-serif" }}>{routeInfo.distance}</p>
-                        </div>
+                  <div className="flex items-center gap-5 pt-4 border-t border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[#949493] text-base">route</span>
+                      <div>
+                        <p className="text-[10px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>Distance</p>
+                        <p className="text-white text-sm font-bold" style={{ fontFamily: "Inter, sans-serif" }}>{routeInfo.distance}</p>
                       </div>
-                      <div className="w-px h-8 bg-white/10" />
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[#949493] text-base">schedule</span>
-                        <div>
-                          <p className="text-[10px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>Durée estimée</p>
-                          <p className="text-white text-sm font-bold" style={{ fontFamily: "Inter, sans-serif" }}>{routeInfo.duration}</p>
-                        </div>
-                      </div>
-                      <span className="ml-auto text-[10px] text-[#444748] uppercase tracking-wider" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                        via Google Maps
-                      </span>
                     </div>
-
-                    {/* Pricing card */}
-                    <div className={`rounded-xl p-4 flex items-center justify-between gap-4 ${
-                      routeInfo.pricing.surDevis
-                        ? "bg-[#1c1b1b] border border-white/5"
-                        : "bg-white/5 border border-white/10"
-                    }`}>
-                      <div className="flex items-center gap-3">
-                        <span className="material-symbols-outlined text-[#949493] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
-                          payments
-                        </span>
-                        <div>
-                          <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                            Tarif estimé
-                          </p>
-                          <p className="text-white text-sm font-semibold" style={{ fontFamily: "Inter, sans-serif" }}>
-                            {routeInfo.pricing.label}
-                          </p>
-                        </div>
+                    <div className="w-px h-8 bg-white/10" />
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[#949493] text-base">schedule</span>
+                      <div>
+                        <p className="text-[10px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>Durée estimée</p>
+                        <p className="text-white text-sm font-bold" style={{ fontFamily: "Inter, sans-serif" }}>{routeInfo.duration}</p>
                       </div>
-                      {routeInfo.pricing.surDevis ? (
-                        <a
-                          href="mailto:contact@motorsline.fr?subject=Demande de devis"
-                          className="shrink-0 px-4 py-2 bg-white text-[#0A0A0A] text-xs font-bold rounded-lg hover:bg-zinc-100 active:scale-95 transition-all"
-                          style={{ fontFamily: "Inter, sans-serif" }}
-                        >
-                          Demander un devis
-                        </a>
-                      ) : (
-                        <span className="shrink-0 text-white text-xl font-bold" style={{ fontFamily: "Inter, sans-serif" }}>
-                          {routeInfo.pricing.price}€
-                          <span className="text-[#949493] text-xs font-normal ml-1">HT</span>
-                        </span>
-                      )}
                     </div>
-                  </>
+                    <span className="ml-auto text-[10px] text-[#444748] uppercase tracking-wider" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      via Google Maps
+                    </span>
+                  </div>
                 )}
 
                 {/* Date & time */}
@@ -448,6 +413,48 @@ export default function NewMissionPage() {
                 </div>
               </div>
             </section>
+
+            {/* Pricing card — rendered as standalone section, independent of route container */}
+            {pricing && !routeLoading && (
+              <section>
+                <div className={`rounded-xl p-4 flex items-center justify-between gap-4 ${
+                  pricing.surDevis
+                    ? "bg-[#1c1b1b] border border-white/5"
+                    : "bg-white/5 border border-white/10"
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="material-symbols-outlined text-[#949493] text-xl"
+                      style={{ fontVariationSettings: "'FILL' 1" }}
+                    >
+                      payments
+                    </span>
+                    <div>
+                      <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                        Tarif estimé
+                      </p>
+                      <p className="text-white text-sm font-semibold" style={{ fontFamily: "Inter, sans-serif" }}>
+                        {pricing.label}
+                      </p>
+                    </div>
+                  </div>
+                  {pricing.surDevis ? (
+                    <a
+                      href="mailto:contact@motorsline.fr?subject=Demande de devis"
+                      className="shrink-0 px-4 py-2 bg-white text-[#0A0A0A] text-xs font-bold rounded-lg hover:bg-zinc-100 active:scale-95 transition-all"
+                      style={{ fontFamily: "Inter, sans-serif" }}
+                    >
+                      Demander un devis
+                    </a>
+                  ) : (
+                    <span className="shrink-0 text-white text-2xl font-bold" style={{ fontFamily: "Inter, sans-serif" }}>
+                      {pricing.price}€
+                      <span className="text-[#949493] text-sm font-normal ml-1">HT</span>
+                    </span>
+                  )}
+                </div>
+              </section>
+            )}
 
             {/* Notes */}
             <section className="space-y-4">
