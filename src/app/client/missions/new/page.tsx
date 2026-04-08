@@ -22,25 +22,19 @@ function getPricing(distanceMeters: number): Pricing {
   if (km <= 50)  return { surDevis: false, tranche: "Locale",          essentiel: 95,  premium: roundTo5(95  * 1.35) };
   if (km <= 150) return { surDevis: false, tranche: "Régionale",       essentiel: 145, premium: roundTo5(145 * 1.35) };
   if (km <= 300) return { surDevis: false, tranche: "Inter-régionale", essentiel: 250, premium: roundTo5(250 * 1.35) };
-  if (km <= 500) return { surDevis: false, tranche: "Longue distance", essentiel: 380, premium: roundTo5(380 * 1.35) };
+  if (km <= 500) return { surDevis: false, tranche: "Longue distance",  essentiel: 380, premium: roundTo5(380 * 1.35) };
   return               { surDevis: true,  tranche: "Grande distance",  essentiel: null, premium: null };
 }
 
-const CONVOYEUR_NAV = [
-  { icon: "dashboard", label: "Dashboard", href: "/dashboard" },
-  { icon: "local_shipping", label: "Missions", href: "/missions" },
-  { icon: "add_circle", label: "Nouvelle mission", href: "/missions/new" },
-  { icon: "person", label: "Profil", href: "/profile" },
+const CLIENT_NAV = [
+  { icon: "dashboard", label: "Dashboard", href: "/client/dashboard" },
+  { icon: "local_shipping", label: "Missions", href: "/client/missions" },
+  { icon: "add_circle", label: "Nouvelle", href: "/client/missions/new" },
+  { icon: "receipt_long", label: "Facturation", href: "/client/billing" },
+  { icon: "settings", label: "Paramètres", href: "/client/settings" },
 ];
 
-const ADMIN_NAV = [
-  { icon: "dashboard", label: "Dashboard", href: "/admin" },
-  { icon: "add_circle", label: "Nouvelle mission", href: "/missions/new" },
-];
-
-type ClientOption = { id: string; company_name: string };
-
-export default function NewMissionPage() {
+export default function ClientNewMissionPage() {
   const router = useRouter();
 
   const [brand, setBrand] = useState("");
@@ -53,36 +47,18 @@ export default function NewMissionPage() {
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string>("convoyeur");
-  const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
-  const [selectedClientId, setSelectedClientId] = useState<string>("");
 
-  useEffect(() => {
-    const match = document.cookie.split(";").find((c) => c.trim().startsWith("user-role="));
-    const role = match?.split("=")[1]?.trim() ?? "convoyeur";
-    setUserRole(role);
-    if (role === "admin") {
-      supabase.from("clients").select("id, company_name").order("company_name").then(({ data }) => {
-        setClientOptions((data as ClientOption[]) ?? []);
-      });
-    }
-  }, []);
-
-  // Maps state
   const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string; distanceMeters: number } | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState<ServiceLevel>("essentiel");
 
-  // Derive pricing from distanceMeters at render time — avoids stale/missing state issues
   const pricing: Pricing | null = routeInfo ? getPricing(routeInfo.distanceMeters) : null;
 
-  // Price to save: based on selectedLevel + distance tranche
   const selectedPrice: number | null =
     pricing && !pricing.surDevis && selectedLevel !== "sur_mesure"
       ? selectedLevel === "essentiel" ? pricing.essentiel : pricing.premium
       : null;
 
-  // Refs for autocomplete inputs and place results
   const pickupInputRef = useRef<HTMLInputElement>(null);
   const deliveryInputRef = useRef<HTMLInputElement>(null);
   const pickupPlaceRef = useRef<any>(null);
@@ -108,7 +84,6 @@ export default function NewMissionPage() {
             duration: leg.duration?.text ?? "—",
             distanceMeters,
           });
-          // Force sur_mesure for grande distance; keep user's choice otherwise
           if (getPricing(distanceMeters).surDevis) setSelectedLevel("sur_mesure");
         }
       }
@@ -144,6 +119,12 @@ export default function NewMissionPage() {
     });
   }, [computeRoute]);
 
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    document.cookie = "user-role=; path=/; Max-Age=0";
+    router.push("/client/login");
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -156,14 +137,27 @@ export default function NewMissionPage() {
       return;
     }
 
+    // Resolve client_id from clients table using authenticated user's email
+    const { data: client } = await supabase
+      .from("clients")
+      .select("id")
+      .eq("email", user.email!)
+      .single();
+
+    if (!client) {
+      setError("Compte client introuvable. Contactez votre gestionnaire.");
+      setLoading(false);
+      return;
+    }
+
     const pickupDatetime = pickupDate && pickupTime
       ? new Date(`${pickupDate}T${pickupTime}`).toISOString()
       : pickupDate ? new Date(pickupDate).toISOString() : null;
 
     const { error: insertError } = await supabase.from("missions").insert({
       status: "a_faire",
-      convoyeur_id: userRole === "admin" ? null : user.id,
-      client_id: userRole === "admin" ? (selectedClientId || null) : null,
+      client_id: client.id,
+      convoyeur_id: null,
       vehicle_brand: brand,
       vehicle_model: model,
       vehicle_plate: plate,
@@ -183,7 +177,7 @@ export default function NewMissionPage() {
       return;
     }
 
-    // Send confirmation email (best-effort, non-blocking for navigation)
+    // Confirmation email (best-effort)
     if (user.email && routeInfo) {
       fetch("/api/send-mission-email", {
         method: "POST",
@@ -199,14 +193,12 @@ export default function NewMissionPage() {
           duration: routeInfo.duration,
           serviceLevel: selectedLevel,
           price: selectedPrice,
-          pickupDate: pickupDate && pickupTime
-            ? new Date(`${pickupDate}T${pickupTime}`).toISOString()
-            : pickupDate ? new Date(pickupDate).toISOString() : null,
+          pickupDate: pickupDatetime,
         }),
-      }).catch(() => {}); // silent — email failure must not block navigation
+      }).catch(() => {});
     }
 
-    router.push(userRole === "admin" ? "/admin" : "/missions");
+    router.push("/client/missions");
   }
 
   return (
@@ -225,21 +217,21 @@ export default function NewMissionPage() {
             Motors Line
           </h1>
           <p className="text-[10px] text-[#949493] uppercase tracking-widest mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
-            {userRole === "admin" ? "Espace Admin" : "Espace Convoyeur"}
+            Espace Client
           </p>
         </div>
-        <nav className="flex flex-col gap-1">
-          {(userRole === "admin" ? ADMIN_NAV : CONVOYEUR_NAV).map((item) => (
+        <nav className="flex flex-col gap-1 flex-1">
+          {CLIENT_NAV.map((item) => (
             <Link
               key={item.label}
               href={item.href}
               className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-colors ${
-                item.href === "/missions/new" ? "bg-white/10 text-white" : "text-[#949493] hover:text-white hover:bg-white/5"
+                item.href === "/client/missions/new" ? "bg-white/10 text-white" : "text-[#949493] hover:text-white hover:bg-white/5"
               }`}
             >
               <span
                 className="material-symbols-outlined text-xl"
-                style={item.href === "/missions/new" ? { fontVariationSettings: "'FILL' 1" } : undefined}
+                style={item.href === "/client/missions/new" ? { fontVariationSettings: "'FILL' 1" } : undefined}
               >
                 {item.icon}
               </span>
@@ -247,6 +239,13 @@ export default function NewMissionPage() {
             </Link>
           ))}
         </nav>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-3 rounded-xl text-[#949493] hover:text-white hover:bg-white/5 transition-colors w-full mt-2"
+        >
+          <span className="material-symbols-outlined text-xl">logout</span>
+          <span className="font-medium text-sm" style={{ fontFamily: "Inter, sans-serif" }}>Déconnexion</span>
+        </button>
       </aside>
 
       {/* ── Main Content ── */}
@@ -256,7 +255,7 @@ export default function NewMissionPage() {
         <header className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl sticky top-0 z-40">
           <div className="flex items-center justify-between px-6 h-16 w-full max-w-lg mx-auto">
             <div className="flex items-center gap-4">
-              <Link href={userRole === "admin" ? "/admin" : "/missions"}>
+              <Link href="/client/missions">
                 <span className="material-symbols-outlined text-white cursor-pointer active:opacity-70 active:scale-95 duration-150">
                   arrow_back
                 </span>
@@ -270,7 +269,7 @@ export default function NewMissionPage() {
         {/* Desktop page title */}
         <div className="hidden md:block px-8 pt-8 pb-2 max-w-2xl mx-auto">
           <div className="flex items-center gap-4 mb-2">
-            <Link href={userRole === "admin" ? "/admin" : "/missions"}>
+            <Link href="/client/missions">
               <span className="material-symbols-outlined text-[#949493] hover:text-white cursor-pointer transition-colors">
                 arrow_back
               </span>
@@ -469,7 +468,7 @@ export default function NewMissionPage() {
               </div>
             </section>
 
-            {/* Tarif estimé — affiché après calcul de distance */}
+            {/* Tarif estimé */}
             {routeInfo && !routeLoading && (
               <section className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -482,7 +481,6 @@ export default function NewMissionPage() {
                 </div>
 
                 {selectedLevel === "sur_mesure" || pricing?.surDevis ? (
-                  /* Sur Mesure ou Grande distance : pas de tarif fixe */
                   <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-5 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-[#949493] text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -506,7 +504,6 @@ export default function NewMissionPage() {
                     </a>
                   </div>
                 ) : (
-                  /* Prix fixe selon niveau sélectionné */
                   <div className="bg-white/5 border border-white/10 rounded-xl px-5 py-4 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-[#949493] text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -550,31 +547,6 @@ export default function NewMissionPage() {
               </div>
             </section>
 
-            {/* Client assignment (admin only) */}
-            {userRole === "admin" && (
-              <section className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">Client</h3>
-                  <span className="material-symbols-outlined text-[#c4c7c8] text-sm">domain</span>
-                </div>
-                <div className="bg-[#1A1A1A] p-5 rounded-xl">
-                  <div className="relative">
-                    <select
-                      value={selectedClientId}
-                      onChange={(e) => setSelectedClientId(e.target.value)}
-                      className="w-full bg-[#131313] border-none rounded-lg p-3 text-white text-sm appearance-none pr-10 focus:outline-none focus:ring-[0.5px] focus:ring-white"
-                    >
-                      <option value="">— Sans client assigné —</option>
-                      {clientOptions.map((c) => (
-                        <option key={c.id} value={c.id}>{c.company_name}</option>
-                      ))}
-                    </select>
-                    <span className="material-symbols-outlined absolute right-3 top-2.5 text-[#949493] text-lg pointer-events-none">expand_more</span>
-                  </div>
-                </div>
-              </section>
-            )}
-
             {/* Error */}
             {error && (
               <p className="text-[#ffb4ab] text-sm text-center" style={{ fontFamily: "Montserrat, sans-serif" }}>
@@ -582,7 +554,7 @@ export default function NewMissionPage() {
               </p>
             )}
 
-            {/* CTA Desktop (inline) */}
+            {/* CTA Desktop */}
             <div className="hidden md:block pb-10">
               <button
                 type="submit"
@@ -612,26 +584,21 @@ export default function NewMissionPage() {
         </form>
 
         {/* Bottom Nav (mobile only) */}
-        <nav className="md:hidden fixed bottom-0 left-0 w-full bg-[#0A0A0A]/80 backdrop-blur-xl z-50 rounded-t-2xl border-t border-[#2A2A2A] shadow-[0_-4px_24px_rgba(255,255,255,0.05)]">
-          <div className="flex justify-around items-center pt-3 pb-6 px-4 max-w-lg mx-auto">
-            {[
-              { icon: "dashboard", label: "Dashboard", href: "/dashboard", active: false },
-              { icon: "local_shipping", label: "Missions", href: "/missions", active: false },
-              { icon: "add_circle", label: "Nouveau", href: "/missions/new", active: true },
-              { icon: "person", label: "Profil", href: "#", active: false },
-            ].map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={`flex flex-col items-center justify-center transition-colors ${item.active ? "text-white scale-110" : "text-[#949493] hover:text-white"}`}
-              >
-                <span className="material-symbols-outlined mt-1" style={item.active ? { fontVariationSettings: "'FILL' 1" } : undefined}>
-                  {item.icon}
-                </span>
-                <span className="font-medium text-[10px] uppercase tracking-widest mt-1">{item.label}</span>
-              </Link>
-            ))}
-          </div>
+        <nav className="md:hidden fixed bottom-0 left-0 w-full h-20 flex justify-around items-center px-4 pb-4 bg-neutral-950/80 backdrop-blur-xl rounded-t-2xl z-50 shadow-[0_-4px_24px_rgba(255,255,255,0.02)]">
+          {CLIENT_NAV.map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className={`flex flex-col items-center justify-center transition-all ${item.href === "/client/missions/new" ? "text-white scale-110" : "text-zinc-600 hover:text-zinc-300"}`}
+            >
+              <span className="material-symbols-outlined" style={item.href === "/client/missions/new" ? { fontVariationSettings: "'FILL' 1" } : undefined}>
+                {item.icon}
+              </span>
+              <span className="font-medium text-[10px] uppercase tracking-widest mt-1" style={{ fontFamily: "Inter, sans-serif" }}>
+                {item.label}
+              </span>
+            </Link>
+          ))}
         </nav>
 
       </div>

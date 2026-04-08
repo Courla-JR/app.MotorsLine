@@ -48,7 +48,8 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/client/dashboard') ||
     pathname.startsWith('/client/missions') ||
     pathname.startsWith('/client/billing') ||
-    pathname.startsWith('/client/settings')
+    pathname.startsWith('/client/settings') ||
+    pathname.startsWith('/client/missions/new')
   const isConvoyeurRoute =
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/missions')

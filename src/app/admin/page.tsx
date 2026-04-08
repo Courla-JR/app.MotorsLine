@@ -96,6 +96,7 @@ export default function AdminPage() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [deletingMission, setDeletingMission] = useState<string | null>(null);
 
   // Stats
   const stats = {
@@ -199,6 +200,14 @@ export default function AdminPage() {
       }, 2000);
     }
     setCreating(false);
+  }
+
+  async function handleDeleteMission(missionId: string, label: string) {
+    if (!window.confirm(`Supprimer cette mission ?\n\n${label}\n\nCette action est irréversible.`)) return;
+    setDeletingMission(missionId);
+    await supabase.from("missions").delete().eq("id", missionId);
+    await fetchMissions();
+    setDeletingMission(null);
   }
 
   async function handleDeleteClient(c: Client) {
@@ -351,20 +360,33 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                    {/* Status select */}
-                    <div className="relative">
-                      <select
-                        value={m.status}
-                        onChange={(e) => updateStatus(m.id, e.target.value as MissionStatus)}
-                        className="bg-[#131313] border border-[#2a2a2a] text-white text-xs rounded-lg px-3 py-2 pr-8 appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-white/20"
+                    <div className="flex items-center gap-2">
+                      {/* Status select */}
+                      <div className="relative">
+                        <select
+                          value={m.status}
+                          onChange={(e) => updateStatus(m.id, e.target.value as MissionStatus)}
+                          className="bg-[#131313] border border-[#2a2a2a] text-white text-xs rounded-lg px-3 py-2 pr-8 appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-white/20"
+                        >
+                          {Object.entries(STATUS_LABELS).map(([val, label]) => (
+                            <option key={val} value={val}>{label}</option>
+                          ))}
+                        </select>
+                        <span className="material-symbols-outlined absolute right-2 top-2 text-[#949493] text-sm pointer-events-none">
+                          expand_more
+                        </span>
+                      </div>
+                      {/* Delete mission */}
+                      <button
+                        onClick={() => handleDeleteMission(m.id, `${m.vehicle_brand} ${m.vehicle_model}`)}
+                        disabled={deletingMission === m.id}
+                        title="Supprimer cette mission"
+                        className="flex items-center justify-center w-7 h-7 rounded-lg text-[#444748] hover:text-[#ffb4ab] hover:bg-[#ffb4ab]/10 transition-colors disabled:opacity-40"
                       >
-                        {Object.entries(STATUS_LABELS).map(([val, label]) => (
-                          <option key={val} value={val}>{label}</option>
-                        ))}
-                      </select>
-                      <span className="material-symbols-outlined absolute right-2 top-2 text-[#949493] text-sm pointer-events-none">
-                        expand_more
-                      </span>
+                        <span className="material-symbols-outlined text-base">
+                          {deletingMission === m.id ? "hourglass_empty" : "delete"}
+                        </span>
+                      </button>
                     </div>
                   </div>
 
