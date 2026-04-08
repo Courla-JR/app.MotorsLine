@@ -17,15 +17,21 @@ const missionTypes: { label: string; value: MissionType }[] = [
   { label: "Concierge", value: "concierge" },
 ];
 
-type Pricing = { label: string; price: number; surDevis: false } | { label: string; price: null; surDevis: true };
+type ServiceLevel = "essentiel" | "premium" | null;
+
+type Pricing =
+  | { surDevis: false; tranche: string; essentiel: number; premium: number }
+  | { surDevis: true;  tranche: string; essentiel: null;   premium: null   };
+
+function roundTo5(n: number) { return Math.round(n / 5) * 5; }
 
 function getPricing(distanceMeters: number): Pricing {
   const km = distanceMeters / 1000;
-  if (km <= 50)  return { label: "Locale — 95€ HT",              price: 95,  surDevis: false };
-  if (km <= 150) return { label: "Régionale — 145€ HT",          price: 145, surDevis: false };
-  if (km <= 300) return { label: "Inter-régionale — 250€ HT",    price: 250, surDevis: false };
-  if (km <= 500) return { label: "Longue distance — 380€ HT",    price: 380, surDevis: false };
-  return         { label: "Grande distance — Sur devis",          price: null, surDevis: true  };
+  if (km <= 50)  return { surDevis: false, tranche: "Locale",          essentiel: 95,  premium: roundTo5(95  * 1.35) };
+  if (km <= 150) return { surDevis: false, tranche: "Régionale",       essentiel: 145, premium: roundTo5(145 * 1.35) };
+  if (km <= 300) return { surDevis: false, tranche: "Inter-régionale", essentiel: 250, premium: roundTo5(250 * 1.35) };
+  if (km <= 500) return { surDevis: false, tranche: "Longue distance", essentiel: 380, premium: roundTo5(380 * 1.35) };
+  return               { surDevis: true,  tranche: "Grande distance",  essentiel: null, premium: null };
 }
 
 const CONVOYEUR_NAV = [
@@ -53,9 +59,16 @@ export default function NewMissionPage() {
   // Maps state
   const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string; distanceMeters: number } | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
+  const [selectedLevel, setSelectedLevel] = useState<ServiceLevel>(null);
 
   // Derive pricing from distanceMeters at render time — avoids stale/missing state issues
   const pricing: Pricing | null = routeInfo ? getPricing(routeInfo.distanceMeters) : null;
+
+  // Price to save: selected level's price, or null for sur devis
+  const selectedPrice: number | null =
+    pricing && !pricing.surDevis && selectedLevel
+      ? selectedLevel === "essentiel" ? pricing.essentiel : pricing.premium
+      : null;
 
   // Refs for autocomplete inputs and place results
   const pickupInputRef = useRef<HTMLInputElement>(null);
@@ -77,11 +90,14 @@ export default function NewMissionPage() {
         setRouteLoading(false);
         if (status === "OK" && result) {
           const leg = result.routes[0].legs[0];
+          const distanceMeters = leg.distance?.value ?? 0;
           setRouteInfo({
             distance: leg.distance?.text ?? "—",
             duration: leg.duration?.text ?? "—",
-            distanceMeters: leg.distance?.value ?? 0,
+            distanceMeters,
           });
+          // Auto-select Essentiel unless sur devis
+          setSelectedLevel(getPricing(distanceMeters).surDevis ? null : "essentiel");
         }
       }
     );
@@ -100,6 +116,7 @@ export default function NewMissionPage() {
       if (place?.geometry) {
         pickupPlaceRef.current = place;
         setRouteInfo(null);
+        setSelectedLevel(null);
         computeRoute();
       }
     });
@@ -109,6 +126,7 @@ export default function NewMissionPage() {
       if (place?.geometry) {
         deliveryPlaceRef.current = place;
         setRouteInfo(null);
+        setSelectedLevel(null);
         computeRoute();
       }
     });
@@ -143,7 +161,8 @@ export default function NewMissionPage() {
       pickup_date: pickupDatetime,
       delivery_address: deliveryInputRef.current?.value ?? "",
       notes: notes || null,
-      price: pricing?.price ?? null,
+      price: selectedPrice ?? null,
+      service_level: pricing?.surDevis ? "sur_mesure" : (selectedLevel ?? null),
     });
 
     if (insertError) {
@@ -414,31 +433,30 @@ export default function NewMissionPage() {
               </div>
             </section>
 
-            {/* Pricing card — rendered as standalone section, independent of route container */}
+            {/* Pricing selector — two-column ESSENTIEL / PREMIUM */}
             {pricing && !routeLoading && (
-              <section>
-                <div className={`rounded-xl p-4 flex items-center justify-between gap-4 ${
-                  pricing.surDevis
-                    ? "bg-[#1c1b1b] border border-white/5"
-                    : "bg-white/5 border border-white/10"
-                }`}>
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="material-symbols-outlined text-[#949493] text-xl"
-                      style={{ fontVariationSettings: "'FILL' 1" }}
-                    >
-                      payments
-                    </span>
-                    <div>
-                      <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                        Tarif estimé
-                      </p>
-                      <p className="text-white text-sm font-semibold" style={{ fontFamily: "Inter, sans-serif" }}>
-                        {pricing.label}
-                      </p>
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">Niveau de service</h3>
+                  <span className="text-[10px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    {pricing.tranche}
+                  </span>
+                </div>
+
+                {pricing.surDevis ? (
+                  /* Sur devis */
+                  <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-5 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[#949493] text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        payments
+                      </span>
+                      <div>
+                        <p className="text-white text-sm font-semibold" style={{ fontFamily: "Inter, sans-serif" }}>Grande distance — Sur devis</p>
+                        <p className="text-[10px] text-[#949493] mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          Contactez-nous pour un tarif personnalisé
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  {pricing.surDevis ? (
                     <a
                       href="mailto:contact@motorsline.fr?subject=Demande de devis"
                       className="shrink-0 px-4 py-2 bg-white text-[#0A0A0A] text-xs font-bold rounded-lg hover:bg-zinc-100 active:scale-95 transition-all"
@@ -446,13 +464,70 @@ export default function NewMissionPage() {
                     >
                       Demander un devis
                     </a>
-                  ) : (
-                    <span className="shrink-0 text-white text-2xl font-bold" style={{ fontFamily: "Inter, sans-serif" }}>
-                      {pricing.price}€
-                      <span className="text-[#949493] text-sm font-normal ml-1">HT</span>
-                    </span>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  /* Essentiel / Premium selector */
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* ESSENTIEL */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedLevel("essentiel")}
+                      className={`relative rounded-xl p-4 text-left transition-all duration-200 active:scale-95 ${
+                        selectedLevel === "essentiel"
+                          ? "bg-white/10 border border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.06)]"
+                          : "bg-[#1A1A1A] border border-[#2A2A2A] hover:border-white/15"
+                      }`}
+                    >
+                      {selectedLevel === "essentiel" && (
+                        <span className="absolute top-3 right-3 material-symbols-outlined text-white text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
+                          check_circle
+                        </span>
+                      )}
+                      <p className="text-[9px] uppercase tracking-[0.2em] font-semibold text-[#949493] mb-2" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                        Essentiel
+                      </p>
+                      <p className="text-white text-2xl font-bold leading-none" style={{ fontFamily: "Inter, sans-serif" }}>
+                        {pricing.essentiel}€
+                        <span className="text-[#949493] text-xs font-normal ml-1">HT</span>
+                      </p>
+                      <p className="text-[10px] text-[#949493] mt-2" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                        Convoyage point à point
+                      </p>
+                    </button>
+
+                    {/* PREMIUM */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedLevel("premium")}
+                      className={`relative rounded-xl p-4 text-left transition-all duration-200 active:scale-95 ${
+                        selectedLevel === "premium"
+                          ? "bg-white/10 border border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.06)]"
+                          : "bg-[#1A1A1A] border border-[#2A2A2A] hover:border-white/15"
+                      }`}
+                    >
+                      {selectedLevel === "premium" && (
+                        <span className="absolute top-3 right-3 material-symbols-outlined text-white text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
+                          check_circle
+                        </span>
+                      )}
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <p className="text-[9px] uppercase tracking-[0.2em] font-semibold text-[#949493]" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          Premium
+                        </p>
+                        <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-white/10 text-white/60 font-medium uppercase tracking-wider">
+                          +35%
+                        </span>
+                      </div>
+                      <p className="text-white text-2xl font-bold leading-none" style={{ fontFamily: "Inter, sans-serif" }}>
+                        {pricing.premium}€
+                        <span className="text-[#949493] text-xs font-normal ml-1">HT</span>
+                      </p>
+                      <p className="text-[10px] text-[#949493] mt-2" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                        Livraison avec mise en main
+                      </p>
+                    </button>
+                  </div>
+                )}
               </section>
             )}
 

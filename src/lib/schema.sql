@@ -12,6 +12,8 @@ CREATE TYPE mission_type AS ENUM ('transfer', 'delivery', 'concierge');
 
 CREATE TYPE mission_status AS ENUM ('a_faire', 'en_cours', 'terminee', 'annulee');
 
+CREATE TYPE service_level AS ENUM ('essentiel', 'premium', 'sur_mesure');
+
 
 -- ─────────────────────────────────────────
 -- 1. PROFILES
@@ -160,6 +162,7 @@ CREATE TABLE missions (
   -- Extra
   notes            TEXT,
   price            NUMERIC(10, 2),
+  service_level    service_level,
 
   -- Timestamps
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
