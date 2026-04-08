@@ -95,6 +95,7 @@ export default function AdminPage() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   // Stats
   const stats = {
@@ -198,6 +199,28 @@ export default function AdminPage() {
       }, 2000);
     }
     setCreating(false);
+  }
+
+  async function handleDeleteClient(c: Client) {
+    if (!window.confirm(`Supprimer ce client ?\n\n${c.company_name} — ${c.email ?? ""}\n\nCette action est irréversible.`)) return;
+
+    setDeleting(c.id);
+
+    // 1. Supprimer le profil auth via RPC (SECURITY DEFINER, accès auth.users)
+    if (c.email) {
+      await supabase.rpc("delete_profile_by_email", { target_email: c.email });
+    }
+
+    // 2. Supprimer les invitations liées
+    if (c.email) {
+      await supabase.from("invitations").delete().eq("email", c.email);
+    }
+
+    // 3. Supprimer le client
+    await supabase.from("clients").delete().eq("id", c.id);
+
+    await fetchClients();
+    setDeleting(null);
   }
 
   async function handleLogout() {
@@ -533,9 +556,21 @@ export default function AdminPage() {
                           <p className="text-[#949493] text-xs" style={{ fontFamily: "Montserrat, sans-serif" }}>{c.contact_name}</p>
                         )}
                       </div>
-                      <span className="text-[10px] font-mono text-[#949493] bg-[#131313] px-2 py-0.5 rounded">
-                        {clientMissions.length} mission{clientMissions.length !== 1 ? "s" : ""}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono text-[#949493] bg-[#131313] px-2 py-0.5 rounded">
+                          {clientMissions.length} mission{clientMissions.length !== 1 ? "s" : ""}
+                        </span>
+                        <button
+                          onClick={() => handleDeleteClient(c)}
+                          disabled={deleting === c.id}
+                          title="Supprimer ce client"
+                          className="flex items-center justify-center w-7 h-7 rounded-lg text-[#444748] hover:text-[#ffb4ab] hover:bg-[#ffb4ab]/10 transition-colors disabled:opacity-40"
+                        >
+                          <span className="material-symbols-outlined text-base">
+                            {deleting === c.id ? "hourglass_empty" : "delete"}
+                          </span>
+                        </button>
+                      </div>
                     </div>
                     <div className="space-y-1.5 text-xs text-[#949493]" style={{ fontFamily: "Montserrat, sans-serif" }}>
                       {c.email && (
