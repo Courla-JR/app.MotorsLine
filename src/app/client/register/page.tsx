@@ -67,25 +67,33 @@ function RegisterForm() {
     });
 
     if (signUpError) {
+      console.error("[register] signUp error:", JSON.stringify(signUpError));
       setError(signUpError.message);
       setSubmitting(false);
       return;
     }
 
     const userId = signUpData.user?.id;
+    console.log("[register] signUp success, userId:", userId);
 
     if (userId) {
-      await supabase.from("profiles").upsert({
+      const { error: profileError } = await supabase.from("profiles").upsert({
         id: userId,
         role: "client",
         full_name: null,
       });
+      if (profileError) {
+        console.error("[register] profile upsert error:", JSON.stringify(profileError));
+      }
     }
 
-    await supabase
+    const { error: inviteUpdateError } = await supabase
       .from("invitations")
       .update({ used: true })
       .eq("token", token!);
+    if (inviteUpdateError) {
+      console.error("[register] invitation update error:", JSON.stringify(inviteUpdateError));
+    }
 
     document.cookie = `user-role=client; path=/; SameSite=Lax; Max-Age=2592000`;
 
