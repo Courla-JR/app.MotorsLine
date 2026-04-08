@@ -267,7 +267,7 @@ export default function AdminPage() {
               </div>
             )}
 
-            <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
               {filtered.map((m) => (
                 <div key={m.id} className="bg-[#1A1A1A] rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-colors">
                   <div className="flex flex-wrap items-start justify-between gap-4 mb-4">

@@ -61,7 +61,7 @@ export default function LoginPage() {
         />
       </div>
 
-      <main className="w-full max-w-md flex flex-col items-center">
+      <main className="w-full max-w-md md:max-w-[480px] flex flex-col items-center">
         {/* Logo */}
         <div className="mb-12 text-center">
           <div className="relative inline-block mb-2">

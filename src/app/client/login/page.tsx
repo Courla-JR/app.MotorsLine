@@ -35,7 +35,7 @@ export default function ClientLoginPage() {
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white/5 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-5%] right-[-5%] w-[30%] h-[30%] bg-white/5 rounded-full blur-[100px] pointer-events-none" />
 
-      <main className="w-full max-w-sm flex flex-col items-center space-y-12 z-10">
+      <main className="w-full max-w-sm md:max-w-[480px] flex flex-col items-center space-y-12 z-10">
         {/* Branding */}
         <header className="text-center space-y-2">
           <h1
