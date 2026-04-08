@@ -16,12 +16,19 @@ export default function ClientLoginPage() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       setError(error.message);
       setLoading(false);
     } else {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+      const role = profile?.role ?? "client";
+      document.cookie = `user-role=${role}; path=/; SameSite=Lax; Max-Age=2592000`;
       router.push("/client/dashboard");
     }
   }

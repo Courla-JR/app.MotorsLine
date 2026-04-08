@@ -31,6 +31,7 @@ export default function LoginPage() {
       .single();
 
     const role = profile?.role ?? "convoyeur";
+    document.cookie = `user-role=${role}; path=/; SameSite=Lax; Max-Age=2592000`;
     if (role === "admin") {
       router.push("/admin");
     } else if (role === "client") {
