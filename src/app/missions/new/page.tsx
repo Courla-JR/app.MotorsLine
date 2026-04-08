@@ -33,10 +33,8 @@ export default function NewMissionPage() {
   const [plate, setPlate] = useState("");
   const [color, setColor] = useState("");
   const [vin, setVin] = useState("");
-  const [pickupAddress, setPickupAddress] = useState("");
   const [pickupDate, setPickupDate] = useState("");
   const [pickupTime, setPickupTime] = useState("");
-  const [deliveryAddress, setDeliveryAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,9 +82,8 @@ export default function NewMissionPage() {
 
     acPickup.addListener("place_changed", () => {
       const place = acPickup.getPlace();
-      if (place?.formatted_address) {
+      if (place?.geometry) {
         pickupPlaceRef.current = place;
-        setPickupAddress(place.formatted_address);
         setRouteInfo(null);
         computeRoute();
       }
@@ -94,9 +91,8 @@ export default function NewMissionPage() {
 
     acDelivery.addListener("place_changed", () => {
       const place = acDelivery.getPlace();
-      if (place?.formatted_address) {
+      if (place?.geometry) {
         deliveryPlaceRef.current = place;
-        setDeliveryAddress(place.formatted_address);
         setRouteInfo(null);
         computeRoute();
       }
@@ -128,9 +124,9 @@ export default function NewMissionPage() {
       vehicle_plate: plate,
       vehicle_color: color || null,
       vehicle_vin: vin || null,
-      pickup_address: pickupAddress,
+      pickup_address: pickupInputRef.current?.value ?? "",
       pickup_date: pickupDatetime,
-      delivery_address: deliveryAddress,
+      delivery_address: deliveryInputRef.current?.value ?? "",
       notes: notes || null,
     });
 
@@ -317,14 +313,12 @@ export default function NewMissionPage() {
                     <input
                       ref={pickupInputRef}
                       required
-                      value={pickupAddress}
-                      onChange={(e) => {
-                        setPickupAddress(e.target.value);
-                        if (!e.target.value) { pickupPlaceRef.current = null; setRouteInfo(null); }
-                      }}
                       placeholder="Saisir l'adresse de départ"
                       className="w-full bg-[#131313] border-none rounded-lg p-3 text-white text-sm pr-10 placeholder:text-[#444748] focus:outline-none focus:ring-[0.5px] focus:ring-white"
                       autoComplete="off"
+                      onInput={(e) => {
+                        if (!e.currentTarget.value) { pickupPlaceRef.current = null; setRouteInfo(null); }
+                      }}
                     />
                     <span className="material-symbols-outlined absolute right-3 top-2.5 text-[#c4c7c8] text-lg">location_on</span>
                   </div>
@@ -338,14 +332,12 @@ export default function NewMissionPage() {
                     <input
                       ref={deliveryInputRef}
                       required
-                      value={deliveryAddress}
-                      onChange={(e) => {
-                        setDeliveryAddress(e.target.value);
-                        if (!e.target.value) { deliveryPlaceRef.current = null; setRouteInfo(null); }
-                      }}
                       placeholder="Saisir l'adresse d'arrivée"
                       className="w-full bg-[#131313] border-none rounded-lg p-3 text-white text-sm pr-10 placeholder:text-[#444748] focus:outline-none focus:ring-[0.5px] focus:ring-white"
                       autoComplete="off"
+                      onInput={(e) => {
+                        if (!e.currentTarget.value) { deliveryPlaceRef.current = null; setRouteInfo(null); }
+                      }}
                     />
                     <span className="material-symbols-outlined absolute right-3 top-2.5 text-[#c4c7c8] text-lg">flag</span>
                   </div>
