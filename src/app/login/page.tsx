@@ -16,11 +16,25 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       setError(error.message);
       setLoading(false);
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", data.user.id)
+      .single();
+
+    const role = profile?.role ?? "convoyeur";
+    if (role === "admin") {
+      router.push("/admin");
+    } else if (role === "client") {
+      router.push("/client/dashboard");
     } else {
       router.push("/dashboard");
     }
