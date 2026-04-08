@@ -1,6 +1,31 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+
 export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    } else {
+      router.push("/dashboard");
+    }
+  }
+
   return (
     <div
       className="relative min-h-screen flex flex-col items-center justify-center p-6"
@@ -11,7 +36,7 @@ export default function LoginPage() {
         <div className="absolute top-1/4 -right-20 w-[500px] h-[500px] bg-white/5 rounded-full blur-[120px]" />
       </div>
 
-      {/* Background atmosphere image */}
+      {/* Background atmosphere */}
       <div className="fixed inset-0 -z-30 opacity-10 pointer-events-none">
         <div
           className="w-full h-full bg-cover bg-center mix-blend-overlay"
@@ -23,7 +48,7 @@ export default function LoginPage() {
       </div>
 
       <main className="w-full max-w-md flex flex-col items-center">
-        {/* Logo Section */}
+        {/* Logo */}
         <div className="mb-12 text-center">
           <div className="relative inline-block mb-2">
             <h1
@@ -32,7 +57,6 @@ export default function LoginPage() {
             >
               Motors Line
             </h1>
-            {/* Subtle light bleed effect behind logo */}
             <div className="absolute -inset-4 bg-white/5 blur-2xl rounded-full -z-10" />
           </div>
           <p
@@ -43,60 +67,84 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Login Form */}
-        <div className="w-full space-y-6">
-          {/* Username Field */}
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="w-full space-y-6">
+          {/* Email */}
           <div className="space-y-2">
             <label
-              className="text-xs text-[#c4c7c8] ml-1"
+              htmlFor="email"
+              className="block text-xs text-[#c4c7c8] ml-1"
               style={{ fontFamily: "Montserrat, sans-serif" }}
             >
-              Identifiant
+              Identifiant (e-mail)
             </label>
             <div className="relative">
               <input
-                type="text"
-                placeholder="Ex: convoyeur_75"
-                className="w-full h-14 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg px-4 text-white placeholder:text-[#8e9192]/40 focus:outline-none focus:ring-1 focus:ring-white/20 focus:bg-[#3a3939] transition-all duration-200"
+                id="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="ex: convoyeur@motorsline.fr"
+                className="w-full h-14 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg px-4 pr-12 text-white placeholder:text-[#8e9192]/40 focus:outline-none focus:ring-1 focus:ring-white/20 focus:bg-[#3a3939] transition-all duration-200"
                 style={{ fontFamily: "Inter, sans-serif" }}
               />
-              <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[#444748]">
+              <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[#444748] select-none">
                 person
               </span>
             </div>
           </div>
 
-          {/* Password Field */}
+          {/* Password */}
           <div className="space-y-2">
             <label
-              className="text-xs text-[#c4c7c8] ml-1"
+              htmlFor="password"
+              className="block text-xs text-[#c4c7c8] ml-1"
               style={{ fontFamily: "Montserrat, sans-serif" }}
             >
               Mot de passe
             </label>
             <div className="relative">
               <input
+                id="password"
                 type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full h-14 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg px-4 text-white placeholder:text-[#8e9192]/40 focus:outline-none focus:ring-1 focus:ring-white/20 focus:bg-[#3a3939] transition-all duration-200"
+                className="w-full h-14 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg px-4 pr-12 text-white placeholder:text-[#8e9192]/40 focus:outline-none focus:ring-1 focus:ring-white/20 focus:bg-[#3a3939] transition-all duration-200"
                 style={{ fontFamily: "Inter, sans-serif" }}
               />
-              <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[#444748]">
+              <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[#444748] select-none">
                 lock
               </span>
             </div>
           </div>
 
-          {/* Login Button */}
+          {/* Error message */}
+          {error && (
+            <p
+              className="text-[#ffb4ab] text-sm text-center"
+              style={{ fontFamily: "Montserrat, sans-serif" }}
+            >
+              {error}
+            </p>
+          )}
+
+          {/* Submit */}
           <button
-            className="w-full h-14 bg-white text-[#0A0A0A] font-bold rounded-full shadow-[0_0_20px_rgba(255,255,255,0.1)] active:scale-95 transition-transform duration-150 mt-4"
+            type="submit"
+            disabled={loading}
+            className="w-full h-14 bg-white text-[#0A0A0A] font-bold rounded-full shadow-[0_0_20px_rgba(255,255,255,0.1)] active:scale-95 transition-all duration-150 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ fontFamily: "Inter, sans-serif" }}
           >
-            Se connecter
+            {loading ? "Connexion…" : "Se connecter"}
           </button>
 
-          {/* Secondary Actions */}
-          <div className="flex flex-col items-center space-y-4 pt-4">
+          {/* Secondary action */}
+          <div className="flex flex-col items-center pt-4">
             <a
               href="#"
               className="text-[#949493] text-sm underline decoration-[#949493]/30 underline-offset-4 hover:text-white transition-colors"
@@ -105,10 +153,10 @@ export default function LoginPage() {
               Code d&apos;accès temporaire ?
             </a>
           </div>
-        </div>
+        </form>
       </main>
 
-      {/* Aesthetic Footer */}
+      {/* Footer */}
       <div className="fixed bottom-12 left-0 w-full px-6 pointer-events-none opacity-20">
         <div className="max-w-md mx-auto border-t border-white/10 pt-4 flex justify-between items-center">
           <span
