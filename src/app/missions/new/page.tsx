@@ -9,15 +9,7 @@ import Link from "next/link";
 import Script from "next/script";
 import { supabase } from "@/lib/supabase";
 
-type MissionType = "transfer" | "delivery" | "concierge";
-
-const missionTypes: { label: string; value: MissionType }[] = [
-  { label: "Transfer", value: "transfer" },
-  { label: "Delivery", value: "delivery" },
-  { label: "Concierge", value: "concierge" },
-];
-
-type ServiceLevel = "essentiel" | "premium" | null;
+type ServiceLevel = "essentiel" | "premium" | "sur_mesure";
 
 type Pricing =
   | { surDevis: false; tranche: string; essentiel: number; premium: number }
@@ -44,7 +36,6 @@ const CONVOYEUR_NAV = [
 export default function NewMissionPage() {
   const router = useRouter();
 
-  const [type, setType] = useState<MissionType>("transfer");
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [plate, setPlate] = useState("");
@@ -59,14 +50,14 @@ export default function NewMissionPage() {
   // Maps state
   const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string; distanceMeters: number } | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
-  const [selectedLevel, setSelectedLevel] = useState<ServiceLevel>(null);
+  const [selectedLevel, setSelectedLevel] = useState<ServiceLevel>("essentiel");
 
   // Derive pricing from distanceMeters at render time — avoids stale/missing state issues
   const pricing: Pricing | null = routeInfo ? getPricing(routeInfo.distanceMeters) : null;
 
-  // Price to save: selected level's price, or null for sur devis
+  // Price to save: based on selectedLevel + distance tranche
   const selectedPrice: number | null =
-    pricing && !pricing.surDevis && selectedLevel
+    pricing && !pricing.surDevis && selectedLevel !== "sur_mesure"
       ? selectedLevel === "essentiel" ? pricing.essentiel : pricing.premium
       : null;
 
@@ -96,8 +87,8 @@ export default function NewMissionPage() {
             duration: leg.duration?.text ?? "—",
             distanceMeters,
           });
-          // Auto-select Essentiel unless sur devis
-          setSelectedLevel(getPricing(distanceMeters).surDevis ? null : "essentiel");
+          // Force sur_mesure for grande distance; keep user's choice otherwise
+          if (getPricing(distanceMeters).surDevis) setSelectedLevel("sur_mesure");
         }
       }
     );
@@ -116,7 +107,7 @@ export default function NewMissionPage() {
       if (place?.geometry) {
         pickupPlaceRef.current = place;
         setRouteInfo(null);
-        setSelectedLevel(null);
+        setSelectedLevel("essentiel");
         computeRoute();
       }
     });
@@ -126,7 +117,7 @@ export default function NewMissionPage() {
       if (place?.geometry) {
         deliveryPlaceRef.current = place;
         setRouteInfo(null);
-        setSelectedLevel(null);
+        setSelectedLevel("essentiel");
         computeRoute();
       }
     });
@@ -149,7 +140,6 @@ export default function NewMissionPage() {
       : pickupDate ? new Date(pickupDate).toISOString() : null;
 
     const { error: insertError } = await supabase.from("missions").insert({
-      type,
       status: "a_faire",
       convoyeur_id: user.id,
       vehicle_brand: brand,
@@ -162,7 +152,7 @@ export default function NewMissionPage() {
       delivery_address: deliveryInputRef.current?.value ?? "",
       notes: notes || null,
       price: selectedPrice ?? null,
-      service_level: pricing?.surDevis ? "sur_mesure" : (selectedLevel ?? null),
+      service_level: selectedLevel,
     });
 
     if (insertError) {
@@ -246,24 +236,24 @@ export default function NewMissionPage() {
         <form onSubmit={handleSubmit} className="pb-40 md:pb-10">
           <main className="max-w-lg md:max-w-2xl mx-auto px-6 mt-6 space-y-8">
 
-            {/* Mission type */}
+            {/* Service level selector */}
             <section className="space-y-3">
               <label className="text-[10px] uppercase tracking-widest font-medium text-[#c4c7c8] ml-1" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                Type de Mission
+                Niveau de service
               </label>
               <div className="flex flex-wrap gap-2">
-                {missionTypes.map((t) => (
+                {(["essentiel", "premium", "sur_mesure"] as const).map((level) => (
                   <button
-                    key={t.value}
+                    key={level}
                     type="button"
-                    onClick={() => setType(t.value)}
+                    onClick={() => setSelectedLevel(level)}
                     className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-transform active:scale-95 ${
-                      type === t.value
+                      selectedLevel === level
                         ? "bg-white text-[#0A0A0A]"
                         : "bg-[#2a2a2a] text-white font-medium border border-white/5 hover:bg-[#3a3939]"
                     }`}
                   >
-                    {t.label}
+                    {level === "essentiel" ? "Essentiel" : level === "premium" ? "Premium" : "Sur Mesure"}
                   </button>
                 ))}
               </div>
@@ -433,25 +423,29 @@ export default function NewMissionPage() {
               </div>
             </section>
 
-            {/* Pricing selector — two-column ESSENTIEL / PREMIUM */}
-            {pricing && !routeLoading && (
+            {/* Tarif estimé — affiché après calcul de distance */}
+            {routeInfo && !routeLoading && (
               <section className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">Niveau de service</h3>
-                  <span className="text-[10px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                    {pricing.tranche}
-                  </span>
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">Tarif estimé</h3>
+                  {pricing && (
+                    <span className="text-[10px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      {pricing.tranche}
+                    </span>
+                  )}
                 </div>
 
-                {pricing.surDevis ? (
-                  /* Sur devis */
+                {selectedLevel === "sur_mesure" || pricing?.surDevis ? (
+                  /* Sur Mesure ou Grande distance : pas de tarif fixe */
                   <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-5 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-[#949493] text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
                         payments
                       </span>
                       <div>
-                        <p className="text-white text-sm font-semibold" style={{ fontFamily: "Inter, sans-serif" }}>Grande distance — Sur devis</p>
+                        <p className="text-white text-sm font-semibold" style={{ fontFamily: "Inter, sans-serif" }}>
+                          {selectedLevel === "sur_mesure" ? "Sur Mesure" : "Grande distance"} — Tarif sur devis
+                        </p>
                         <p className="text-[10px] text-[#949493] mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
                           Contactez-nous pour un tarif personnalisé
                         </p>
@@ -466,86 +460,27 @@ export default function NewMissionPage() {
                     </a>
                   </div>
                 ) : (
-                  /* Essentiel / Premium selector */
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* ESSENTIEL */}
-                      <button
-                        type="button"
-                        onClick={() => setSelectedLevel("essentiel")}
-                        className={`relative rounded-xl p-4 text-left transition-all duration-200 active:scale-95 ${
-                          selectedLevel === "essentiel"
-                            ? "bg-white/10 border border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.06)]"
-                            : "bg-[#1A1A1A] border border-[#2A2A2A] hover:border-white/15"
-                        }`}
-                      >
-                        {selectedLevel === "essentiel" && (
-                          <span className="absolute top-3 right-3 material-symbols-outlined text-white text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
-                            check_circle
-                          </span>
-                        )}
-                        <p className="text-[9px] uppercase tracking-[0.2em] font-semibold text-[#949493] mb-2" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                          Essentiel
+                  /* Prix fixe selon niveau sélectionné */
+                  <div className="bg-white/5 border border-white/10 rounded-xl px-5 py-4 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[#949493] text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        payments
+                      </span>
+                      <div>
+                        <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          {selectedLevel === "essentiel" ? "Essentiel — Convoyage point à point" : "Premium — Livraison avec mise en main"}
                         </p>
-                        <p className={`text-2xl font-bold leading-none transition-colors ${selectedLevel === "essentiel" ? "text-white" : "text-[#666]"}`} style={{ fontFamily: "Inter, sans-serif" }}>
-                          {pricing.essentiel}€
-                          <span className="text-xs font-normal ml-1">HT</span>
+                        <p className="text-[11px] text-[#666]" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          {selectedLevel === "essentiel"
+                            ? `Premium disponible à ${pricing!.premium}€ HT`
+                            : `Essentiel disponible à ${pricing!.essentiel}€ HT`}
                         </p>
-                        <p className="text-[10px] text-[#949493] mt-2" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                          Convoyage point à point
-                        </p>
-                      </button>
-
-                      {/* PREMIUM */}
-                      <button
-                        type="button"
-                        onClick={() => setSelectedLevel("premium")}
-                        className={`relative rounded-xl p-4 text-left transition-all duration-200 active:scale-95 ${
-                          selectedLevel === "premium"
-                            ? "bg-white/10 border border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.06)]"
-                            : "bg-[#1A1A1A] border border-[#2A2A2A] hover:border-white/15"
-                        }`}
-                      >
-                        {selectedLevel === "premium" && (
-                          <span className="absolute top-3 right-3 material-symbols-outlined text-white text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
-                            check_circle
-                          </span>
-                        )}
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <p className="text-[9px] uppercase tracking-[0.2em] font-semibold text-[#949493]" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                            Premium
-                          </p>
-                          <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-white/10 text-white/60 font-medium uppercase tracking-wider">
-                            +35%
-                          </span>
-                        </div>
-                        <p className={`text-2xl font-bold leading-none transition-colors ${selectedLevel === "premium" ? "text-white" : "text-[#666]"}`} style={{ fontFamily: "Inter, sans-serif" }}>
-                          {pricing.premium}€
-                          <span className="text-xs font-normal ml-1">HT</span>
-                        </p>
-                        <p className="text-[10px] text-[#949493] mt-2" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                          Livraison avec mise en main
-                        </p>
-                      </button>
-                    </div>
-
-                    {/* Prix sélectionné — barre récapitulative dynamique */}
-                    {selectedLevel && selectedPrice !== null && (
-                      <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10">
-                        <div className="flex items-center gap-2">
-                          <span className="material-symbols-outlined text-[#949493] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
-                            payments
-                          </span>
-                          <span className="text-[11px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                            Prix sélectionné — {selectedLevel === "essentiel" ? "Essentiel" : "Premium"}
-                          </span>
-                        </div>
-                        <span className="text-white text-xl font-bold" style={{ fontFamily: "Inter, sans-serif" }}>
-                          {selectedPrice}€
-                          <span className="text-[#949493] text-xs font-normal ml-1">HT</span>
-                        </span>
                       </div>
-                    )}
+                    </div>
+                    <span className="shrink-0 text-white text-3xl font-bold" style={{ fontFamily: "Inter, sans-serif" }}>
+                      {selectedPrice}€
+                      <span className="text-[#949493] text-sm font-normal ml-1">HT</span>
+                    </span>
                   </div>
                 )}
               </section>
