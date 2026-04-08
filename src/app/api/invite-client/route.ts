@@ -73,9 +73,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: inviteError.message }, { status: 500 });
   }
 
-  // Build invite URL from the incoming request origin
-  const origin = new URL(request.url).origin;
-  const inviteUrl = `${origin}/client/register?token=${token}`;
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
+  const inviteUrl = `${baseUrl}/client/register?token=${token}`;
 
   await sendInvitationEmail({ email, company_name, inviteUrl });
 
