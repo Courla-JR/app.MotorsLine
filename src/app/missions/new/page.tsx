@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
+/* global google */
+declare const google: any;
+
+import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Script from "next/script";
 import { supabase } from "@/lib/supabase";
 
 type MissionType = "transfer" | "delivery" | "concierge";
@@ -36,6 +40,68 @@ export default function NewMissionPage() {
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Maps state
+  const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string } | null>(null);
+  const [routeLoading, setRouteLoading] = useState(false);
+
+  // Refs for autocomplete inputs and place results
+  const pickupInputRef = useRef<HTMLInputElement>(null);
+  const deliveryInputRef = useRef<HTMLInputElement>(null);
+  const pickupPlaceRef = useRef<any>(null);
+  const deliveryPlaceRef = useRef<any>(null);
+
+  const computeRoute = useCallback(() => {
+    if (!pickupPlaceRef.current?.geometry?.location || !deliveryPlaceRef.current?.geometry?.location) return;
+    setRouteLoading(true);
+    const service = new google.maps.DirectionsService();
+    service.route(
+      {
+        origin: pickupPlaceRef.current.geometry.location,
+        destination: deliveryPlaceRef.current.geometry.location,
+        travelMode: "DRIVING",
+      },
+      (result: any, status: string) => {
+        setRouteLoading(false);
+        if (status === "OK" && result) {
+          const leg = result.routes[0].legs[0];
+          setRouteInfo({
+            distance: leg.distance?.text ?? "—",
+            duration: leg.duration?.text ?? "—",
+          });
+        }
+      }
+    );
+  }, []);
+
+  const initMaps = useCallback(() => {
+    if (!pickupInputRef.current || !deliveryInputRef.current) return;
+
+    const opts = { fields: ["formatted_address", "geometry"], types: ["address"] };
+
+    const acPickup = new google.maps.places.Autocomplete(pickupInputRef.current, opts);
+    const acDelivery = new google.maps.places.Autocomplete(deliveryInputRef.current, opts);
+
+    acPickup.addListener("place_changed", () => {
+      const place = acPickup.getPlace();
+      if (place?.formatted_address) {
+        pickupPlaceRef.current = place;
+        setPickupAddress(place.formatted_address);
+        setRouteInfo(null);
+        computeRoute();
+      }
+    });
+
+    acDelivery.addListener("place_changed", () => {
+      const place = acDelivery.getPlace();
+      if (place?.formatted_address) {
+        deliveryPlaceRef.current = place;
+        setDeliveryAddress(place.formatted_address);
+        setRouteInfo(null);
+        computeRoute();
+      }
+    });
+  }, [computeRoute]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -78,6 +144,12 @@ export default function NewMissionPage() {
 
   return (
     <div className="bg-[#0A0A0A] text-[#e5e2e1] min-h-screen" style={{ fontFamily: "Inter, sans-serif" }}>
+
+      {/* Google Maps API */}
+      <Script
+        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
+        onLoad={initMaps}
+      />
 
       {/* ── Desktop Sidebar ── */}
       <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-60 bg-[#0A0A0A] border-r border-[#2A2A2A] z-50 py-8 px-4">
@@ -234,38 +306,83 @@ export default function NewMissionPage() {
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider">Itinéraire</h3>
                 <span className="material-symbols-outlined text-[#c4c7c8] text-sm">route</span>
               </div>
-              <div className="bg-[#1A1A1A] p-5 rounded-xl space-y-6 relative overflow-hidden">
+              <div className="bg-[#1A1A1A] p-5 rounded-xl space-y-6 relative overflow-visible">
                 <div className="absolute left-9 top-14 bottom-32 w-[2px] bg-[#353534] rounded-full" />
-                <div className="space-y-4">
-                  <div className="relative pl-10">
-                    <div className="absolute left-3 top-2 w-3 h-3 rounded-full border-2 border-white bg-[#1A1A1A] z-10" />
-                    <label className="text-[10px] text-[#c4c7c8] uppercase font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>Départ</label>
-                    <div className="relative">
-                      <input
-                        required
-                        value={pickupAddress}
-                        onChange={(e) => setPickupAddress(e.target.value)}
-                        placeholder="Saisir l'adresse de départ"
-                        className="w-full bg-[#131313] border-none rounded-lg p-3 text-white text-sm pr-10 placeholder:text-[#444748] focus:outline-none focus:ring-[0.5px] focus:ring-white"
-                      />
-                      <span className="material-symbols-outlined absolute right-3 top-2.5 text-[#c4c7c8] text-lg">location_on</span>
-                    </div>
-                  </div>
-                  <div className="relative pl-10">
-                    <div className="absolute left-3 top-2 w-3 h-3 rounded-full bg-white z-10" />
-                    <label className="text-[10px] text-[#c4c7c8] uppercase font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>Arrivée</label>
-                    <div className="relative">
-                      <input
-                        required
-                        value={deliveryAddress}
-                        onChange={(e) => setDeliveryAddress(e.target.value)}
-                        placeholder="Saisir l'adresse d'arrivée"
-                        className="w-full bg-[#131313] border-none rounded-lg p-3 text-white text-sm pr-10 placeholder:text-[#444748] focus:outline-none focus:ring-[0.5px] focus:ring-white"
-                      />
-                      <span className="material-symbols-outlined absolute right-3 top-2.5 text-[#c4c7c8] text-lg">flag</span>
-                    </div>
+
+                {/* Pickup */}
+                <div className="relative pl-10">
+                  <div className="absolute left-3 top-2 w-3 h-3 rounded-full border-2 border-white bg-[#1A1A1A] z-10" />
+                  <label className="text-[10px] text-[#c4c7c8] uppercase font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>Départ</label>
+                  <div className="relative">
+                    <input
+                      ref={pickupInputRef}
+                      required
+                      value={pickupAddress}
+                      onChange={(e) => {
+                        setPickupAddress(e.target.value);
+                        if (!e.target.value) { pickupPlaceRef.current = null; setRouteInfo(null); }
+                      }}
+                      placeholder="Saisir l'adresse de départ"
+                      className="w-full bg-[#131313] border-none rounded-lg p-3 text-white text-sm pr-10 placeholder:text-[#444748] focus:outline-none focus:ring-[0.5px] focus:ring-white"
+                      autoComplete="off"
+                    />
+                    <span className="material-symbols-outlined absolute right-3 top-2.5 text-[#c4c7c8] text-lg">location_on</span>
                   </div>
                 </div>
+
+                {/* Delivery */}
+                <div className="relative pl-10">
+                  <div className="absolute left-3 top-2 w-3 h-3 rounded-full bg-white z-10" />
+                  <label className="text-[10px] text-[#c4c7c8] uppercase font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>Arrivée</label>
+                  <div className="relative">
+                    <input
+                      ref={deliveryInputRef}
+                      required
+                      value={deliveryAddress}
+                      onChange={(e) => {
+                        setDeliveryAddress(e.target.value);
+                        if (!e.target.value) { deliveryPlaceRef.current = null; setRouteInfo(null); }
+                      }}
+                      placeholder="Saisir l'adresse d'arrivée"
+                      className="w-full bg-[#131313] border-none rounded-lg p-3 text-white text-sm pr-10 placeholder:text-[#444748] focus:outline-none focus:ring-[0.5px] focus:ring-white"
+                      autoComplete="off"
+                    />
+                    <span className="material-symbols-outlined absolute right-3 top-2.5 text-[#c4c7c8] text-lg">flag</span>
+                  </div>
+                </div>
+
+                {/* Route result */}
+                {routeLoading && (
+                  <div className="flex items-center gap-2 pt-2 border-t border-white/5">
+                    <span className="text-[#949493] text-xs" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      Calcul de l&apos;itinéraire…
+                    </span>
+                  </div>
+                )}
+                {routeInfo && !routeLoading && (
+                  <div className="flex items-center gap-5 pt-4 border-t border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[#949493] text-base">route</span>
+                      <div>
+                        <p className="text-[10px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>Distance</p>
+                        <p className="text-white text-sm font-bold" style={{ fontFamily: "Inter, sans-serif" }}>{routeInfo.distance}</p>
+                      </div>
+                    </div>
+                    <div className="w-px h-8 bg-white/10" />
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[#949493] text-base">schedule</span>
+                      <div>
+                        <p className="text-[10px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>Durée estimée</p>
+                        <p className="text-white text-sm font-bold" style={{ fontFamily: "Inter, sans-serif" }}>{routeInfo.duration}</p>
+                      </div>
+                    </div>
+                    <span className="ml-auto text-[10px] text-[#444748] uppercase tracking-wider" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      via Google Maps
+                    </span>
+                  </div>
+                )}
+
+                {/* Date & time */}
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
                   <div className="space-y-1.5">
                     <label className="text-[10px] text-[#c4c7c8] uppercase font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>Date</label>
