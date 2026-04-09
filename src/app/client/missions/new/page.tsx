@@ -326,7 +326,7 @@ export default function ClientNewMissionPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="pb-40 md:pb-10">
+        <form onSubmit={handleSubmit} className="pb-56 md:pb-10">
           <main className="max-w-lg md:max-w-2xl mx-auto px-6 mt-6 space-y-8">
 
             {/* Service level selector */}

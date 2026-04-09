@@ -338,6 +338,18 @@ export default function ClientProfilePage() {
           )}
         </main>
 
+        {/* Logout button (mobile only) */}
+        <div className="md:hidden px-6 pb-28 pt-2 max-w-lg mx-auto">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full py-3 rounded-xl border border-[#EF4444] text-[#EF4444] text-sm font-semibold transition-opacity active:opacity-70"
+            style={{ fontFamily: "Inter, sans-serif" }}
+          >
+            Déconnexion
+          </button>
+        </div>
+
         {/* Bottom Nav (mobile only) */}
         <nav className="md:hidden fixed bottom-0 left-0 w-full h-20 flex justify-around items-center px-4 pb-4 bg-neutral-950/80 backdrop-blur-xl rounded-t-2xl z-50 shadow-[0_-4px_24px_rgba(255,255,255,0.02)]">
           {CLIENT_NAV.map((item) => (

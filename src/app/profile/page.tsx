@@ -346,6 +346,18 @@ export default function ConvoyeurProfilePage() {
           )}
         </main>
 
+        {/* Logout button (mobile only) */}
+        <div className="md:hidden px-6 pb-28 pt-2 max-w-lg mx-auto">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full py-3 rounded-xl border border-[#EF4444] text-[#EF4444] text-sm font-semibold transition-opacity active:opacity-70"
+            style={{ fontFamily: "Inter, sans-serif" }}
+          >
+            Déconnexion
+          </button>
+        </div>
+
         {/* Bottom Nav (mobile only) */}
         <nav className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl fixed bottom-0 w-full z-50 rounded-t-2xl border-t border-[#2A2A2A] shadow-[0_-4px_24px_rgba(255,255,255,0.05)]">
           <div className="flex justify-around items-center pt-3 pb-6 px-4">
