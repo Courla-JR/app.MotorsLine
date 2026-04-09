@@ -97,13 +97,10 @@ export default function ClientBillingPage() {
             <Link
               key={item.label}
               href={item.href}
-              className={`flex flex-col items-center justify-center transition-all ${item.href === "/client/billing" ? "text-white scale-110" : "text-zinc-600 hover:text-zinc-300"}`}
+              className={`flex items-center justify-center transition-all ${item.href === "/client/billing" ? "text-white scale-110" : "text-zinc-600 hover:text-zinc-300"}`}
             >
               <span className="material-symbols-outlined" style={item.href === "/client/billing" ? { fontVariationSettings: "'FILL' 1" } : undefined}>
                 {item.icon}
-              </span>
-              <span className="font-medium text-[10px] uppercase tracking-widest mt-1" style={{ fontFamily: "Inter, sans-serif" }}>
-                {item.label}
               </span>
             </Link>
           ))}

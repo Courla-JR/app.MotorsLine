@@ -273,7 +273,8 @@ export default function ClientMissionsPage() {
                   ) : (
                     <div />
                   )}
-                  <button
+                  <Link
+                    href={`/client/missions/${m.id}`}
                     className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-1 hover:opacity-70 transition-opacity"
                     style={{ fontFamily: "Inter, sans-serif" }}
                   >
@@ -281,7 +282,7 @@ export default function ClientMissionsPage() {
                     <span className="material-symbols-outlined text-sm">
                       {m.status === "terminee" ? "history" : "arrow_forward_ios"}
                     </span>
-                  </button>
+                  </Link>
                 </div>
               </div>
             ))}
@@ -294,13 +295,10 @@ export default function ClientMissionsPage() {
             <Link
               key={item.label}
               href={item.href}
-              className={`flex flex-col items-center justify-center transition-all ${item.href === "/client/missions" ? "text-white scale-110" : "text-zinc-600 hover:text-zinc-300"}`}
+              className={`flex items-center justify-center transition-all ${item.href === "/client/missions" ? "text-white scale-110" : "text-zinc-600 hover:text-zinc-300"}`}
             >
-              <span className="material-symbols-outlined mb-1" style={item.href === "/client/missions" ? { fontVariationSettings: "'FILL' 1" } : undefined}>
+              <span className="material-symbols-outlined" style={item.href === "/client/missions" ? { fontVariationSettings: "'FILL' 1" } : undefined}>
                 {item.icon}
-              </span>
-              <span className="font-medium text-[10px] uppercase tracking-widest" style={{ fontFamily: "Inter, sans-serif" }}>
-                {item.label}
               </span>
             </Link>
           ))}
