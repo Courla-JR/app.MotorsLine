@@ -145,12 +145,20 @@ export default function ClientNewMissionPage() {
       return;
     }
 
-    // Resolve client_id from clients table using authenticated user's email (case-insensitive)
-    const { data: client } = await supabase
+    // Try by user_id first (direct link), fallback to email match
+    let { data: client } = await supabase
       .from("clients")
       .select("id")
-      .ilike("email", user.email!)
-      .single();
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!client && user.email) {
+      ({ data: client } = await supabase
+        .from("clients")
+        .select("id")
+        .ilike("email", user.email)
+        .maybeSingle());
+    }
 
     if (!client) {
       setError("Compte client introuvable. Contactez votre gestionnaire.");

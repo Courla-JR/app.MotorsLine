@@ -69,11 +69,20 @@ export default function ClientMissionsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/client/login"); return; }
 
-      const { data: client } = await supabase
+      // Try by user_id first (direct link), fallback to email match
+      let { data: client } = await supabase
         .from("clients")
         .select("id")
-        .ilike("email", user.email!)
-        .single();
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!client && user.email) {
+        ({ data: client } = await supabase
+          .from("clients")
+          .select("id")
+          .ilike("email", user.email)
+          .maybeSingle());
+      }
 
       setClientId(client?.id ?? null);
     }

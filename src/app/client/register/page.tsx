@@ -91,6 +91,15 @@ function RegisterForm() {
       if (profileError) {
         console.error("[register] profile upsert error:", JSON.stringify(profileError));
       }
+
+      // Link the clients record to this auth user via user_id
+      const { error: clientLinkError } = await supabase
+        .from("clients")
+        .update({ user_id: userId })
+        .ilike("email", invitationEmail);
+      if (clientLinkError) {
+        console.error("[register] client user_id link error:", JSON.stringify(clientLinkError));
+      }
     }
 
     const { error: inviteUpdateError } = await supabase
