@@ -67,7 +67,11 @@ export default function ClientBillingPage() {
     setDownloadingId(null);
     if (!res.ok) return;
     const { url } = await res.json();
-    window.location.href = url;
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.click();
   }
 
   async function handleLogout() {
