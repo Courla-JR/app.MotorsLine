@@ -87,9 +87,11 @@ export default function ClientBillingPage() {
       {/* ── Desktop Sidebar ── */}
       <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-60 bg-[#0A0A0A] border-r border-[#2A2A2A] z-50 py-8 px-4">
         <div className="mb-10 px-2">
-          <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
-            Motors Line
-          </h1>
+          <Link href="/client/dashboard" className="cursor-pointer">
+            <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
+              Motors Line
+            </h1>
+          </Link>
           <p className="text-[10px] text-[#949493] uppercase tracking-widest mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
             Espace Client
           </p>
@@ -127,12 +129,14 @@ export default function ClientBillingPage() {
 
         {/* TopAppBar (mobile only) */}
         <header className="md:hidden fixed top-0 w-full z-50 bg-neutral-950/80 backdrop-blur-xl flex justify-between items-center px-6 h-16">
-          <h1
-            className="text-xl font-bold tracking-tighter italic bg-clip-text text-transparent bg-gradient-to-r from-zinc-400 via-zinc-100 to-zinc-400 overflow-visible pr-1"
-            style={{ fontFamily: "Inter, sans-serif" }}
-          >
-            Motors Line
-          </h1>
+          <Link href="/client/dashboard" className="cursor-pointer">
+            <h1
+              className="text-xl font-bold tracking-tighter italic bg-clip-text text-transparent bg-gradient-to-r from-zinc-400 via-zinc-100 to-zinc-400 overflow-visible pr-1"
+              style={{ fontFamily: "Inter, sans-serif" }}
+            >
+              Motors Line
+            </h1>
+          </Link>
         </header>
 
         <main className="pt-24 md:pt-8 px-6 max-w-lg md:max-w-3xl mx-auto">

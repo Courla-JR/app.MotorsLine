@@ -125,9 +125,11 @@ export default function ConvoyeurMissionDetailPage() {
       {/* ── Desktop Sidebar ── */}
       <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-60 bg-[#0A0A0A] border-r border-[#2A2A2A] z-50 py-8 px-4">
         <div className="mb-10 px-2">
-          <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
-            Motors Line
-          </h1>
+          <Link href="/dashboard" className="cursor-pointer">
+            <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
+              Motors Line
+            </h1>
+          </Link>
           <p className="text-[10px] text-[#949493] uppercase tracking-widest mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
             Espace Convoyeur
           </p>
@@ -177,9 +179,11 @@ export default function ConvoyeurMissionDetailPage() {
                 arrow_back
               </span>
             </Link>
-            <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
-              Motors Line
-            </h1>
+            <Link href="/dashboard" className="cursor-pointer">
+              <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
+                Motors Line
+              </h1>
+            </Link>
           </div>
           <Link href="/profile" className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center hover:bg-[#3a3939] transition-colors">
             <span className="material-symbols-outlined text-[#c4c7c8]">person</span>

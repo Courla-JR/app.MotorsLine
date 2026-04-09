@@ -213,9 +213,11 @@ export default function AdminPage() {
       <header className="sticky top-0 z-50 bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-[#1c1b1b]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2 overflow-hidden">
           <div className="flex items-center gap-2 min-w-0 shrink-0">
-            <span className="text-base sm:text-xl font-bold italic tracking-tighter silver-gradient-text overflow-visible pr-1">
-              Motors Line
-            </span>
+            <Link href="/admin" className="cursor-pointer">
+              <span className="text-base sm:text-xl font-bold italic tracking-tighter silver-gradient-text overflow-visible pr-1">
+                Motors Line
+              </span>
+            </Link>
             <span className="text-[10px] uppercase tracking-widest text-[#444748] font-medium px-1.5 py-0.5 rounded border border-[#2a2a2a] shrink-0">
               Admin
             </span>

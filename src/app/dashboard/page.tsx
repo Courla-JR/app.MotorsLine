@@ -102,9 +102,11 @@ export default function DashboardPage() {
       {/* ── Desktop Sidebar ── */}
       <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-60 bg-[#0A0A0A] border-r border-[#2A2A2A] z-50 py-8 px-4">
         <div className="mb-10 px-2">
-          <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
-            Motors Line
-          </h1>
+          <Link href="/dashboard" className="cursor-pointer">
+            <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
+              Motors Line
+            </h1>
+          </Link>
           <p className="text-[10px] text-[#949493] uppercase tracking-widest mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
             Espace Convoyeur
           </p>
@@ -153,9 +155,11 @@ export default function DashboardPage() {
         <header className="md:hidden sticky top-0 z-50 bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-[#1c1b1b]">
           <div className="px-4 h-16 flex items-center justify-between gap-2 overflow-hidden">
             <div className="flex items-center gap-2 min-w-0 shrink-0">
-              <span className="text-base font-bold italic tracking-tighter silver-gradient-text overflow-visible pr-1">
-                Motors Line
-              </span>
+              <Link href="/dashboard" className="cursor-pointer">
+                <span className="text-base font-bold italic tracking-tighter silver-gradient-text overflow-visible pr-1">
+                  Motors Line
+                </span>
+              </Link>
               <span className="text-[10px] uppercase tracking-widest text-[#444748] font-medium px-1.5 py-0.5 rounded border border-[#2a2a2a] shrink-0">
                 Convoyeur
               </span>

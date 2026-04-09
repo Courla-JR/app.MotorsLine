@@ -116,9 +116,11 @@ export default function ClientMissionsPage() {
       {/* ── Desktop Sidebar ── */}
       <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-60 bg-[#0A0A0A] border-r border-[#2A2A2A] z-50 py-8 px-4">
         <div className="mb-10 px-2">
-          <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
-            Motors Line
-          </h1>
+          <Link href="/client/dashboard" className="cursor-pointer">
+            <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
+              Motors Line
+            </h1>
+          </Link>
           <p className="text-[10px] text-[#949493] uppercase tracking-widest mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
             Espace Client
           </p>
@@ -156,19 +158,14 @@ export default function ClientMissionsPage() {
 
         {/* TopAppBar (mobile only) */}
         <header className="md:hidden fixed top-0 w-full z-50 bg-neutral-950/80 backdrop-blur-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex justify-between items-center px-6 h-16">
-          <div className="flex items-center gap-4">
-            <Link href="/client/dashboard">
-              <span className="material-symbols-outlined text-white cursor-pointer active:opacity-70 active:scale-95 duration-150">
-                arrow_back
-              </span>
-            </Link>
+          <Link href="/client/dashboard" className="cursor-pointer">
             <h1
               className="text-xl font-bold tracking-tighter italic bg-clip-text text-transparent bg-gradient-to-r from-zinc-400 via-zinc-100 to-zinc-400 overflow-visible pr-1"
               style={{ fontFamily: "Inter, sans-serif" }}
             >
               Motors Line
             </h1>
-          </div>
+          </Link>
           <Link href="/client/profile" className="w-10 h-10 rounded-full border border-white/10 bg-[#1A1A1A] flex items-center justify-center hover:bg-[#2a2a2a] transition-colors">
             <span className="material-symbols-outlined text-[#c4c7c8] text-lg">person</span>
           </Link>

@@ -268,9 +268,11 @@ export default function ClientNewMissionPage() {
       {/* ── Desktop Sidebar ── */}
       <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-60 bg-[#0A0A0A] border-r border-[#2A2A2A] z-50 py-8 px-4">
         <div className="mb-10 px-2">
-          <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
-            Motors Line
-          </h1>
+          <Link href="/client/dashboard" className="cursor-pointer">
+            <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
+              Motors Line
+            </h1>
+          </Link>
           <p className="text-[10px] text-[#949493] uppercase tracking-widest mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
             Espace Client
           </p>
@@ -315,9 +317,11 @@ export default function ClientNewMissionPage() {
                   arrow_back
                 </span>
               </Link>
-              <span className="text-base font-bold italic tracking-tighter silver-gradient-text overflow-visible pr-1">
-                Motors Line
-              </span>
+              <Link href="/client/dashboard" className="cursor-pointer">
+                <span className="text-xl font-bold italic tracking-tighter silver-gradient-text overflow-visible pr-1">
+                  Motors Line
+                </span>
+              </Link>
             </div>
             <Link href="/client/profile" className="w-8 h-8 rounded-full border border-[#2A2A2A] bg-[#1A1A1A] flex items-center justify-center hover:bg-[#2a2a2a] transition-colors shrink-0">
               <span className="material-symbols-outlined text-[#c4c7c8] text-sm">person</span>

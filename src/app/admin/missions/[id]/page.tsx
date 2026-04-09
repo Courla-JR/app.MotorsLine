@@ -143,9 +143,11 @@ export default function AdminEditMissionPage() {
                 arrow_back
               </span>
             </Link>
-            <span className="text-base sm:text-xl font-bold italic tracking-tighter silver-gradient-text overflow-visible pr-1 shrink-0">
-              Motors Line
-            </span>
+            <Link href="/admin" className="cursor-pointer shrink-0">
+              <span className="text-base sm:text-xl font-bold italic tracking-tighter silver-gradient-text overflow-visible pr-1">
+                Motors Line
+              </span>
+            </Link>
             <span className="text-[10px] uppercase tracking-widest text-[#444748] font-medium px-1.5 py-0.5 rounded border border-[#2a2a2a] shrink-0">
               Admin
             </span>
