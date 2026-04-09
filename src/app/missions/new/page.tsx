@@ -189,10 +189,13 @@ export default function NewMissionPage() {
       const { error: storageError } = await supabase.storage
         .from("vehicle-images")
         .upload(path, vehicleImage, { contentType: vehicleImage.type });
-      if (!storageError) {
-        const { data: { publicUrl } } = supabase.storage.from("vehicle-images").getPublicUrl(path);
-        vehicleImageUrl = publicUrl;
+      if (storageError) {
+        setError(`Erreur upload image : ${storageError.message}`);
+        setLoading(false);
+        return;
       }
+      const { data: { publicUrl } } = supabase.storage.from("vehicle-images").getPublicUrl(path);
+      vehicleImageUrl = publicUrl;
     }
 
     const pickupDatetime = pickupDate && pickupTime
@@ -208,7 +211,7 @@ export default function NewMissionPage() {
       vehicle_plate: plate,
       vehicle_color: color || null,
       vehicle_vin: vin || null,
-      ...(vehicleImageUrl !== null ? { vehicle_image_url: vehicleImageUrl } : {}),
+      vehicle_image_url: vehicleImageUrl,
       pickup_address: pickupInputRef.current?.value ?? "",
       pickup_date: pickupDatetime,
       delivery_address: deliveryInputRef.current?.value ?? "",
