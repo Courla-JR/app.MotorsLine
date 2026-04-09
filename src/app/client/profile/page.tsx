@@ -320,9 +320,9 @@ export default function ClientProfilePage() {
                         const { data: { user } } = await supabase.auth.getUser();
                         if (user) await supabase.from("profiles").update({ notifications_email: next }).eq("id", user.id);
                       }}
-                      className={`relative w-11 h-6 rounded-full transition-colors focus:outline-none ${notificationsEmail ? "bg-white" : "bg-[#353534]"}`}
+                      className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors focus:outline-none ${notificationsEmail ? "bg-white" : "bg-[#353534]"}`}
                     >
-                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-[#0A0A0A] rounded-full shadow transition-transform ${notificationsEmail ? "translate-x-5" : "translate-x-0"}`} />
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full shadow transition-transform ${notificationsEmail ? "translate-x-6 bg-[#0A0A0A]" : "translate-x-0 bg-[#6b6b6a]"}`} />
                     </button>
                   </div>
                   <div className="flex items-center justify-between">
