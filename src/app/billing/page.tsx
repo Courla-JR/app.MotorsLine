@@ -68,12 +68,11 @@ export default function BillingPage() {
         .from("clients")
         .select("id, profiles(full_name, company)");
 
-      type ProfileRel = { full_name: string | null; company: string | null };
-      type ClientRow = { id: string; profiles: ProfileRel | ProfileRel[] | null };
-      const mapped: Client[] = (clientRows as ClientRow[] ?? []).map((c) => {
-        const prof = Array.isArray(c.profiles) ? c.profiles[0] : c.profiles;
-        return { id: c.id, full_name: prof?.full_name ?? null, company: prof?.company ?? null };
-      });
+      const mapped: Client[] = ((clientRows as any[]) ?? []).map((c) => ({
+        id: c.id,
+        full_name: c.profiles?.full_name ?? c.profiles?.[0]?.full_name ?? null,
+        company: c.profiles?.company ?? c.profiles?.[0]?.company ?? null,
+      }));
       setClients(mapped);
 
       await loadInvoices();
@@ -88,20 +87,20 @@ export default function BillingPage() {
       .select("id, amount, date, file_url, file_name, created_at, client_id, clients(profiles(full_name, company))")
       .order("date", { ascending: false });
 
-    type InvProfileRel = { full_name: string | null; company: string | null };
-    type InvClientsRel = { profiles: InvProfileRel | InvProfileRel[] | null } | null;
-    type InvRow = {
-      id: string; amount: number; date: string; file_url: string;
-      file_name: string | null; created_at: string; client_id: string;
-      clients: InvClientsRel;
-    };
-    const mapped: Invoice[] = (data as InvRow[] ?? []).map((inv) => {
-      const clientsRel = Array.isArray(inv.clients) ? inv.clients[0] : inv.clients;
-      const prof = clientsRel
-        ? (Array.isArray(clientsRel.profiles) ? clientsRel.profiles[0] : clientsRel.profiles)
-        : null;
-      return { ...inv, client: { full_name: prof?.full_name ?? null, company: prof?.company ?? null } };
-    });
+    const rows = (data as any[]) ?? [];
+    const mapped: Invoice[] = rows.map((inv) => ({
+      id: inv.id,
+      amount: inv.amount,
+      date: inv.date,
+      file_url: inv.file_url,
+      file_name: inv.file_name ?? null,
+      created_at: inv.created_at,
+      client_id: inv.client_id,
+      client: {
+        full_name: inv.clients?.profiles?.full_name ?? inv.clients?.profiles?.[0]?.full_name ?? null,
+        company: inv.clients?.profiles?.company ?? inv.clients?.profiles?.[0]?.company ?? null,
+      },
+    }));
     setInvoices(mapped);
   }
 
