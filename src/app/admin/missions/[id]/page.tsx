@@ -136,21 +136,21 @@ export default function AdminEditMissionPage() {
 
       {/* Header */}
       <header className="sticky top-0 z-50 bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-[#1c1b1b]">
-        <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/admin">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2 overflow-hidden">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <Link href="/admin" className="shrink-0">
               <span className="material-symbols-outlined text-[#949493] hover:text-white cursor-pointer transition-colors">
                 arrow_back
               </span>
             </Link>
-            <span className="text-xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-[#949493] via-[#E0E0E0] to-[#949493] pr-1">
+            <span className="text-base sm:text-xl font-bold italic tracking-tighter silver-gradient-text overflow-visible pr-1 shrink-0">
               Motors Line
             </span>
-            <span className="text-[10px] uppercase tracking-widest text-[#444748] font-medium px-2 py-0.5 rounded border border-[#2a2a2a]">
+            <span className="text-[10px] uppercase tracking-widest text-[#444748] font-medium px-1.5 py-0.5 rounded border border-[#2a2a2a] shrink-0">
               Admin
             </span>
           </div>
-          <h1 className="text-sm font-semibold text-[#949493]">Modifier la mission</h1>
+          <h1 className="text-sm font-semibold text-[#949493] truncate">Modifier la mission</h1>
         </div>
       </header>
 

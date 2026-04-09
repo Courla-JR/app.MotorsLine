@@ -233,13 +233,13 @@ export default function ClientMissionsPage() {
                   m.status === "terminee" || m.status === "annulee" ? "opacity-60" : ""
                 }`}
               >
-                {m.vehicle_image_url && (
+                {m.vehicle_image_url && m.vehicle_image_url.trim() !== "" && (
                   <div className="h-[180px] w-full shrink-0">
                     <img src={m.vehicle_image_url} alt={`${m.vehicle_brand} ${m.vehicle_model}`} className="w-full h-full object-cover" />
                   </div>
                 )}
                 {/* Top: vehicle + badge */}
-                <div className={`px-5 ${m.vehicle_image_url ? "pt-4" : "pt-5"} pb-4 flex items-start justify-between gap-3`}>
+                <div className={`px-5 ${m.vehicle_image_url && m.vehicle_image_url.trim() !== "" ? "pt-4" : "pt-5"} pb-4 flex items-start justify-between gap-3`}>
                   <div className="min-w-0">
                     <p className="text-white font-bold text-base leading-tight truncate" style={{ fontFamily: "Inter, sans-serif" }}>
                       {m.vehicle_brand} {m.vehicle_model}

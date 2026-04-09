@@ -45,7 +45,7 @@ export default function ClientLoginPage() {
 
   return (
     <div
-      className="relative min-h-screen flex flex-col items-center justify-center p-6 overflow-hidden"
+      className="relative min-h-screen flex flex-col items-center justify-center p-6"
       style={{ backgroundColor: "#0A0A0A" }}
     >
       {/* Back button */}
@@ -58,149 +58,126 @@ export default function ClientLoginPage() {
         Accueil
       </Link>
 
-      {/* Ambient light bleeds */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-5%] right-[-5%] w-[30%] h-[30%] bg-white/5 rounded-full blur-[100px] pointer-events-none" />
+      {/* Background decorative glow */}
+      <div className="fixed top-0 right-0 w-1/2 h-screen -z-20 opacity-30 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/4 -right-20 w-[500px] h-[500px] bg-white/5 rounded-full blur-[120px]" />
+      </div>
 
-      <main className="w-full max-w-sm md:max-w-[480px] flex flex-col items-center space-y-12 z-10">
-        {/* Branding */}
-        <header className="text-center space-y-2">
-          <h1
-            className="silver-gradient-text text-4xl font-semibold italic tracking-tighter"
-            style={{ fontFamily: "Inter, sans-serif" }}
-          >
-            Motors Line
-          </h1>
+      <main className="w-full max-w-md md:max-w-[480px] flex flex-col items-center">
+        {/* Logo */}
+        <div className="mb-12 text-center">
+          <div className="relative inline-block mb-2">
+            <h1
+              className="text-4xl font-semibold italic tracking-tighter silver-gradient-text overflow-visible pr-1"
+              style={{ fontFamily: "Inter, sans-serif" }}
+            >
+              Motors Line
+            </h1>
+            <div className="absolute -inset-4 bg-white/5 blur-2xl rounded-full -z-10" />
+          </div>
           <p
-            className="text-[14px] font-medium tracking-widest uppercase text-[#949493]"
+            className="text-[14px] text-[#949493] tracking-widest uppercase"
             style={{ fontFamily: "Montserrat, sans-serif" }}
           >
             Espace Client
           </p>
-        </header>
+        </div>
 
-        {/* Login card */}
-        <section
-          className="w-full p-8 rounded-[32px] shadow-2xl"
-          style={{
-            background: "rgba(28, 27, 27, 0.4)",
-            backdropFilter: "blur(12px)",
-          }}
-        >
-          <form onSubmit={handleSubmit} className="flex flex-col space-y-6">
-            {/* Email / Identifiant */}
-            <div className="space-y-2">
-              <label
-                htmlFor="email"
-                className="block text-[11px] font-semibold uppercase tracking-widest text-[#c4c7c8] ml-1"
-                style={{ fontFamily: "Montserrat, sans-serif" }}
-              >
-                Identifiant
-              </label>
-              <div className="relative group">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors duration-300 select-none">
-                  person
-                </span>
-                <input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="client@motorsline.fr"
-                  className="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-xl py-4 pl-12 pr-4 focus:outline-none focus:border-white/20 focus:bg-[#3a3939] transition-all duration-300 text-sm placeholder:text-zinc-600"
-                  style={{ fontFamily: "Montserrat, sans-serif" }}
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center px-1">
-                <label
-                  htmlFor="password"
-                  className="text-[11px] font-semibold uppercase tracking-widest text-[#c4c7c8]"
-                  style={{ fontFamily: "Montserrat, sans-serif" }}
-                >
-                  Mot de passe
-                </label>
-                <a
-                  href="#"
-                  className="text-[10px] text-zinc-500 hover:text-white transition-colors"
-                  style={{ fontFamily: "Montserrat, sans-serif" }}
-                >
-                  Oublié?
-                </a>
-              </div>
-              <div className="relative group">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors duration-300 select-none">
-                  lock
-                </span>
-                <input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-xl py-4 pl-12 pr-4 focus:outline-none focus:border-white/20 focus:bg-[#3a3939] transition-all duration-300 text-sm placeholder:text-zinc-600"
-                  style={{ fontFamily: "Montserrat, sans-serif" }}
-                />
-              </div>
-            </div>
-
-            {/* Error */}
-            {error && (
-              <p
-                className="text-[#ffb4ab] text-sm text-center"
-                style={{ fontFamily: "Montserrat, sans-serif" }}
-              >
-                {error}
-              </p>
-            )}
-
-            {/* Actions */}
-            <div className="pt-4 space-y-6">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-white text-[#0A0A0A] font-semibold py-4 rounded-full active:scale-95 transition-all duration-300 shadow-[0_10px_20px_-10px_rgba(255,255,255,0.2)] hover:bg-zinc-100 uppercase tracking-tight disabled:opacity-50 disabled:cursor-not-allowed"
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="w-full space-y-6">
+          {/* Email */}
+          <div className="space-y-2">
+            <label
+              htmlFor="email"
+              className="block text-xs text-[#c4c7c8] ml-1"
+              style={{ fontFamily: "Montserrat, sans-serif" }}
+            >
+              Identifiant (e-mail)
+            </label>
+            <div className="relative">
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="ex: client@motorsline.fr"
+                className="w-full h-14 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg px-4 pr-12 text-white placeholder:text-[#8e9192]/40 focus:outline-none focus:ring-1 focus:ring-white/20 focus:bg-[#3a3939] transition-all duration-200"
                 style={{ fontFamily: "Inter, sans-serif" }}
-              >
-                {loading ? "Connexion…" : "Se connecter"}
-              </button>
-
+              />
+              <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[#444748] select-none">
+                person
+              </span>
             </div>
-          </form>
-        </section>
-
-        {/* Footer visual */}
-        <footer className="w-full flex flex-col items-center">
-          <div className="w-32 h-1 bg-[#353534] rounded-full mb-6" />
-          <div className="relative w-full h-32 overflow-hidden rounded-2xl group">
-            <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBUgb6hnENPaxSn1fpQjR5BLILwxFbWwoYFhLNlWHjE8RLlPUCAdAQoTuJqIMIUFGedA-uQ5eTHphQZ0RHA0chIsb7RE2MK7CiCvOwqHt7-mioAvkci-zy0Zd7WDc-AmiTnFfBqakbgf7bmcix-denqTX4RC74krEK2Pj_wwpu1cX5L0zYYOjzcjCxQJEWhkeKmvyDAuU8pVZrJqHuCko9e8quQLbK4jFkaFs2KZvLJkilO_tReVUGBGJ-VwdEqjKIlYLcgrFpHQuw"
-              alt="luxury car dashboard"
-              className="w-full h-full object-cover opacity-40 grayscale hover:grayscale-0 transition-all duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-transparent to-transparent" />
           </div>
-        </footer>
+
+          {/* Password */}
+          <div className="space-y-2">
+            <label
+              htmlFor="password"
+              className="block text-xs text-[#c4c7c8] ml-1"
+              style={{ fontFamily: "Montserrat, sans-serif" }}
+            >
+              Mot de passe
+            </label>
+            <div className="relative">
+              <input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full h-14 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg px-4 pr-12 text-white placeholder:text-[#8e9192]/40 focus:outline-none focus:ring-1 focus:ring-white/20 focus:bg-[#3a3939] transition-all duration-200"
+                style={{ fontFamily: "Inter, sans-serif" }}
+              />
+              <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[#444748] select-none">
+                lock
+              </span>
+            </div>
+          </div>
+
+          {/* Error message */}
+          {error && (
+            <p
+              className="text-[#ffb4ab] text-sm text-center"
+              style={{ fontFamily: "Montserrat, sans-serif" }}
+            >
+              {error}
+            </p>
+          )}
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full h-14 bg-white text-[#0A0A0A] font-bold rounded-full shadow-[0_0_20px_rgba(255,255,255,0.1)] active:scale-95 transition-all duration-150 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ fontFamily: "Inter, sans-serif" }}
+          >
+            {loading ? "Connexion…" : "Se connecter"}
+          </button>
+        </form>
       </main>
 
-      {/* Support link */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 text-center w-full px-6">
-        <p
-          className="text-[10px] text-zinc-600 uppercase tracking-widest"
-          style={{ fontFamily: "Montserrat, sans-serif" }}
-        >
-          Besoin d&apos;assistance ?{" "}
-          <span className="text-zinc-400 font-semibold cursor-pointer">
-            Support Motors Line
+      {/* Footer */}
+      <div className="fixed bottom-12 left-0 w-full px-6 pointer-events-none opacity-20">
+        <div className="max-w-md mx-auto border-t border-white/10 pt-4 flex justify-between items-center">
+          <span
+            className="text-[10px] tracking-tighter uppercase"
+            style={{ fontFamily: "Montserrat, sans-serif" }}
+          >
+            High-End Transport
           </span>
-        </p>
+          <div className="h-[1px] flex-grow mx-4 bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+          <span
+            className="text-[10px] tracking-tighter uppercase"
+            style={{ fontFamily: "Montserrat, sans-serif" }}
+          >
+            Est. 2024
+          </span>
+        </div>
       </div>
     </div>
   );

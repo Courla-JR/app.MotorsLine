@@ -177,7 +177,7 @@ export default function ConvoyeurMissionDetailPage() {
                 arrow_back
               </span>
             </Link>
-            <h1 className="text-xl font-bold tracking-tighter text-white" style={{ fontFamily: "Inter, sans-serif" }}>
+            <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
               Motors Line
             </h1>
           </div>

@@ -157,12 +157,19 @@ export default function MissionsPage() {
                   arrow_back
                 </span>
               </Link>
-              <h1 className="text-xl font-bold tracking-tighter text-white" style={{ fontFamily: "Inter, sans-serif" }}>
+              <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
                 Motors Line
               </h1>
             </div>
-            <div className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center">
-              <span className="material-symbols-outlined text-[#c4c7c8]">search</span>
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <Link href="/admin" className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center hover:bg-[#3a3939] transition-colors">
+                  <span className="material-symbols-outlined text-[#c4c7c8]">swap_horiz</span>
+                </Link>
+              )}
+              <Link href="/profile" className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center hover:bg-[#3a3939] transition-colors">
+                <span className="material-symbols-outlined text-[#c4c7c8]">person</span>
+              </Link>
             </div>
           </div>
         </header>
@@ -173,9 +180,16 @@ export default function MissionsPage() {
               <h2 className="text-[26px] font-bold text-white tracking-tight" style={{ fontFamily: "Inter, sans-serif" }}>
                 Missions
               </h2>
-              {/* Desktop search */}
-              <div className="hidden md:flex w-10 h-10 rounded-full bg-[#2a2a2a] items-center justify-center">
-                <span className="material-symbols-outlined text-[#c4c7c8]">search</span>
+              {/* Desktop profile / admin switch */}
+              <div className="hidden md:flex items-center gap-2">
+                {isAdmin && (
+                  <Link href="/admin" className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center hover:bg-[#3a3939] transition-colors">
+                    <span className="material-symbols-outlined text-[#c4c7c8]">swap_horiz</span>
+                  </Link>
+                )}
+                <Link href="/profile" className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center hover:bg-[#3a3939] transition-colors">
+                  <span className="material-symbols-outlined text-[#c4c7c8]">person</span>
+                </Link>
               </div>
             </div>
             {/* Filter pills */}
@@ -232,8 +246,8 @@ export default function MissionsPage() {
                   m.status === "terminee" || m.status === "annulee" ? "opacity-60" : ""
                 }`}
               >
-                {/* Vehicle image — 180px, top of card */}
-                {m.vehicle_image_url && (
+                {/* Vehicle image — only when URL is non-empty */}
+                {m.vehicle_image_url && m.vehicle_image_url.trim() !== "" && (
                   <div className="h-[180px] w-full shrink-0">
                     <img
                       src={m.vehicle_image_url}
@@ -245,14 +259,14 @@ export default function MissionsPage() {
 
                 <div className="p-5 relative">
                   {/* Status badge — top-right of content area (or absolute on card when no image) */}
-                  {!m.vehicle_image_url && (
+                  {(!m.vehicle_image_url || m.vehicle_image_url.trim() === "") && (
                     <div className="absolute top-0 right-0 p-4">
                       <StatusBadge status={m.status} />
                     </div>
                   )}
 
                   {/* Vehicle title + badge row */}
-                  <div className={`flex items-start justify-between gap-2 mb-4 ${!m.vehicle_image_url ? "pr-16" : ""}`}>
+                  <div className={`flex items-start justify-between gap-2 mb-4 ${(!m.vehicle_image_url || m.vehicle_image_url.trim() === "") ? "pr-16" : ""}`}>
                     <div className="min-w-0">
                       <h3
                         className={`text-lg font-bold tracking-tight leading-tight mb-1 ${m.status === "terminee" ? "text-white/50" : "text-white"}`}
@@ -264,7 +278,7 @@ export default function MissionsPage() {
                         {m.vehicle_plate}
                       </p>
                     </div>
-                    {m.vehicle_image_url && <StatusBadge status={m.status} />}
+                    {m.vehicle_image_url && m.vehicle_image_url.trim() !== "" && <StatusBadge status={m.status} />}
                   </div>
 
                   {/* Route */}

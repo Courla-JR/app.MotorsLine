@@ -343,8 +343,18 @@ export default function ConvoyeurProfilePage() {
           )}
         </main>
 
-        {/* Logout button (mobile only) */}
-        <div className="md:hidden px-6 pb-28 pt-2 max-w-lg mx-auto">
+        {/* Admin switch + Logout (mobile only) */}
+        <div className="md:hidden px-6 pb-28 pt-2 max-w-lg mx-auto flex flex-col gap-3">
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="w-full py-3 rounded-xl border border-[#2A2A2A] text-[#c4c7c8] text-sm font-semibold transition-opacity active:opacity-70 flex items-center justify-center gap-2"
+              style={{ fontFamily: "Inter, sans-serif" }}
+            >
+              <span className="material-symbols-outlined text-base">swap_horiz</span>
+              Espace admin
+            </Link>
+          )}
           <button
             type="button"
             onClick={handleLogout}

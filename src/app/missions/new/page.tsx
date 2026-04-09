@@ -268,75 +268,94 @@ export default function NewMissionPage() {
         onLoad={initMaps}
       />
 
-      {/* ── Desktop Sidebar ── */}
-      <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-60 bg-[#0A0A0A] border-r border-[#2A2A2A] z-50 py-8 px-4">
-        <div className="mb-10 px-2">
-          <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
-            Motors Line
-          </h1>
-          <p className="text-[10px] text-[#949493] uppercase tracking-widest mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
-            {userRole === "admin" ? "Espace Admin" : "Espace Convoyeur"}
-          </p>
-        </div>
-        <nav className="flex flex-col gap-1 flex-1">
-          {(userRole === "admin" ? ADMIN_NAV : CONVOYEUR_NAV).map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-colors ${
-                item.href === "/missions/new" ? "bg-white/10 text-white" : "text-[#949493] hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <span
-                className="material-symbols-outlined text-xl"
-                style={item.href === "/missions/new" ? { fontVariationSettings: "'FILL' 1" } : undefined}
-              >
-                {item.icon}
-              </span>
-              <span className="font-medium text-sm" style={{ fontFamily: "Inter, sans-serif" }}>{item.label}</span>
-            </Link>
-          ))}
-        </nav>
-        {userRole === "convoyeur" && (
-          <Link
-            href="/admin"
-            className="flex items-center gap-3 px-3 py-3 rounded-xl text-[#949493] hover:text-white hover:bg-white/5 transition-colors mt-1"
-          >
-            <span className="material-symbols-outlined text-xl">swap_horiz</span>
-            <span className="font-medium text-sm" style={{ fontFamily: "Inter, sans-serif" }}>Espace admin</span>
-          </Link>
-        )}
-      </aside>
-
-      {/* ── Main Content ── */}
-      <div className="md:ml-60">
-
-        {/* TopAppBar (mobile only) */}
-        <header className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl sticky top-0 z-40">
-          <div className="flex items-center justify-between px-6 h-16 w-full max-w-lg mx-auto">
-            <div className="flex items-center gap-4">
-              <Link href={userRole === "admin" ? "/admin" : "/missions"}>
-                <span className="material-symbols-outlined text-white cursor-pointer active:opacity-70 active:scale-95 duration-150">
+      {/* ── Admin Header (admin only) ── */}
+      {userRole === "admin" && (
+        <header className="sticky top-0 z-50 bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-[#1c1b1b]">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <Link href="/admin" className="shrink-0">
+                <span className="material-symbols-outlined text-[#949493] hover:text-white cursor-pointer transition-colors">
                   arrow_back
                 </span>
               </Link>
-              <h1 className="font-semibold text-[20px] text-white">Nouvelle mission</h1>
+              <span className="text-base sm:text-xl font-bold italic tracking-tighter silver-gradient-text overflow-visible pr-1 shrink-0">
+                Motors Line
+              </span>
+              <span className="text-[10px] uppercase tracking-widest text-[#444748] font-medium px-1.5 py-0.5 rounded border border-[#2a2a2a] shrink-0">
+                Admin
+              </span>
             </div>
-            <span className="silver-gradient-text text-xl font-bold tracking-tighter pr-1">Motors Line</span>
+            <h1 className="text-sm font-semibold text-[#949493]">Nouvelle mission</h1>
           </div>
         </header>
+      )}
 
-        {/* Desktop page title */}
-        <div className="hidden md:block px-8 pt-8 pb-2 max-w-2xl mx-auto">
-          <div className="flex items-center gap-4 mb-2">
-            <Link href={userRole === "admin" ? "/admin" : "/missions"}>
-              <span className="material-symbols-outlined text-[#949493] hover:text-white cursor-pointer transition-colors">
-                arrow_back
-              </span>
-            </Link>
-            <h1 className="font-semibold text-[24px] text-white">Nouvelle mission</h1>
+      {/* ── Desktop Sidebar (convoyeur only) ── */}
+      {userRole !== "admin" && (
+        <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-60 bg-[#0A0A0A] border-r border-[#2A2A2A] z-50 py-8 px-4">
+          <div className="mb-10 px-2">
+            <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
+              Motors Line
+            </h1>
+            <p className="text-[10px] text-[#949493] uppercase tracking-widest mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
+              Espace Convoyeur
+            </p>
           </div>
-        </div>
+          <nav className="flex flex-col gap-1 flex-1">
+            {CONVOYEUR_NAV.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-colors ${
+                  item.href === "/missions/new" ? "bg-white/10 text-white" : "text-[#949493] hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <span
+                  className="material-symbols-outlined text-xl"
+                  style={item.href === "/missions/new" ? { fontVariationSettings: "'FILL' 1" } : undefined}
+                >
+                  {item.icon}
+                </span>
+                <span className="font-medium text-sm" style={{ fontFamily: "Inter, sans-serif" }}>{item.label}</span>
+              </Link>
+            ))}
+          </nav>
+        </aside>
+      )}
+
+      {/* ── Main Content ── */}
+      <div className={userRole !== "admin" ? "md:ml-60" : ""}>
+
+        {/* TopAppBar mobile (convoyeur only) */}
+        {userRole !== "admin" && (
+          <header className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl sticky top-0 z-40">
+            <div className="flex items-center justify-between px-6 h-16 w-full max-w-lg mx-auto">
+              <div className="flex items-center gap-4">
+                <Link href="/missions">
+                  <span className="material-symbols-outlined text-white cursor-pointer active:opacity-70 active:scale-95 duration-150">
+                    arrow_back
+                  </span>
+                </Link>
+                <h1 className="font-semibold text-[20px] text-white">Nouvelle mission</h1>
+              </div>
+              <span className="silver-gradient-text text-xl font-bold italic tracking-tighter pr-1">Motors Line</span>
+            </div>
+          </header>
+        )}
+
+        {/* Desktop page title (convoyeur only) */}
+        {userRole !== "admin" && (
+          <div className="hidden md:block px-8 pt-8 pb-2 max-w-2xl mx-auto">
+            <div className="flex items-center gap-4 mb-2">
+              <Link href="/missions">
+                <span className="material-symbols-outlined text-[#949493] hover:text-white cursor-pointer transition-colors">
+                  arrow_back
+                </span>
+              </Link>
+              <h1 className="font-semibold text-[24px] text-white">Nouvelle mission</h1>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="pb-24 md:pb-10">
           <main className="max-w-lg md:max-w-2xl mx-auto px-6 mt-6 space-y-8">
@@ -691,28 +710,30 @@ export default function NewMissionPage() {
           </main>
         </form>
 
-        {/* Bottom Nav (mobile only) */}
-        <nav className="md:hidden fixed bottom-0 left-0 w-full bg-[#0A0A0A]/80 backdrop-blur-xl z-50 rounded-t-2xl border-t border-[#2A2A2A] shadow-[0_-4px_24px_rgba(255,255,255,0.05)]">
-          <div className="flex justify-around items-center pt-3 pb-6 px-4 max-w-lg mx-auto">
-            {[
-              { icon: "dashboard", label: "Dashboard", href: "/dashboard", active: false },
-              { icon: "local_shipping", label: "Missions", href: "/missions", active: false },
-              { icon: "add_circle", label: "Nouveau", href: "/missions/new", active: true },
-              { icon: "person", label: "Profil", href: "#", active: false },
-            ].map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={`flex flex-col items-center justify-center transition-colors ${item.active ? "text-white scale-110" : "text-[#949493] hover:text-white"}`}
-              >
-                <span className="material-symbols-outlined mt-1" style={item.active ? { fontVariationSettings: "'FILL' 1" } : undefined}>
-                  {item.icon}
-                </span>
-                <span className="font-medium text-[10px] uppercase tracking-widest mt-1">{item.label}</span>
-              </Link>
-            ))}
-          </div>
-        </nav>
+        {/* Bottom Nav mobile (convoyeur only) */}
+        {userRole !== "admin" && (
+          <nav className="md:hidden fixed bottom-0 left-0 w-full bg-[#0A0A0A]/80 backdrop-blur-xl z-50 rounded-t-2xl border-t border-[#2A2A2A] shadow-[0_-4px_24px_rgba(255,255,255,0.05)]">
+            <div className="flex justify-around items-center pt-3 pb-6 px-4 max-w-lg mx-auto">
+              {[
+                { icon: "dashboard", label: "Dashboard", href: "/dashboard", active: false },
+                { icon: "local_shipping", label: "Missions", href: "/missions", active: false },
+                { icon: "add_circle", label: "Nouveau", href: "/missions/new", active: true },
+                { icon: "person", label: "Profil", href: "/profile", active: false },
+              ].map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={`flex flex-col items-center justify-center transition-colors ${item.active ? "text-white scale-110" : "text-[#949493] hover:text-white"}`}
+                >
+                  <span className="material-symbols-outlined mt-1" style={item.active ? { fontVariationSettings: "'FILL' 1" } : undefined}>
+                    {item.icon}
+                  </span>
+                  <span className="font-medium text-[10px] uppercase tracking-widest mt-1">{item.label}</span>
+                </Link>
+              ))}
+            </div>
+          </nav>
+        )}
 
       </div>
     </div>

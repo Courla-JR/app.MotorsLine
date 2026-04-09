@@ -211,33 +211,36 @@ export default function AdminPage() {
 
       {/* Header */}
       <header className="sticky top-0 z-50 bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-[#1c1b1b]">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-            <span className="text-base sm:text-xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-[#949493] via-[#E0E0E0] to-[#949493] pr-2">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2 overflow-hidden">
+          <div className="flex items-center gap-2 min-w-0 shrink-0">
+            <span className="text-base sm:text-xl font-bold italic tracking-tighter silver-gradient-text overflow-visible pr-1">
               Motors Line
             </span>
-            <span className="text-[10px] uppercase tracking-widest text-[#444748] font-medium px-2 py-0.5 rounded border border-[#2a2a2a] shrink-0">
+            <span className="text-[10px] uppercase tracking-widest text-[#444748] font-medium px-1.5 py-0.5 rounded border border-[#2a2a2a] shrink-0">
               Admin
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             <Link
               href="/dashboard"
-              className="flex items-center gap-2 px-3 py-2 bg-[#1c1b1b] border border-white/10 text-[#c4c7c8] rounded-full text-sm font-semibold hover:text-white hover:border-white/20 transition-colors"
+              className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-2 bg-[#1c1b1b] border border-white/10 text-[#c4c7c8] rounded-full hover:text-white hover:border-white/20 transition-colors"
+              title="Espace convoyeur"
             >
               <span className="material-symbols-outlined text-base">swap_horiz</span>
-              <span className="hidden sm:inline">Espace convoyeur</span>
+              <span className="hidden sm:inline text-sm font-semibold">Espace convoyeur</span>
             </Link>
             <Link
               href="/missions/new"
-              className="flex items-center gap-2 px-3 py-2 bg-white text-[#0A0A0A] rounded-full text-sm font-bold hover:bg-zinc-100 transition-colors active:scale-95"
+              className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-2 bg-white text-[#0A0A0A] rounded-full font-bold hover:bg-zinc-100 transition-colors active:scale-95"
+              title="Nouvelle mission"
             >
               <span className="material-symbols-outlined text-base">add</span>
-              <span className="hidden sm:inline">Nouvelle mission</span>
+              <span className="hidden sm:inline text-sm">Nouvelle mission</span>
             </Link>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 px-2 py-2 text-[#949493] hover:text-white transition-colors text-sm"
+              className="p-2 text-[#949493] hover:text-white transition-colors"
+              title="Déconnexion"
             >
               <span className="material-symbols-outlined text-base">logout</span>
             </button>
@@ -317,7 +320,7 @@ export default function AdminPage() {
             <div className="grid gap-4 md:grid-cols-2">
               {filtered.map((m) => (
                 <div key={m.id} className="bg-[#1A1A1A] rounded-2xl overflow-hidden border border-white/5 hover:border-white/10 transition-colors cursor-pointer" onClick={() => router.push(`/admin/missions/${m.id}`)}>
-                  {m.vehicle_image_url && (
+                  {m.vehicle_image_url && m.vehicle_image_url.trim() !== "" && (
                     <div className="h-36 w-full overflow-hidden relative">
                       <img src={m.vehicle_image_url} alt={`${m.vehicle_brand} ${m.vehicle_model}`} className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#1A1A1A]/70" />
