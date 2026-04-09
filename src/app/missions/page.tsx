@@ -10,6 +10,7 @@ type DbMission = {
   vehicle_brand: string;
   vehicle_model: string;
   vehicle_plate: string;
+  vehicle_image_url: string | null;
   status: "a_faire" | "en_cours" | "terminee" | "annulee";
   pickup_address: string;
   delivery_address: string;
@@ -78,7 +79,7 @@ export default function MissionsPage() {
       setLoading(true);
       let query = supabase
         .from("missions")
-        .select("id, vehicle_brand, vehicle_model, vehicle_plate, status, pickup_address, delivery_address, pickup_date, delivery_date")
+        .select("id, vehicle_brand, vehicle_model, vehicle_plate, vehicle_image_url, status, pickup_address, delivery_address, pickup_date, delivery_date")
         .order("created_at", { ascending: false });
 
       if (filter !== "toutes") {
@@ -222,6 +223,12 @@ export default function MissionsPage() {
                   m.status === "terminee" || m.status === "annulee" ? "opacity-60" : ""
                 }`}
               >
+                {m.vehicle_image_url && (
+                  <div className="-mx-5 -mt-5 mb-4 h-36 overflow-hidden rounded-t-2xl relative">
+                    <img src={m.vehicle_image_url} alt={`${m.vehicle_brand} ${m.vehicle_model}`} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#1c1b1b]" />
+                  </div>
+                )}
                 <div className="absolute top-0 right-0 p-4">
                   <StatusBadge status={m.status} />
                 </div>

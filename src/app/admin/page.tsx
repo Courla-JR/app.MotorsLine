@@ -16,6 +16,7 @@ type Mission = {
   vehicle_brand: string;
   vehicle_model: string;
   vehicle_plate: string;
+  vehicle_image_url: string | null;
   pickup_address: string;
   delivery_address: string;
   pickup_date: string | null;
@@ -126,7 +127,7 @@ export default function AdminPage() {
       .from("missions")
       .select(`
         id, status, type,
-        vehicle_brand, vehicle_model, vehicle_plate,
+        vehicle_brand, vehicle_model, vehicle_plate, vehicle_image_url,
         pickup_address, delivery_address, pickup_date,
         convoyeur_id, client_id,
         clients ( company_name ),
@@ -316,7 +317,14 @@ export default function AdminPage() {
 
             <div className="grid gap-4 md:grid-cols-2">
               {filtered.map((m) => (
-                <div key={m.id} className="bg-[#1A1A1A] rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-colors cursor-pointer" onClick={() => router.push(`/admin/missions/${m.id}`)}>
+                <div key={m.id} className="bg-[#1A1A1A] rounded-2xl overflow-hidden border border-white/5 hover:border-white/10 transition-colors cursor-pointer" onClick={() => router.push(`/admin/missions/${m.id}`)}>
+                  {m.vehicle_image_url && (
+                    <div className="h-36 w-full overflow-hidden relative">
+                      <img src={m.vehicle_image_url} alt={`${m.vehicle_brand} ${m.vehicle_model}`} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#1A1A1A]/70" />
+                    </div>
+                  )}
+                  <div className="p-5">
                   <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                     <div>
                       <div className="flex items-center gap-3 mb-1">
@@ -390,6 +398,7 @@ export default function AdminPage() {
                     <span className="material-symbols-outlined text-[#949493] text-sm">person_pin</span>
                     <span className="text-[#949493] text-xs shrink-0" style={{ fontFamily: "Montserrat, sans-serif" }}>Convoyeur :</span>
                     <span className="text-white text-xs font-semibold" style={{ fontFamily: "Montserrat, sans-serif" }}>Jeremy Courla</span>
+                  </div>
                   </div>
                 </div>
               ))}

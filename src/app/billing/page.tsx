@@ -63,15 +63,16 @@ export default function BillingPage() {
       }
       setIsAdmin(profile.role === "admin");
 
-      // Fetch clients (join via profiles for name/company)
+      // Fetch clients directly (company_name is a column on clients table)
       const { data: clientRows } = await supabase
         .from("clients")
-        .select("id, profiles(full_name, company)");
+        .select("id, company_name, contact_name")
+        .order("company_name");
 
       const mapped: Client[] = ((clientRows as any[]) ?? []).map((c) => ({
         id: c.id,
-        full_name: c.profiles?.full_name ?? c.profiles?.[0]?.full_name ?? null,
-        company: c.profiles?.company ?? c.profiles?.[0]?.company ?? null,
+        full_name: c.contact_name ?? null,
+        company: c.company_name ?? null,
       }));
       setClients(mapped);
 
@@ -84,7 +85,7 @@ export default function BillingPage() {
   async function loadInvoices() {
     const { data } = await supabase
       .from("invoices")
-      .select("id, amount, date, file_url, file_name, created_at, client_id, clients(profiles(full_name, company))")
+      .select("id, amount, date, file_url, file_name, created_at, client_id, clients(company_name, contact_name)")
       .order("date", { ascending: false });
 
     const rows = (data as any[]) ?? [];
@@ -97,8 +98,8 @@ export default function BillingPage() {
       created_at: inv.created_at,
       client_id: inv.client_id,
       client: {
-        full_name: inv.clients?.profiles?.full_name ?? inv.clients?.profiles?.[0]?.full_name ?? null,
-        company: inv.clients?.profiles?.company ?? inv.clients?.profiles?.[0]?.company ?? null,
+        full_name: inv.clients?.contact_name ?? null,
+        company: inv.clients?.company_name ?? null,
       },
     }));
     setInvoices(mapped);

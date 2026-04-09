@@ -57,6 +57,8 @@ export default function NewMissionPage() {
   const [plate, setPlate] = useState("");
   const [color, setColor] = useState("");
   const [vin, setVin] = useState("");
+  const [vehicleImage, setVehicleImage] = useState<File | null>(null);
+  const [vehicleImagePreview, setVehicleImagePreview] = useState<string | null>(null);
   const [pickupDate, setPickupDate] = useState("");
   const [pickupTime, setPickupTime] = useState("");
   const [notes, setNotes] = useState("");
@@ -153,6 +155,21 @@ export default function NewMissionPage() {
     });
   }, [computeRoute]);
 
+  function handleVehicleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) {
+      setError("Format non supporté. Utilisez JPG, PNG ou WebP.");
+      return;
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      setError("Image trop lourde. Maximum 5 MB.");
+      return;
+    }
+    setVehicleImage(f);
+    setVehicleImagePreview(URL.createObjectURL(f));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -163,6 +180,19 @@ export default function NewMissionPage() {
       setError("Non authentifié.");
       setLoading(false);
       return;
+    }
+
+    let vehicleImageUrl: string | null = null;
+    if (vehicleImage) {
+      const ext = vehicleImage.name.split(".").pop();
+      const path = `${crypto.randomUUID()}.${ext}`;
+      const { error: storageError } = await supabase.storage
+        .from("vehicle-images")
+        .upload(path, vehicleImage, { contentType: vehicleImage.type });
+      if (!storageError) {
+        const { data: { publicUrl } } = supabase.storage.from("vehicle-images").getPublicUrl(path);
+        vehicleImageUrl = publicUrl;
+      }
     }
 
     const pickupDatetime = pickupDate && pickupTime
@@ -178,6 +208,7 @@ export default function NewMissionPage() {
       vehicle_plate: plate,
       vehicle_color: color || null,
       vehicle_vin: vin || null,
+      vehicle_image_url: vehicleImageUrl,
       pickup_address: pickupInputRef.current?.value ?? "",
       pickup_date: pickupDatetime,
       delivery_address: deliveryInputRef.current?.value ?? "",
@@ -372,6 +403,21 @@ export default function NewMissionPage() {
                       className="w-full bg-[#131313] border-none rounded-lg p-3 text-white text-sm placeholder:text-[#444748] focus:outline-none focus:ring-[0.5px] focus:ring-white"
                     />
                   </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-[#949493] uppercase font-semibold" style={{ fontFamily: "Montserrat, sans-serif" }}>Photo du véhicule (Optionnel)</label>
+                  <label className="flex items-center justify-center w-full h-28 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg cursor-pointer hover:border-white/20 transition-colors overflow-hidden" style={{ borderRadius: "8px" }}>
+                    {vehicleImagePreview ? (
+                      <img src={vehicleImagePreview} alt="Aperçu véhicule" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-[#444748]">
+                        <span className="material-symbols-outlined text-2xl">add_photo_alternate</span>
+                        <span className="text-[11px]" style={{ fontFamily: "Montserrat, sans-serif" }}>Cliquer ou déposer une image</span>
+                        <span className="text-[10px] text-[#333]">JPG · PNG · WebP · max 5 MB</span>
+                      </div>
+                    )}
+                    <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleVehicleImageChange} className="hidden" />
+                  </label>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] text-[#c4c7c8] uppercase font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>Numéro VIN (Optionnel)</label>
