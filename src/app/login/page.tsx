@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
@@ -19,7 +20,16 @@ export default function LoginPage() {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError(error.message);
+      const msg = error.message;
+      if (msg.includes("Invalid login credentials") || msg.includes("invalid_credentials")) {
+        setError("Identifiants incorrects. Vérifiez votre e-mail et mot de passe.");
+      } else if (msg.includes("Email not confirmed")) {
+        setError("Veuillez confirmer votre adresse e-mail.");
+      } else if (msg.includes("Too many requests")) {
+        setError("Trop de tentatives. Réessayez dans quelques minutes.");
+      } else {
+        setError("Erreur de connexion. Veuillez réessayer.");
+      }
       setLoading(false);
       return;
     }
@@ -46,6 +56,16 @@ export default function LoginPage() {
       className="relative min-h-screen flex flex-col items-center justify-center p-6"
       style={{ backgroundColor: "#0A0A0A" }}
     >
+      {/* Back button */}
+      <Link
+        href="/"
+        className="absolute top-6 left-6 flex items-center gap-1.5 text-[#949493] hover:text-white transition-colors text-sm z-10"
+        style={{ fontFamily: "Montserrat, sans-serif" }}
+      >
+        <span className="material-symbols-outlined text-base">arrow_back</span>
+        Accueil
+      </Link>
+
       {/* Background decorative glow */}
       <div className="fixed top-0 right-0 w-1/2 h-screen -z-20 opacity-30 pointer-events-none overflow-hidden">
         <div className="absolute top-1/4 -right-20 w-[500px] h-[500px] bg-white/5 rounded-full blur-[120px]" />

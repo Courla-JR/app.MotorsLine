@@ -220,7 +220,14 @@ export default function ClientNewMissionPage() {
     });
 
     if (insertError) {
-      setError(insertError.message);
+      const msg = insertError.message;
+      if (msg.includes("row-level security") || msg.includes("RLS") || msg.includes("permission")) {
+        setError("Erreur de permission. Contactez l'administrateur.");
+      } else if (msg.includes("Bucket not found") || msg.includes("bucket")) {
+        setError("Erreur de téléchargement. Réessayez.");
+      } else {
+        setError("Erreur lors de la création de la mission. Réessayez.");
+      }
       setLoading(false);
       return;
     }
@@ -436,7 +443,7 @@ export default function ClientNewMissionPage() {
                 <span className="material-symbols-outlined text-[#c4c7c8] text-sm">route</span>
               </div>
               <div className="bg-[#1A1A1A] p-5 rounded-xl space-y-6 relative overflow-visible">
-                <div className="absolute left-9 top-14 bottom-32 w-[2px] bg-[#353534] rounded-full" />
+                <div className="absolute left-9 top-[1.75rem] h-[3.75rem] w-[2px] bg-[#353534] rounded-full" />
 
                 {/* Pickup */}
                 <div className="relative pl-10">

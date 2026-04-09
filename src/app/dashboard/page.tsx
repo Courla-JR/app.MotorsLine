@@ -152,7 +152,7 @@ export default function DashboardPage() {
         {/* TopAppBar (mobile only) */}
         <header className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl fixed top-0 w-full z-50">
           <div className="flex items-center justify-between px-6 h-16 w-full max-w-md mx-auto">
-            <span className="text-xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-[#949493] via-[#E0E0E0] to-[#949493]" style={{ fontFamily: "Inter, sans-serif" }}>
+            <span className="text-xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-[#949493] via-[#E0E0E0] to-[#949493] pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
               Motors Line
             </span>
             <Link href="/profile" className="w-8 h-8 rounded-full border border-[#2A2A2A] bg-[#1A1A1A] flex items-center justify-center hover:bg-[#2a2a2a] transition-colors">

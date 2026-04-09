@@ -168,7 +168,7 @@ export default function ConvoyeurProfilePage() {
 
         {/* TopAppBar (mobile only) */}
         <header className="md:hidden fixed top-0 w-full z-50 bg-[#0A0A0A]/80 backdrop-blur-xl flex justify-between items-center px-6 h-16">
-          <span className="text-xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-[#949493] via-[#E0E0E0] to-[#949493]" style={{ fontFamily: "Inter, sans-serif" }}>
+          <span className="text-xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-[#949493] via-[#E0E0E0] to-[#949493] pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
             Motors Line
           </span>
           <div className="w-8 h-8 rounded-full border border-[#2A2A2A] bg-[#1A1A1A] flex items-center justify-center">

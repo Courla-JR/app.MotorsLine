@@ -97,7 +97,7 @@ export default function HomePage() {
         <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
           <Link
             href="/login"
-            className="flex-1 h-14 bg-white text-[#0A0A0A] font-bold text-sm rounded-lg flex items-center justify-center gap-2 hover:bg-zinc-100 active:scale-95 transition-all duration-150 shadow-[0_0_24px_rgba(255,255,255,0.08)]"
+            className="flex-1 py-4 bg-white text-[#0A0A0A] font-bold text-lg rounded-lg flex items-center justify-center gap-2 hover:bg-zinc-100 active:scale-95 transition-all duration-150 shadow-[0_0_24px_rgba(255,255,255,0.08)]"
             style={{ fontFamily: "Inter, sans-serif" }}
           >
             <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -107,7 +107,7 @@ export default function HomePage() {
           </Link>
           <Link
             href="/client/login"
-            className="flex-1 h-14 bg-transparent text-white font-bold text-sm rounded-lg flex items-center justify-center gap-2 border border-[#2A2A2A] hover:bg-white/5 hover:border-white/20 active:scale-95 transition-all duration-150"
+            className="flex-1 py-4 bg-transparent text-white font-bold text-lg rounded-lg flex items-center justify-center gap-2 border border-[#2A2A2A] hover:bg-white/5 hover:border-white/20 active:scale-95 transition-all duration-150"
             style={{ fontFamily: "Inter, sans-serif" }}
           >
             <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>

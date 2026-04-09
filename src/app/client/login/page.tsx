@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 export default function ClientLoginPage() {
@@ -19,7 +20,16 @@ export default function ClientLoginPage() {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError(error.message);
+      const msg = error.message;
+      if (msg.includes("Invalid login credentials") || msg.includes("invalid_credentials")) {
+        setError("Identifiants incorrects. Vérifiez votre e-mail et mot de passe.");
+      } else if (msg.includes("Email not confirmed")) {
+        setError("Veuillez confirmer votre adresse e-mail.");
+      } else if (msg.includes("Too many requests")) {
+        setError("Trop de tentatives. Réessayez dans quelques minutes.");
+      } else {
+        setError("Erreur de connexion. Veuillez réessayer.");
+      }
       setLoading(false);
     } else {
       const { data: profile } = await supabase
@@ -38,6 +48,16 @@ export default function ClientLoginPage() {
       className="relative min-h-screen flex flex-col items-center justify-center p-6 overflow-hidden"
       style={{ backgroundColor: "#0A0A0A" }}
     >
+      {/* Back button */}
+      <Link
+        href="/"
+        className="absolute top-6 left-6 flex items-center gap-1.5 text-[#949493] hover:text-white transition-colors text-sm z-10"
+        style={{ fontFamily: "Montserrat, sans-serif" }}
+      >
+        <span className="material-symbols-outlined text-base">arrow_back</span>
+        Accueil
+      </Link>
+
       {/* Ambient light bleeds */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white/5 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-5%] right-[-5%] w-[30%] h-[30%] bg-white/5 rounded-full blur-[100px] pointer-events-none" />

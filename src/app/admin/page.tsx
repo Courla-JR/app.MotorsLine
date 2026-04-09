@@ -212,32 +212,32 @@ export default function AdminPage() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-[#1c1b1b]">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <span className="text-xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-[#949493] via-[#E0E0E0] to-[#949493]">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <span className="text-base sm:text-xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-[#949493] via-[#E0E0E0] to-[#949493] pr-2">
               Motors Line
             </span>
-            <span className="text-[10px] uppercase tracking-widest text-[#444748] font-medium px-2 py-0.5 rounded border border-[#2a2a2a]">
+            <span className="text-[10px] uppercase tracking-widest text-[#444748] font-medium px-2 py-0.5 rounded border border-[#2a2a2a] shrink-0">
               Admin
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Link
               href="/dashboard"
-              className="flex items-center gap-2 px-4 py-2 bg-[#1c1b1b] border border-white/10 text-[#c4c7c8] rounded-full text-sm font-semibold hover:text-white hover:border-white/20 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 bg-[#1c1b1b] border border-white/10 text-[#c4c7c8] rounded-full text-sm font-semibold hover:text-white hover:border-white/20 transition-colors"
             >
               <span className="material-symbols-outlined text-base">swap_horiz</span>
-              Espace convoyeur
+              <span className="hidden sm:inline">Espace convoyeur</span>
             </Link>
             <Link
               href="/missions/new"
-              className="flex items-center gap-2 px-4 py-2 bg-white text-[#0A0A0A] rounded-full text-sm font-bold hover:bg-zinc-100 transition-colors active:scale-95"
+              className="flex items-center gap-2 px-3 py-2 bg-white text-[#0A0A0A] rounded-full text-sm font-bold hover:bg-zinc-100 transition-colors active:scale-95"
             >
               <span className="material-symbols-outlined text-base">add</span>
-              Nouvelle mission
+              <span className="hidden sm:inline">Nouvelle mission</span>
             </Link>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-2 text-[#949493] hover:text-white transition-colors text-sm"
+              className="flex items-center gap-1.5 px-2 py-2 text-[#949493] hover:text-white transition-colors text-sm"
             >
               <span className="material-symbols-outlined text-base">logout</span>
             </button>
