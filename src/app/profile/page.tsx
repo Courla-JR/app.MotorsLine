@@ -367,17 +367,18 @@ export default function ConvoyeurProfilePage() {
 
         {/* Bottom Nav (mobile only) */}
         <nav className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl fixed bottom-0 w-full z-50 rounded-t-2xl border-t border-[#2A2A2A] shadow-[0_-4px_24px_rgba(255,255,255,0.05)]">
-          <div className="flex justify-around items-center pt-3 pb-6 px-4">
+          <div className="flex justify-around items-center h-16 px-4">
             {[
               { icon: "dashboard", href: "/dashboard" },
               { icon: "local_shipping", href: "/missions" },
-              { icon: "add_circle", href: "/missions/new" },
+              { icon: "add_circle", href: "/missions/new?from=convoyeur" },
+              { icon: "receipt_long", href: "/billing" },
               { icon: "person", href: "/profile" },
             ].map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center justify-center transition-colors ${item.href === "/profile" ? "text-white scale-110" : "text-[#949493] hover:text-white"}`}
+                className={`flex items-center justify-center transition-colors ${item.href === "/profile" ? "text-white" : "text-[#949493] hover:text-white"}`}
               >
                 <span className="material-symbols-outlined" style={item.href === "/profile" ? { fontVariationSettings: "'FILL' 1" } : undefined}>
                   {item.icon}

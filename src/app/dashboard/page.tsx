@@ -19,7 +19,7 @@ type DbMission = {
 const CONVOYEUR_NAV = [
   { icon: "dashboard", label: "Dashboard", href: "/dashboard" },
   { icon: "local_shipping", label: "Missions", href: "/missions" },
-  { icon: "add_circle", label: "Nouvelle mission", href: "/missions/new" },
+  { icon: "add_circle", label: "Nouvelle mission", href: "/missions/new?from=convoyeur" },
   { icon: "receipt_long", label: "Facturation", href: "/billing" },
   { icon: "person", label: "Profil", href: "/profile" },
 ];
@@ -150,18 +150,33 @@ export default function DashboardPage() {
       <div className="md:ml-60 pb-24 md:pb-10">
 
         {/* TopAppBar (mobile only) */}
-        <header className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl fixed top-0 w-full z-50">
-          <div className="flex items-center justify-between px-6 h-16 w-full max-w-md mx-auto">
-            <span className="text-xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-[#949493] via-[#E0E0E0] to-[#949493] pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
-              Motors Line
-            </span>
-            <Link href="/profile" className="w-8 h-8 rounded-full border border-[#2A2A2A] bg-[#1A1A1A] flex items-center justify-center hover:bg-[#2a2a2a] transition-colors">
-              <span className="material-symbols-outlined text-[#c4c7c8] text-sm">person</span>
-            </Link>
+        <header className="md:hidden sticky top-0 z-50 bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-[#1c1b1b]">
+          <div className="px-4 h-16 flex items-center justify-between gap-2 overflow-hidden">
+            <div className="flex items-center gap-2 min-w-0 shrink-0">
+              <span className="text-base font-bold italic tracking-tighter silver-gradient-text overflow-visible pr-1">
+                Motors Line
+              </span>
+              <span className="text-[10px] uppercase tracking-widest text-[#444748] font-medium px-1.5 py-0.5 rounded border border-[#2a2a2a] shrink-0">
+                Convoyeur
+              </span>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {profile?.role === "admin" && (
+                <Link href="/admin" className="flex items-center gap-1.5 p-2 bg-[#1c1b1b] border border-white/10 text-[#c4c7c8] rounded-full hover:text-white hover:border-white/20 transition-colors">
+                  <span className="material-symbols-outlined text-base">swap_horiz</span>
+                </Link>
+              )}
+              <Link href="/missions/new?from=convoyeur" className="flex items-center gap-1.5 p-2 bg-white text-[#0A0A0A] rounded-full font-bold hover:bg-zinc-100 transition-colors active:scale-95">
+                <span className="material-symbols-outlined text-base">add</span>
+              </Link>
+              <button onClick={handleLogout} className="p-2 text-[#949493] hover:text-white transition-colors">
+                <span className="material-symbols-outlined text-base">logout</span>
+              </button>
+            </div>
           </div>
         </header>
 
-        <main className="max-w-md md:max-w-5xl mx-auto px-6 pt-24 md:pt-8">
+        <main className="max-w-md md:max-w-5xl mx-auto px-6 pt-6 md:pt-8">
 
           {/* Welcome */}
           <section className="mb-10 flex items-start justify-between">
@@ -299,21 +314,21 @@ export default function DashboardPage() {
 
         {/* Bottom Nav (mobile only) */}
         <nav className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl fixed bottom-0 w-full z-50 rounded-t-2xl border-t border-[#2A2A2A] shadow-[0_-4px_24px_rgba(255,255,255,0.05)]">
-          <div className="flex justify-around items-center pt-3 pb-6 px-4 max-w-md mx-auto">
-            <Link href="/dashboard" className="flex items-center justify-center text-white scale-110 transition-transform">
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>dashboard</span>
-            </Link>
-            <Link href="/missions" className="flex items-center justify-center text-[#949493] hover:text-white transition-colors">
-              <span className="material-symbols-outlined">local_shipping</span>
-            </Link>
-            <Link href="/missions/new" className="flex items-center justify-center text-[#949493] hover:text-white transition-colors relative -top-4">
-              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg active:scale-90 duration-200 ease-out">
-                <span className="material-symbols-outlined text-[#0A0A0A] text-3xl">add</span>
-              </div>
-            </Link>
-            <Link href="/profile" className="flex items-center justify-center text-[#949493] hover:text-white transition-colors">
-              <span className="material-symbols-outlined">person</span>
-            </Link>
+          <div className="flex justify-around items-center h-16 px-4 max-w-md mx-auto">
+            {CONVOYEUR_NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center justify-center transition-colors ${item.href === "/dashboard" ? "text-white" : "text-[#949493] hover:text-white"}`}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={item.href === "/dashboard" ? { fontVariationSettings: "'FILL' 1" } : undefined}
+                >
+                  {item.icon}
+                </span>
+              </Link>
+            ))}
           </div>
         </nav>
 

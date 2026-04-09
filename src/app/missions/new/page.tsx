@@ -29,7 +29,7 @@ function getPricing(distanceMeters: number): Pricing {
 const CONVOYEUR_NAV = [
   { icon: "dashboard", label: "Dashboard", href: "/dashboard" },
   { icon: "local_shipping", label: "Missions", href: "/missions" },
-  { icon: "add_circle", label: "Nouvelle mission", href: "/missions/new" },
+  { icon: "add_circle", label: "Nouvelle mission", href: "/missions/new?from=convoyeur" },
   { icon: "receipt_long", label: "Facturation", href: "/billing" },
   { icon: "person", label: "Profil", href: "/profile" },
 ];
@@ -256,7 +256,8 @@ export default function NewMissionPage() {
       }).catch(() => {}); // silent — email failure must not block navigation
     }
 
-    router.push(userRole === "admin" ? "/admin" : "/missions");
+    const fromConvoyeur = new URLSearchParams(window.location.search).get("from") === "convoyeur";
+    router.push(userRole === "admin" && !fromConvoyeur ? "/admin" : "/missions");
   }
 
   return (
@@ -713,24 +714,21 @@ export default function NewMissionPage() {
         {/* Bottom Nav mobile (convoyeur only) */}
         {userRole !== "admin" && (
           <nav className="md:hidden fixed bottom-0 left-0 w-full bg-[#0A0A0A]/80 backdrop-blur-xl z-50 rounded-t-2xl border-t border-[#2A2A2A] shadow-[0_-4px_24px_rgba(255,255,255,0.05)]">
-            <div className="flex justify-around items-center pt-3 pb-6 px-4 max-w-lg mx-auto">
-              {[
-                { icon: "dashboard", label: "Dashboard", href: "/dashboard", active: false },
-                { icon: "local_shipping", label: "Missions", href: "/missions", active: false },
-                { icon: "add_circle", label: "Nouveau", href: "/missions/new", active: true },
-                { icon: "person", label: "Profil", href: "/profile", active: false },
-              ].map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={`flex flex-col items-center justify-center transition-colors ${item.active ? "text-white scale-110" : "text-[#949493] hover:text-white"}`}
-                >
-                  <span className="material-symbols-outlined mt-1" style={item.active ? { fontVariationSettings: "'FILL' 1" } : undefined}>
-                    {item.icon}
-                  </span>
-                  <span className="font-medium text-[10px] uppercase tracking-widest mt-1">{item.label}</span>
-                </Link>
-              ))}
+            <div className="flex justify-around items-center h-16 px-4 max-w-lg mx-auto">
+              {CONVOYEUR_NAV.map((item) => {
+                const isActive = item.href === "/missions/new?from=convoyeur";
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center justify-center transition-colors ${isActive ? "text-white" : "text-[#949493] hover:text-white"}`}
+                  >
+                    <span className="material-symbols-outlined" style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}>
+                      {item.icon}
+                    </span>
+                  </Link>
+                );
+              })}
             </div>
           </nav>
         )}

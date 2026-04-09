@@ -660,18 +660,20 @@ export default function ClientNewMissionPage() {
         </form>
 
         {/* Bottom Nav (mobile only) */}
-        <nav className="md:hidden fixed bottom-0 left-0 w-full h-20 flex justify-around items-center px-4 pb-4 bg-neutral-950/80 backdrop-blur-xl rounded-t-2xl z-50 shadow-[0_-4px_24px_rgba(255,255,255,0.02)]">
-          {CLIENT_NAV.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`flex items-center justify-center transition-all ${item.href === "/client/missions/new" ? "text-white scale-110" : "text-zinc-600 hover:text-zinc-300"}`}
-            >
-              <span className="material-symbols-outlined" style={item.href === "/client/missions/new" ? { fontVariationSettings: "'FILL' 1" } : undefined}>
-                {item.icon}
-              </span>
-            </Link>
-          ))}
+        <nav className="md:hidden fixed bottom-0 left-0 w-full bg-[#0A0A0A]/80 backdrop-blur-xl rounded-t-2xl z-50 border-t border-[#2A2A2A] shadow-[0_-4px_24px_rgba(255,255,255,0.02)]">
+          <div className="flex justify-around items-center h-16 px-4">
+            {CLIENT_NAV.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`flex items-center justify-center transition-colors ${item.href === "/client/missions/new" ? "text-white" : "text-[#949493] hover:text-white"}`}
+              >
+                <span className="material-symbols-outlined" style={item.href === "/client/missions/new" ? { fontVariationSettings: "'FILL' 1" } : undefined}>
+                  {item.icon}
+                </span>
+              </Link>
+            ))}
+          </div>
         </nav>
 
       </div>

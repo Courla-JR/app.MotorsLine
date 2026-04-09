@@ -30,7 +30,7 @@ const FILTERS: { label: string; value: Filter }[] = [
 const CONVOYEUR_NAV = [
   { icon: "dashboard", label: "Dashboard", href: "/dashboard" },
   { icon: "local_shipping", label: "Missions", href: "/missions" },
-  { icon: "add_circle", label: "Nouvelle mission", href: "/missions/new" },
+  { icon: "add_circle", label: "Nouvelle mission", href: "/missions/new?from=convoyeur" },
   { icon: "receipt_long", label: "Facturation", href: "/billing" },
   { icon: "person", label: "Profil", href: "/profile" },
 ];
@@ -63,6 +63,12 @@ export default function MissionsPage() {
   const [filter, setFilter] = useState<Filter>("toutes");
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    document.cookie = "user-role=; path=/; Max-Age=0";
+    router.push("/login");
+  }
 
   useEffect(() => {
     async function checkRole() {
@@ -149,27 +155,28 @@ export default function MissionsPage() {
       <div className="md:ml-60 pb-32 md:pb-10">
 
         {/* TopAppBar (mobile only) */}
-        <header className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl sticky top-0 z-40">
-          <div className="flex items-center justify-between px-6 h-16 w-full max-w-md mx-auto">
-            <div className="flex items-center gap-4">
-              <Link href="/dashboard">
-                <span className="material-symbols-outlined text-white cursor-pointer active:opacity-70 active:scale-95 duration-150">
-                  arrow_back
-                </span>
-              </Link>
-              <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
+        <header className="md:hidden sticky top-0 z-50 bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-[#1c1b1b]">
+          <div className="px-4 h-16 flex items-center justify-between gap-2 overflow-hidden">
+            <div className="flex items-center gap-2 min-w-0 shrink-0">
+              <span className="text-base font-bold italic tracking-tighter silver-gradient-text overflow-visible pr-1">
                 Motors Line
-              </h1>
+              </span>
+              <span className="text-[10px] uppercase tracking-widest text-[#444748] font-medium px-1.5 py-0.5 rounded border border-[#2a2a2a] shrink-0">
+                Convoyeur
+              </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 shrink-0">
               {isAdmin && (
-                <Link href="/admin" className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center hover:bg-[#3a3939] transition-colors">
-                  <span className="material-symbols-outlined text-[#c4c7c8]">swap_horiz</span>
+                <Link href="/admin" className="flex items-center gap-1.5 p-2 bg-[#1c1b1b] border border-white/10 text-[#c4c7c8] rounded-full hover:text-white hover:border-white/20 transition-colors">
+                  <span className="material-symbols-outlined text-base">swap_horiz</span>
                 </Link>
               )}
-              <Link href="/profile" className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center hover:bg-[#3a3939] transition-colors">
-                <span className="material-symbols-outlined text-[#c4c7c8]">person</span>
+              <Link href="/missions/new?from=convoyeur" className="flex items-center gap-1.5 p-2 bg-white text-[#0A0A0A] rounded-full font-bold hover:bg-zinc-100 transition-colors active:scale-95">
+                <span className="material-symbols-outlined text-base">add</span>
               </Link>
+              <button onClick={handleLogout} className="p-2 text-[#949493] hover:text-white transition-colors">
+                <span className="material-symbols-outlined text-base">logout</span>
+              </button>
             </div>
           </div>
         </header>
@@ -331,19 +338,17 @@ export default function MissionsPage() {
 
         {/* Bottom Nav (mobile only) */}
         <nav className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl fixed bottom-0 w-full z-50 rounded-t-2xl border-t border-[#2A2A2A] shadow-[0_-4px_24px_rgba(255,255,255,0.05)]">
-          <div className="flex justify-around items-center pt-3 pb-6 px-4">
-            {[
-              { icon: "dashboard", href: "/dashboard" },
-              { icon: "local_shipping", href: "/missions" },
-              { icon: "add_circle", href: "/missions/new" },
-              { icon: "person", href: "/profile" },
-            ].map((item) => (
+          <div className="flex justify-around items-center h-16 px-4">
+            {CONVOYEUR_NAV.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center justify-center transition-colors ${item.href === "/missions" ? "text-white scale-110" : "text-[#949493] hover:text-white"}`}
+                className={`flex items-center justify-center transition-colors ${item.href === "/missions" ? "text-white" : "text-[#949493] hover:text-white"}`}
               >
-                <span className="material-symbols-outlined" style={item.href === "/missions" ? { fontVariationSettings: "'FILL' 1" } : undefined}>
+                <span
+                  className="material-symbols-outlined"
+                  style={item.href === "/missions" ? { fontVariationSettings: "'FILL' 1" } : undefined}
+                >
                   {item.icon}
                 </span>
               </Link>
