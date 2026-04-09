@@ -175,7 +175,7 @@ export default function BillingPage() {
     setDownloadingId(null);
     if (!res.ok) return;
     const { url } = await res.json();
-    window.open(url, "_blank");
+    window.location.href = url;
   }
 
   async function handleDelete(inv: Invoice) {
