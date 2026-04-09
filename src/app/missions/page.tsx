@@ -228,70 +228,87 @@ export default function MissionsPage() {
             {missions.map((m) => (
               <div
                 key={m.id}
-                className={`bg-[#1c1b1b] rounded-2xl p-5 relative overflow-hidden group ${
+                className={`bg-[#1c1b1b] rounded-2xl overflow-hidden relative group ${
                   m.status === "terminee" || m.status === "annulee" ? "opacity-60" : ""
                 }`}
               >
+                {/* Vehicle image — 180px, top of card */}
                 {m.vehicle_image_url && (
-                  <div className="-mx-5 -mt-5 mb-4 h-36 overflow-hidden rounded-t-2xl relative">
-                    <img src={m.vehicle_image_url} alt={`${m.vehicle_brand} ${m.vehicle_model}`} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#1c1b1b]" />
+                  <div className="h-[180px] w-full shrink-0">
+                    <img
+                      src={m.vehicle_image_url}
+                      alt={`${m.vehicle_brand} ${m.vehicle_model}`}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                 )}
-                <div className="absolute top-0 right-0 p-4">
-                  <StatusBadge status={m.status} />
-                </div>
-                <div className="mb-4 z-10">
-                  <h3
-                    className={`text-lg font-bold tracking-tight leading-tight mb-1 ${m.status === "terminee" ? "text-white/50" : "text-white"}`}
-                    style={{ fontFamily: "Inter, sans-serif" }}
-                  >
-                    {m.vehicle_brand} {m.vehicle_model}
-                  </h3>
-                  <p className={`text-xs font-mono uppercase tracking-widest ${m.status === "terminee" ? "text-[#c4c7c8]/50" : "text-[#c4c7c8]"}`}>
-                    {m.vehicle_plate}
-                  </p>
-                </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${m.status === "terminee" ? "bg-white/50" : "bg-white"}`} />
-                    <p className={`text-sm font-medium truncate ${m.status === "terminee" ? "text-[#e5e2e1]/50" : "text-[#e5e2e1]"}`} style={{ fontFamily: "Montserrat, sans-serif" }}>
-                      {m.pickup_address}
-                    </p>
-                    {m.pickup_date && (
-                      <span className="text-[#c4c7c8] text-xs font-mono ml-auto shrink-0">{formatDate(m.pickup_date)}</span>
-                    )}
-                  </div>
-                  <div className="ml-1 h-8 relative">
-                    <div className="absolute left-[3px] top-0 bottom-0 w-1 bg-[#353534] rounded-full" />
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${m.status === "terminee" ? "bg-[#8e9192]/50" : "bg-[#8e9192]"}`} />
-                    <p className={`text-sm font-medium truncate ${m.status === "terminee" ? "text-[#e5e2e1]/50" : "text-[#e5e2e1]"}`} style={{ fontFamily: "Montserrat, sans-serif" }}>
-                      {m.delivery_address}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between">
-                  {m.status === "terminee" ? (
-                    <span className="text-[10px] font-mono text-[#c4c7c8]/40">
-                      LIVRÉ {m.delivery_date ? formatDate(m.delivery_date) : ""}
-                    </span>
-                  ) : (
-                    <div />
+                <div className="p-5 relative">
+                  {/* Status badge — top-right of content area (or absolute on card when no image) */}
+                  {!m.vehicle_image_url && (
+                    <div className="absolute top-0 right-0 p-4">
+                      <StatusBadge status={m.status} />
+                    </div>
                   )}
-                  <Link
-                    href={`/missions/${m.id}`}
-                    className={`text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:opacity-70 transition-opacity ${m.status === "terminee" ? "text-white/40" : "text-white"}`}
-                    style={{ fontFamily: "Inter, sans-serif" }}
-                  >
-                    {m.status === "terminee" ? "Archives" : "Détails"}
-                    <span className="material-symbols-outlined text-sm">
-                      {m.status === "terminee" ? "history" : "arrow_forward_ios"}
-                    </span>
-                  </Link>
+
+                  {/* Vehicle title + badge row */}
+                  <div className={`flex items-start justify-between gap-2 mb-4 ${!m.vehicle_image_url ? "pr-16" : ""}`}>
+                    <div className="min-w-0">
+                      <h3
+                        className={`text-lg font-bold tracking-tight leading-tight mb-1 ${m.status === "terminee" ? "text-white/50" : "text-white"}`}
+                        style={{ fontFamily: "Inter, sans-serif" }}
+                      >
+                        {m.vehicle_brand} {m.vehicle_model}
+                      </h3>
+                      <p className={`text-xs font-mono uppercase tracking-widest ${m.status === "terminee" ? "text-[#c4c7c8]/50" : "text-[#c4c7c8]"}`}>
+                        {m.vehicle_plate}
+                      </p>
+                    </div>
+                    {m.vehicle_image_url && <StatusBadge status={m.status} />}
+                  </div>
+
+                  {/* Route */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${m.status === "terminee" ? "bg-white/50" : "bg-white"}`} />
+                      <p className={`text-sm font-medium truncate ${m.status === "terminee" ? "text-[#e5e2e1]/50" : "text-[#e5e2e1]"}`} style={{ fontFamily: "Montserrat, sans-serif" }}>
+                        {m.pickup_address}
+                      </p>
+                      {m.pickup_date && (
+                        <span className="text-[#c4c7c8] text-xs font-mono ml-auto shrink-0">{formatDate(m.pickup_date)}</span>
+                      )}
+                    </div>
+                    <div className="ml-1 h-8 relative">
+                      <div className="absolute left-[3px] top-0 bottom-0 w-1 bg-[#353534] rounded-full" />
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${m.status === "terminee" ? "bg-[#8e9192]/50" : "bg-[#8e9192]"}`} />
+                      <p className={`text-sm font-medium truncate ${m.status === "terminee" ? "text-[#e5e2e1]/50" : "text-[#e5e2e1]"}`} style={{ fontFamily: "Montserrat, sans-serif" }}>
+                        {m.delivery_address}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between">
+                    {m.status === "terminee" ? (
+                      <span className="text-[10px] font-mono text-[#c4c7c8]/40">
+                        LIVRÉ {m.delivery_date ? formatDate(m.delivery_date) : ""}
+                      </span>
+                    ) : (
+                      <div />
+                    )}
+                    <Link
+                      href={`/missions/${m.id}`}
+                      className={`text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:opacity-70 transition-opacity ${m.status === "terminee" ? "text-white/40" : "text-white"}`}
+                      style={{ fontFamily: "Inter, sans-serif" }}
+                    >
+                      {m.status === "terminee" ? "Archives" : "Détails"}
+                      <span className="material-symbols-outlined text-sm">
+                        {m.status === "terminee" ? "history" : "arrow_forward_ios"}
+                      </span>
+                    </Link>
+                  </div>
                 </div>
               </div>
             ))}

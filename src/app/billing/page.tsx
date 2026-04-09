@@ -134,19 +134,24 @@ export default function BillingPage() {
 
     const { data: { publicUrl } } = supabase.storage.from("invoices").getPublicUrl(path);
 
-    const { error: dbError } = await supabase.from("invoices").insert({
-      client_id: selectedClientId,
-      amount: parseFloat(amount),
-      date,
-      file_url: publicUrl,
-      file_name: file.name,
-      created_by: user.id,
+    // Use server-side API route to insert — bypasses table RLS regardless of DB policy state
+    const res = await fetch("/api/billing/create-invoice", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_id: selectedClientId,
+        amount: parseFloat(amount),
+        date,
+        file_url: publicUrl,
+        file_name: file.name,
+      }),
     });
 
     setUploading(false);
 
-    if (dbError) {
-      setUploadError(`Erreur base de données : ${dbError.message}`);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setUploadError(`Erreur base de données : ${body.error ?? res.statusText}`);
       return;
     }
 
