@@ -20,7 +20,7 @@ type Invoice = {
 const CONVOYEUR_NAV = [
   { icon: "dashboard", label: "Dashboard", href: "/dashboard" },
   { icon: "local_shipping", label: "Missions", href: "/missions" },
-  { icon: "add_circle", label: "Nouvelle mission", href: "/missions/new" },
+  { icon: "add_circle", label: "Nouvelle mission", href: "/missions/new?from=convoyeur" },
   { icon: "receipt_long", label: "Facturation", href: "/billing" },
   { icon: "person", label: "Profil", href: "/profile" },
 ];
@@ -258,13 +258,33 @@ export default function BillingPage() {
       <div className="md:ml-60 pb-28 md:pb-10">
 
         {/* TopAppBar (mobile only) */}
-        <header className="md:hidden fixed top-0 w-full z-50 bg-[#0A0A0A]/80 backdrop-blur-xl flex justify-between items-center px-6 h-16">
-          <h1 className="text-xl font-bold tracking-tighter italic bg-clip-text text-transparent bg-gradient-to-r from-zinc-400 via-zinc-100 to-zinc-400 overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
-            Motors Line
-          </h1>
+        <header className="md:hidden sticky top-0 z-50 bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-[#1c1b1b]">
+          <div className="px-4 h-16 flex items-center justify-between gap-2 overflow-hidden">
+            <div className="flex items-center gap-2 min-w-0 shrink-0">
+              <span className="text-base font-bold italic tracking-tighter silver-gradient-text overflow-visible pr-1">
+                Motors Line
+              </span>
+              <span className="text-[10px] uppercase tracking-widest text-[#444748] font-medium px-1.5 py-0.5 rounded border border-[#2a2a2a] shrink-0">
+                Convoyeur
+              </span>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {isAdmin && (
+                <Link href="/admin" className="flex items-center gap-1.5 p-2 bg-[#1c1b1b] border border-white/10 text-[#c4c7c8] rounded-full hover:text-white hover:border-white/20 transition-colors">
+                  <span className="material-symbols-outlined text-base">swap_horiz</span>
+                </Link>
+              )}
+              <Link href="/missions/new?from=convoyeur" className="flex items-center gap-1.5 p-2 bg-white text-[#0A0A0A] rounded-full font-bold hover:bg-zinc-100 transition-colors active:scale-95">
+                <span className="material-symbols-outlined text-base">add</span>
+              </Link>
+              <button onClick={handleLogout} className="p-2 text-[#949493] hover:text-white transition-colors">
+                <span className="material-symbols-outlined text-base">logout</span>
+              </button>
+            </div>
+          </div>
         </header>
 
-        <main className="pt-24 md:pt-8 px-6 max-w-lg md:max-w-4xl mx-auto">
+        <main className="pt-6 md:pt-8 px-6 max-w-lg md:max-w-4xl mx-auto">
 
           {/* Header */}
           <div className="flex items-center justify-between mb-8">

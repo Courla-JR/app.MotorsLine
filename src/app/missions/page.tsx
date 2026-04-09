@@ -184,9 +184,14 @@ export default function MissionsPage() {
         <main className="max-w-md md:max-w-5xl mx-auto px-6 mt-6">
           <div className="mb-8">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-[26px] font-bold text-white tracking-tight" style={{ fontFamily: "Inter, sans-serif" }}>
-                Missions
-              </h2>
+              <div>
+                <h2 className="text-[26px] font-bold text-white tracking-tight" style={{ fontFamily: "Inter, sans-serif" }}>
+                  Missions
+                </h2>
+                <p className="text-[#949493] text-sm mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                  Gérez vos transports de véhicules
+                </p>
+              </div>
               {/* Desktop profile / admin switch */}
               <div className="hidden md:flex items-center gap-2">
                 {isAdmin && (

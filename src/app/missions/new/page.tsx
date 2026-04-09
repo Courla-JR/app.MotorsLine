@@ -52,6 +52,12 @@ type ClientOption = { id: string; company_name: string };
 export default function NewMissionPage() {
   const router = useRouter();
 
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    document.cookie = "user-role=; path=/; Max-Age=0";
+    router.push("/login");
+  }
+
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [plate, setPlate] = useState("");
@@ -308,12 +314,12 @@ export default function NewMissionPage() {
                 key={item.label}
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-colors ${
-                  item.href === "/missions/new" ? "bg-white/10 text-white" : "text-[#949493] hover:text-white hover:bg-white/5"
+                  item.href.startsWith("/missions/new") ? "bg-white/10 text-white" : "text-[#949493] hover:text-white hover:bg-white/5"
                 }`}
               >
                 <span
                   className="material-symbols-outlined text-xl"
-                  style={item.href === "/missions/new" ? { fontVariationSettings: "'FILL' 1" } : undefined}
+                  style={item.href.startsWith("/missions/new") ? { fontVariationSettings: "'FILL' 1" } : undefined}
                 >
                   {item.icon}
                 </span>
@@ -329,19 +335,35 @@ export default function NewMissionPage() {
 
         {/* TopAppBar mobile (convoyeur only) */}
         {userRole !== "admin" && (
-          <header className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl sticky top-0 z-40">
-            <div className="flex items-center justify-between px-6 h-16 w-full max-w-lg mx-auto">
-              <div className="flex items-center gap-4">
-                <Link href="/missions">
-                  <span className="material-symbols-outlined text-white cursor-pointer active:opacity-70 active:scale-95 duration-150">
-                    arrow_back
-                  </span>
-                </Link>
-                <h1 className="font-semibold text-[20px] text-white">Nouvelle mission</h1>
+          <header className="md:hidden sticky top-0 z-50 bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-[#1c1b1b]">
+            <div className="px-4 h-16 flex items-center justify-between gap-2 overflow-hidden">
+              <div className="flex items-center gap-2 min-w-0 shrink-0">
+                <span className="text-base font-bold italic tracking-tighter silver-gradient-text overflow-visible pr-1">
+                  Motors Line
+                </span>
+                <span className="text-[10px] uppercase tracking-widest text-[#444748] font-medium px-1.5 py-0.5 rounded border border-[#2a2a2a] shrink-0">
+                  Convoyeur
+                </span>
               </div>
-              <span className="silver-gradient-text text-xl font-bold italic tracking-tighter pr-1">Motors Line</span>
+              <div className="flex items-center gap-1 shrink-0">
+                <button onClick={handleLogout} className="p-2 text-[#949493] hover:text-white transition-colors">
+                  <span className="material-symbols-outlined text-base">logout</span>
+                </button>
+              </div>
             </div>
           </header>
+        )}
+
+        {/* Mobile page title (convoyeur only) */}
+        {userRole !== "admin" && (
+          <div className="md:hidden px-6 pt-6 pb-2">
+            <h1 className="text-[26px] font-bold text-white tracking-tight" style={{ fontFamily: "Inter, sans-serif" }}>
+              Nouvelle mission
+            </h1>
+            <p className="text-[#949493] text-sm mt-1" style={{ fontFamily: "Montserrat, sans-serif" }}>
+              Renseignez les détails de votre mission
+            </p>
+          </div>
         )}
 
         {/* Desktop page title (convoyeur only) */}
@@ -353,7 +375,12 @@ export default function NewMissionPage() {
                   arrow_back
                 </span>
               </Link>
-              <h1 className="font-semibold text-[24px] text-white">Nouvelle mission</h1>
+              <div>
+                <h1 className="font-semibold text-[24px] text-white">Nouvelle mission</h1>
+                <p className="text-[#949493] text-sm mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                  Renseignez les détails de votre mission
+                </p>
+              </div>
             </div>
           </div>
         )}

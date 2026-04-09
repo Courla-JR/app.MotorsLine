@@ -172,7 +172,7 @@ export default function ClientProfilePage() {
               Profil
             </h2>
             <p className="text-[#949493] text-sm mt-1" style={{ fontFamily: "Montserrat, sans-serif" }}>
-              {loading ? "Chargement..." : email}
+              Gérez vos informations personnelles
             </p>
           </div>
 

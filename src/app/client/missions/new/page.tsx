@@ -307,19 +307,33 @@ export default function ClientNewMissionPage() {
       <div className="md:ml-60">
 
         {/* TopAppBar (mobile only) */}
-        <header className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl sticky top-0 z-40">
-          <div className="flex items-center justify-between px-6 h-16 w-full max-w-lg mx-auto">
-            <div className="flex items-center gap-4">
-              <Link href="/client/missions">
-                <span className="material-symbols-outlined text-white cursor-pointer active:opacity-70 active:scale-95 duration-150">
+        <header className="md:hidden sticky top-0 z-50 bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-[#1c1b1b]">
+          <div className="px-4 h-16 flex items-center justify-between gap-2 overflow-hidden">
+            <div className="flex items-center gap-2 min-w-0 shrink-0">
+              <Link href="/client/missions" className="shrink-0">
+                <span className="material-symbols-outlined text-[#949493] hover:text-white cursor-pointer transition-colors">
                   arrow_back
                 </span>
               </Link>
-              <h1 className="font-semibold text-[20px] text-white">Nouvelle mission</h1>
+              <span className="text-base font-bold italic tracking-tighter silver-gradient-text overflow-visible pr-1">
+                Motors Line
+              </span>
             </div>
-            <span className="silver-gradient-text text-xl font-bold tracking-tighter pr-1">Motors Line</span>
+            <Link href="/client/profile" className="w-8 h-8 rounded-full border border-[#2A2A2A] bg-[#1A1A1A] flex items-center justify-center hover:bg-[#2a2a2a] transition-colors shrink-0">
+              <span className="material-symbols-outlined text-[#c4c7c8] text-sm">person</span>
+            </Link>
           </div>
         </header>
+
+        {/* Mobile page title */}
+        <div className="md:hidden px-6 pt-6 pb-2">
+          <h1 className="text-[26px] font-bold text-white tracking-tight" style={{ fontFamily: "Inter, sans-serif" }}>
+            Nouvelle mission
+          </h1>
+          <p className="text-[#949493] text-sm mt-1" style={{ fontFamily: "Montserrat, sans-serif" }}>
+            Renseignez les détails de votre mission
+          </p>
+        </div>
 
         {/* Desktop page title */}
         <div className="hidden md:block px-8 pt-8 pb-2 max-w-2xl mx-auto">
@@ -329,7 +343,12 @@ export default function ClientNewMissionPage() {
                 arrow_back
               </span>
             </Link>
-            <h1 className="font-semibold text-[24px] text-white">Nouvelle mission</h1>
+            <div>
+              <h1 className="font-semibold text-[24px] text-white">Nouvelle mission</h1>
+              <p className="text-[#949493] text-sm mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                Renseignez les détails de votre mission
+              </p>
+            </div>
           </div>
         </div>
 
