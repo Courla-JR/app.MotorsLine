@@ -10,7 +10,7 @@ type DbMission = {
   vehicle_brand: string;
   vehicle_model: string;
   vehicle_plate: string;
-  vehicle_image_url: string | null;
+  vehicle_image_url?: string | null;
   status: "a_faire" | "en_cours" | "terminee" | "annulee";
   pickup_address: string;
   delivery_address: string;
@@ -77,17 +77,26 @@ export default function MissionsPage() {
   useEffect(() => {
     async function fetchMissions() {
       setLoading(true);
-      let query = supabase
-        .from("missions")
-        .select("id, vehicle_brand, vehicle_model, vehicle_plate, vehicle_image_url, status, pickup_address, delivery_address, pickup_date, delivery_date")
-        .order("created_at", { ascending: false });
 
-      if (filter !== "toutes") {
-        query = query.eq("status", filter);
+      // Try with vehicle_image_url; fall back if the column doesn't exist yet
+      const buildQuery = (cols: string) => {
+        let q = supabase.from("missions").select(cols).order("created_at", { ascending: false });
+        if (filter !== "toutes") q = q.eq("status", filter);
+        return q;
+      };
+
+      let { data, error } = await buildQuery(
+        "id, vehicle_brand, vehicle_model, vehicle_plate, vehicle_image_url, status, pickup_address, delivery_address, pickup_date, delivery_date"
+      );
+
+      if (error) {
+        const fallback = await buildQuery(
+          "id, vehicle_brand, vehicle_model, vehicle_plate, status, pickup_address, delivery_address, pickup_date, delivery_date"
+        );
+        data = fallback.data as any;
       }
 
-      const { data } = await query;
-      setMissions((data as DbMission[]) ?? []);
+      setMissions((data as unknown as DbMission[]) ?? []);
       setLoading(false);
     }
     fetchMissions();

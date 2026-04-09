@@ -16,7 +16,7 @@ type Mission = {
   vehicle_brand: string;
   vehicle_model: string;
   vehicle_plate: string;
-  vehicle_image_url: string | null;
+  vehicle_image_url?: string | null;
   pickup_address: string;
   delivery_address: string;
   pickup_date: string | null;
@@ -123,17 +123,16 @@ export default function AdminPage() {
   }, [router]);
 
   async function fetchMissions() {
-    const { data } = await supabase
-      .from("missions")
-      .select(`
-        id, status, type,
-        vehicle_brand, vehicle_model, vehicle_plate, vehicle_image_url,
-        pickup_address, delivery_address, pickup_date,
-        convoyeur_id, client_id,
-        clients ( company_name ),
-        profiles ( full_name )
-      `)
-      .order("created_at", { ascending: false });
+    const withImg = `id, status, type, vehicle_brand, vehicle_model, vehicle_plate, vehicle_image_url, pickup_address, delivery_address, pickup_date, convoyeur_id, client_id, clients ( company_name ), profiles ( full_name )`;
+    const withoutImg = `id, status, type, vehicle_brand, vehicle_model, vehicle_plate, pickup_address, delivery_address, pickup_date, convoyeur_id, client_id, clients ( company_name ), profiles ( full_name )`;
+
+    let { data, error } = await supabase.from("missions").select(withImg).order("created_at", { ascending: false });
+
+    if (error) {
+      const fallback = await supabase.from("missions").select(withoutImg).order("created_at", { ascending: false });
+      data = fallback.data as any;
+    }
+
     setMissions((data as unknown as Mission[]) ?? []);
   }
 

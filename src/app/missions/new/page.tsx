@@ -208,7 +208,7 @@ export default function NewMissionPage() {
       vehicle_plate: plate,
       vehicle_color: color || null,
       vehicle_vin: vin || null,
-      vehicle_image_url: vehicleImageUrl,
+      ...(vehicleImageUrl !== null ? { vehicle_image_url: vehicleImageUrl } : {}),
       pickup_address: pickupInputRef.current?.value ?? "",
       pickup_date: pickupDatetime,
       delivery_address: deliveryInputRef.current?.value ?? "",
