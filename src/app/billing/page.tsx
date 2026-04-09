@@ -51,6 +51,8 @@ export default function BillingPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     async function init() {
@@ -168,6 +170,20 @@ export default function BillingPage() {
 
   async function handleDownload(inv: Invoice) {
     window.open(inv.file_url, "_blank");
+  }
+
+  async function handleDelete(inv: Invoice) {
+    setDeleting(true);
+    const res = await fetch("/api/billing/delete-invoice", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: inv.id, file_url: inv.file_url }),
+    });
+    setDeleting(false);
+    setDeleteConfirmId(null);
+    if (res.ok) {
+      await loadInvoices();
+    }
   }
 
   async function handleLogout() {
@@ -389,7 +405,7 @@ export default function BillingPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 shrink-0">
+                    <div className="flex items-center gap-3 shrink-0">
                       <span className="text-white font-bold text-sm" style={{ fontFamily: "Inter, sans-serif" }}>
                         {formatAmount(inv.amount)}
                       </span>
@@ -401,6 +417,13 @@ export default function BillingPage() {
                         <span className="material-symbols-outlined text-sm">download</span>
                         PDF
                       </button>
+                      <button
+                        onClick={() => setDeleteConfirmId(inv.id)}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-[#949493] hover:text-[#ffb4ab] hover:bg-[#ffb4ab]/10 transition-colors"
+                        title="Supprimer"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                      </button>
                     </div>
                   </div>
                 );
@@ -408,6 +431,48 @@ export default function BillingPage() {
             </div>
           )}
         </main>
+
+        {/* Delete confirmation modal */}
+        {deleteConfirmId && (
+          <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm px-4 pb-8 md:pb-0">
+            <div className="bg-[#1c1b1b] rounded-2xl p-6 w-full max-w-sm border border-white/[0.06] flex flex-col gap-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#ffb4ab]/10 flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[#ffb4ab] text-xl">delete</span>
+                </div>
+                <div>
+                  <p className="text-white font-semibold text-sm" style={{ fontFamily: "Inter, sans-serif" }}>
+                    Supprimer cette facture ?
+                  </p>
+                  <p className="text-[#949493] text-xs mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    Le fichier PDF sera également supprimé. Cette action est irréversible.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteConfirmId(null)}
+                  disabled={deleting}
+                  className="flex-1 px-4 py-2.5 bg-[#2a2a2a] text-[#c4c7c8] rounded-xl text-sm font-bold hover:bg-[#3a3939] transition-colors disabled:opacity-50"
+                  style={{ fontFamily: "Inter, sans-serif" }}
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={() => {
+                    const inv = invoices.find((i) => i.id === deleteConfirmId);
+                    if (inv) handleDelete(inv);
+                  }}
+                  disabled={deleting}
+                  className="flex-1 px-4 py-2.5 bg-[#ffb4ab]/20 text-[#ffb4ab] rounded-xl text-sm font-bold hover:bg-[#ffb4ab]/30 transition-colors disabled:opacity-50"
+                  style={{ fontFamily: "Inter, sans-serif" }}
+                >
+                  {deleting ? "Suppression…" : "Supprimer"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Bottom Nav (mobile only) */}
         <nav className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl fixed bottom-0 w-full z-50 rounded-t-2xl border-t border-[#2A2A2A] shadow-[0_-4px_24px_rgba(255,255,255,0.05)]">
