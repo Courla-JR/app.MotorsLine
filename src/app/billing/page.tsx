@@ -53,6 +53,7 @@ export default function BillingPage() {
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   useEffect(() => {
     async function init() {
@@ -169,7 +170,12 @@ export default function BillingPage() {
   }
 
   async function handleDownload(inv: Invoice) {
-    window.open(inv.file_url, "_blank");
+    setDownloadingId(inv.id);
+    const res = await fetch(`/api/billing/download-invoice?invoice_id=${inv.id}`);
+    setDownloadingId(null);
+    if (!res.ok) return;
+    const { url } = await res.json();
+    window.open(url, "_blank");
   }
 
   async function handleDelete(inv: Invoice) {
@@ -411,10 +417,13 @@ export default function BillingPage() {
                       </span>
                       <button
                         onClick={() => handleDownload(inv)}
-                        className="flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white transition-colors uppercase tracking-widest"
+                        disabled={downloadingId === inv.id}
+                        className="flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white transition-colors uppercase tracking-widest disabled:opacity-40"
                         style={{ fontFamily: "Inter, sans-serif" }}
                       >
-                        <span className="material-symbols-outlined text-sm">download</span>
+                        <span className="material-symbols-outlined text-sm">
+                          {downloadingId === inv.id ? "hourglass_empty" : "download"}
+                        </span>
                         PDF
                       </button>
                       <button

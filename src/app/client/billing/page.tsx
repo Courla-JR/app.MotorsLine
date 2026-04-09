@@ -34,6 +34,7 @@ export default function ClientBillingPage() {
   const router = useRouter();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchInvoices() {
@@ -59,6 +60,15 @@ export default function ClientBillingPage() {
     }
     fetchInvoices();
   }, [router]);
+
+  async function handleDownload(inv: Invoice) {
+    setDownloadingId(inv.id);
+    const res = await fetch(`/api/billing/download-invoice?invoice_id=${inv.id}`);
+    setDownloadingId(null);
+    if (!res.ok) return;
+    const { url } = await res.json();
+    window.open(url, "_blank");
+  }
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -188,16 +198,19 @@ export default function ClientBillingPage() {
                       <span className="text-white font-bold text-sm" style={{ fontFamily: "Inter, sans-serif" }}>
                         {formatAmount(inv.amount)}
                       </span>
-                      <a
-                        href={inv.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white transition-colors uppercase tracking-widest"
+                      <button
+                        onClick={() => handleDownload(inv)}
+                        disabled={downloadingId === inv.id}
+                        className="flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white transition-colors uppercase tracking-widest disabled:opacity-40"
                         style={{ fontFamily: "Inter, sans-serif" }}
                       >
-                        <span className="material-symbols-outlined text-sm">download</span>
-                        <span className="hidden sm:inline">Télécharger</span>
-                      </a>
+                        <span className="material-symbols-outlined text-sm">
+                          {downloadingId === inv.id ? "hourglass_empty" : "download"}
+                        </span>
+                        <span className="hidden sm:inline">
+                          {downloadingId === inv.id ? "…" : "Télécharger"}
+                        </span>
+                      </button>
                     </div>
                   </div>
                 ))}
