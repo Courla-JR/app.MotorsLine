@@ -9,6 +9,7 @@ const CONVOYEUR_NAV = [
   { icon: "dashboard", label: "Dashboard", href: "/dashboard" },
   { icon: "local_shipping", label: "Missions", href: "/missions" },
   { icon: "add_circle", label: "Nouvelle mission", href: "/missions/new" },
+  { icon: "receipt_long", label: "Facturation", href: "/billing" },
   { icon: "person", label: "Profil", href: "/profile" },
 ];
 
@@ -341,25 +342,7 @@ export default function ConvoyeurProfilePage() {
                   </div>
                 </div>
               </section>
-
-              {/* ── Compte ── */}
-              <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-[#ffb4ab]/10">
-                <h3 className="text-[10px] text-[#ffb4ab]/70 uppercase tracking-widest font-semibold mb-4" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                  Compte
-                </h3>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white text-sm font-medium" style={{ fontFamily: "Inter, sans-serif" }}>Supprimer mon compte</p>
-                    <p className="text-[#949493] text-xs mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                      Contactez{" "}
-                      <span className="text-[#c4c7c8]">support@motorsline.fr</span>
-                    </p>
-                  </div>
-                  <span className="material-symbols-outlined text-[#ffb4ab]/40 text-xl">delete_forever</span>
-                </div>
-              </section>
-
-            </div>
+</div>
           )}
         </main>
 

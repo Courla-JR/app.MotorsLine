@@ -29,6 +29,7 @@ const CONVOYEUR_NAV = [
   { icon: "dashboard", label: "Dashboard", href: "/dashboard" },
   { icon: "local_shipping", label: "Missions", href: "/missions" },
   { icon: "add_circle", label: "Nouvelle mission", href: "/missions/new" },
+  { icon: "receipt_long", label: "Facturation", href: "/billing" },
   { icon: "person", label: "Profil", href: "/profile" },
 ];
 
@@ -93,12 +94,15 @@ export default function ConvoyeurMissionDetailPage() {
       }
       setIsAdmin(profile.role === "admin");
 
-      const { data } = await supabase
+      const { data, error: missionError } = await supabase
         .from("missions")
-        .select("id, vehicle_brand, vehicle_model, vehicle_plate, vehicle_color, status, pickup_address, delivery_address, pickup_date, delivery_date, notes, price, service_level, distance_km, duration")
+        .select("*")
         .eq("id", missionId)
         .single();
 
+      if (missionError) {
+        console.error("[mission detail convoyeur] fetch error:", missionError.message, missionError.code);
+      }
       if (!data) { router.push("/missions"); return; }
       setMission(data as Mission);
       setLoading(false);

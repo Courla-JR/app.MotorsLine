@@ -1,24 +1,72 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+
+type Invoice = {
+  id: string;
+  amount: number;
+  date: string;
+  file_url: string;
+  file_name: string | null;
+  created_at: string;
+};
 
 const CLIENT_NAV = [
   { icon: "dashboard", label: "Dashboard", href: "/client/dashboard" },
   { icon: "local_shipping", label: "Missions", href: "/client/missions" },
   { icon: "add_circle", label: "Nouvelle", href: "/client/missions/new" },
+  { icon: "receipt_long", label: "Facturation", href: "/client/billing" },
   { icon: "person", label: "Profil", href: "/client/profile" },
 ];
 
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+}
+
+function formatAmount(n: number) {
+  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(n);
+}
+
 export default function ClientBillingPage() {
   const router = useRouter();
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchInvoices() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/client/login"); return; }
+
+      const { data: client } = await supabase
+        .from("clients")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!client) { setLoading(false); return; }
+
+      const { data } = await supabase
+        .from("invoices")
+        .select("id, amount, date, file_url, file_name, created_at")
+        .eq("client_id", client.id)
+        .order("date", { ascending: false });
+
+      setInvoices((data as Invoice[]) ?? []);
+      setLoading(false);
+    }
+    fetchInvoices();
+  }, [router]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
     document.cookie = "user-role=; path=/; Max-Age=0";
     router.push("/client/login");
   }
+
+  const totalDue = invoices.reduce((s, inv) => s + inv.amount, 0);
 
   return (
     <div className="bg-[#0A0A0A] text-[#e5e2e1] min-h-screen antialiased">
@@ -62,36 +110,104 @@ export default function ClientBillingPage() {
       </aside>
 
       {/* ── Main Content ── */}
-      <div className="md:ml-60 pb-24 md:pb-10">
+      <div className="md:ml-60 pb-28 md:pb-10">
 
         {/* TopAppBar (mobile only) */}
-        <header className="md:hidden fixed top-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-neutral-950/80 backdrop-blur-xl">
-          <h1 className="text-xl font-bold tracking-tighter italic bg-clip-text text-transparent bg-gradient-to-r from-zinc-400 via-zinc-100 to-zinc-400" style={{ fontFamily: "Inter, sans-serif" }}>
+        <header className="md:hidden fixed top-0 w-full z-50 bg-neutral-950/80 backdrop-blur-xl flex justify-between items-center px-6 h-16">
+          <h1
+            className="text-xl font-bold tracking-tighter italic bg-clip-text text-transparent bg-gradient-to-r from-zinc-400 via-zinc-100 to-zinc-400"
+            style={{ fontFamily: "Inter, sans-serif" }}
+          >
             Motors Line
           </h1>
         </header>
 
-        <main className="pt-24 md:pt-8 px-6 max-w-lg md:max-w-5xl mx-auto">
-          <h2 className="text-3xl font-semibold tracking-tight text-white mb-2" style={{ fontFamily: "Inter, sans-serif" }}>
-            Facturation
-          </h2>
-          <p className="text-[#949493] text-sm mb-12" style={{ fontFamily: "Montserrat, sans-serif" }}>
-            Gérez vos factures et vos paiements
-          </p>
+        <main className="pt-24 md:pt-8 px-6 max-w-lg md:max-w-3xl mx-auto">
 
-          <div className="flex flex-col items-center justify-center py-24 gap-4 bg-[#111] rounded-2xl border border-white/5">
-            <span className="material-symbols-outlined text-[#444748] text-5xl">receipt_long</span>
-            <p className="text-white font-semibold text-lg" style={{ fontFamily: "Inter, sans-serif" }}>
-              Bientôt disponible
-            </p>
-            <p className="text-[#949493] text-sm text-center max-w-xs" style={{ fontFamily: "Montserrat, sans-serif" }}>
-              L'espace facturation est en cours de développement. Contactez votre gestionnaire pour toute demande.
+          <div className="mb-8">
+            <h2 className="text-3xl font-semibold tracking-tight text-white" style={{ fontFamily: "Inter, sans-serif" }}>
+              Facturation
+            </h2>
+            <p className="text-[#949493] text-sm mt-1" style={{ fontFamily: "Montserrat, sans-serif" }}>
+              Vos factures de convoyage
             </p>
           </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-32">
+              <span className="text-[#949493] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>Chargement…</span>
+            </div>
+          ) : invoices.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 gap-4 bg-[#111] rounded-2xl border border-white/5">
+              <span className="material-symbols-outlined text-[#444748] text-5xl">receipt_long</span>
+              <p className="text-white font-semibold text-lg" style={{ fontFamily: "Inter, sans-serif" }}>
+                Aucune facture
+              </p>
+              <p className="text-[#949493] text-sm text-center max-w-xs" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                Vos factures apparaîtront ici dès qu'elles seront disponibles.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Summary card */}
+              <div className="bg-[#1c1b1b] rounded-2xl p-6 mb-6 border border-white/[0.03] flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    Total facturé
+                  </p>
+                  <p className="text-3xl font-bold text-white" style={{ fontFamily: "Inter, sans-serif" }}>
+                    {formatAmount(totalDue)}
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-white/60">receipt_long</span>
+                </div>
+              </div>
+
+              {/* Invoice list */}
+              <div className="flex flex-col gap-3">
+                {invoices.map((inv) => (
+                  <div
+                    key={inv.id}
+                    className="bg-[#1c1b1b] rounded-2xl px-5 py-4 flex items-center justify-between gap-4 border border-white/[0.03]"
+                  >
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-[#2a2a2a] flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-white/60 text-lg">description</span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-white font-semibold text-sm truncate" style={{ fontFamily: "Inter, sans-serif" }}>
+                          {inv.file_name ?? "Facture"}
+                        </p>
+                        <p className="text-[#949493] text-xs" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          {formatDate(inv.date)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-5 shrink-0">
+                      <span className="text-white font-bold text-sm" style={{ fontFamily: "Inter, sans-serif" }}>
+                        {formatAmount(inv.amount)}
+                      </span>
+                      <a
+                        href={inv.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white transition-colors uppercase tracking-widest"
+                        style={{ fontFamily: "Inter, sans-serif" }}
+                      >
+                        <span className="material-symbols-outlined text-sm">download</span>
+                        <span className="hidden sm:inline">Télécharger</span>
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </main>
 
         {/* Bottom Nav (mobile only) */}
-        <nav className="md:hidden fixed bottom-0 left-0 w-full h-20 flex justify-around items-center px-4 pb-4 bg-neutral-950/80 backdrop-blur-xl rounded-t-2xl z-50">
+        <nav className="md:hidden fixed bottom-0 left-0 w-full h-20 flex justify-around items-center px-4 pb-4 bg-neutral-950/80 backdrop-blur-xl rounded-t-2xl z-50 shadow-[0_-4px_24px_rgba(255,255,255,0.02)]">
           {CLIENT_NAV.map((item) => (
             <Link
               key={item.label}

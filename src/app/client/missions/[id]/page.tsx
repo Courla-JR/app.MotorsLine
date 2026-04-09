@@ -29,6 +29,7 @@ const CLIENT_NAV = [
   { icon: "dashboard", label: "Dashboard", href: "/client/dashboard" },
   { icon: "local_shipping", label: "Missions", href: "/client/missions" },
   { icon: "add_circle", label: "Nouvelle", href: "/client/missions/new" },
+  { icon: "receipt_long", label: "Facturation", href: "/client/billing" },
   { icon: "person", label: "Profil", href: "/client/profile" },
 ];
 
@@ -90,13 +91,16 @@ export default function ClientMissionDetailPage() {
 
       if (!client) { router.push("/client/login"); return; }
 
-      const { data } = await supabase
+      const { data, error: missionError } = await supabase
         .from("missions")
-        .select("id, vehicle_brand, vehicle_model, vehicle_plate, vehicle_color, status, pickup_address, delivery_address, pickup_date, delivery_date, notes, price, service_level, distance_km, duration")
+        .select("*")
         .eq("id", missionId)
         .eq("client_id", client.id)
         .single();
 
+      if (missionError) {
+        console.error("[mission detail] fetch error:", missionError.message, missionError.code);
+      }
       if (!data) { router.push("/client/missions"); return; }
       setMission(data as Mission);
       setLoading(false);

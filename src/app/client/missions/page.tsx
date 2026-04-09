@@ -30,6 +30,7 @@ const CLIENT_NAV = [
   { icon: "dashboard", label: "Dashboard", href: "/client/dashboard" },
   { icon: "local_shipping", label: "Missions", href: "/client/missions" },
   { icon: "add_circle", label: "Nouvelle", href: "/client/missions/new" },
+  { icon: "receipt_long", label: "Facturation", href: "/client/billing" },
   { icon: "person", label: "Profil", href: "/client/profile" },
 ];
 
@@ -214,73 +215,70 @@ export default function ClientMissionsPage() {
             </div>
           )}
 
-          {/* Mission grid */}
-          <div className="grid gap-6 md:grid-cols-2">
+          {/* Mission list */}
+          <div className="flex flex-col gap-3 md:grid md:grid-cols-2 md:gap-4">
             {missions.map((m) => (
               <Link
                 key={m.id}
                 href={`/client/missions/${m.id}`}
-                className={`relative bg-[#1c1b1b] rounded-2xl p-6 flex flex-col gap-4 hover:bg-[#242323] transition-colors ${
-                  m.status === "terminee" || m.status === "annulee" ? "opacity-70" : ""
+                className={`group bg-[#131313] rounded-3xl overflow-hidden flex flex-col hover:bg-[#1a1919] active:scale-[0.99] transition-all duration-150 ${
+                  m.status === "terminee" || m.status === "annulee" ? "opacity-60" : ""
                 }`}
               >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-xl font-semibold text-white tracking-tight" style={{ fontFamily: "Inter, sans-serif" }}>
+                {/* Top: vehicle + badge */}
+                <div className="px-5 pt-5 pb-4 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-white font-bold text-base leading-tight truncate" style={{ fontFamily: "Inter, sans-serif" }}>
                       {m.vehicle_brand} {m.vehicle_model}
-                    </h3>
-                    <p className="text-xs font-mono uppercase tracking-widest text-[#c4c7c8] mt-1">
+                    </p>
+                    <p className="text-[#949493] text-[11px] font-mono uppercase tracking-widest mt-0.5">
                       {m.vehicle_plate}
                     </p>
                   </div>
                   <StatusBadge status={m.status} />
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-white shrink-0" />
+                {/* Divider */}
+                <div className="mx-5 h-px bg-white/[0.05]" />
+
+                {/* Route */}
+                <div className="px-5 py-4 flex gap-3">
+                  <div className="flex flex-col items-center gap-1 pt-1.5 shrink-0">
+                    <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                    <div className="w-px flex-1 bg-[#2a2a2a]" style={{ minHeight: "20px" }} />
+                    <div className="w-1.5 h-1.5 rounded-full border border-[#949493]" />
+                  </div>
+                  <div className="flex flex-col gap-2 min-w-0 flex-1">
                     <div className="min-w-0">
-                      <p className="text-[10px] text-[#c4c7c8] uppercase tracking-widest font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                        Départ
-                      </p>
-                      <p className="text-sm text-white font-medium truncate" style={{ fontFamily: "Inter, sans-serif" }}>
+                      <p className="text-white text-sm font-medium truncate leading-tight" style={{ fontFamily: "Inter, sans-serif" }}>
                         {m.pickup_address}
                       </p>
+                      {m.pickup_date && (
+                        <p className="text-[#949493] text-[11px] mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          {formatDate(m.pickup_date)}
+                        </p>
+                      )}
                     </div>
-                    {m.pickup_date && (
-                      <span className="text-[#c4c7c8] text-xs font-mono ml-auto shrink-0">{formatDate(m.pickup_date)}</span>
-                    )}
-                  </div>
-                  <div className="ml-[3px] h-4 w-0.5 bg-[#353534] rounded-full" />
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-[#8e9192] shrink-0" />
                     <div className="min-w-0">
-                      <p className="text-[10px] text-[#c4c7c8] uppercase tracking-widest font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                        Arrivée
-                      </p>
-                      <p className="text-sm text-white font-medium truncate" style={{ fontFamily: "Inter, sans-serif" }}>
+                      <p className="text-[#c4c7c8] text-sm truncate leading-tight" style={{ fontFamily: "Inter, sans-serif" }}>
                         {m.delivery_address}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-2 pt-4 border-t border-white/5 flex items-center justify-between">
+                {/* Bottom action row */}
+                <div className="px-5 pb-4 flex items-center justify-between">
                   {m.status === "terminee" && m.delivery_date ? (
-                    <span className="text-[10px] font-mono text-[#c4c7c8]/50 uppercase">
-                      Livré le {formatDate(m.delivery_date)}
-                    </span>
+                    <p className="text-[10px] text-[#949493] font-mono uppercase tracking-wider">
+                      Livré {formatDate(m.delivery_date)}
+                    </p>
                   ) : (
                     <div />
                   )}
-                  <span
-                    className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-1"
-                    style={{ fontFamily: "Inter, sans-serif" }}
-                  >
-                    {m.status === "terminee" ? "Archives" : "Détails"}
-                    <span className="material-symbols-outlined text-sm">
-                      {m.status === "terminee" ? "history" : "arrow_forward_ios"}
-                    </span>
+                  <span className="flex items-center gap-1 text-xs font-bold text-white/40 group-hover:text-white/80 transition-colors uppercase tracking-widest" style={{ fontFamily: "Inter, sans-serif" }}>
+                    {m.status === "terminee" ? "Archives" : "Voir"}
+                    <span className="material-symbols-outlined text-sm">chevron_right</span>
                   </span>
                 </div>
               </Link>
