@@ -271,7 +271,7 @@ export default function NewMissionPage() {
       {/* ── Desktop Sidebar ── */}
       <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-60 bg-[#0A0A0A] border-r border-[#2A2A2A] z-50 py-8 px-4">
         <div className="mb-10 px-2">
-          <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text" style={{ fontFamily: "Inter, sans-serif" }}>
+          <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
             Motors Line
           </h1>
           <p className="text-[10px] text-[#949493] uppercase tracking-widest mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
@@ -322,7 +322,7 @@ export default function NewMissionPage() {
               </Link>
               <h1 className="font-semibold text-[20px] text-white">Nouvelle mission</h1>
             </div>
-            <span className="silver-gradient-text text-xl font-bold tracking-tighter">Motors Line</span>
+            <span className="silver-gradient-text text-xl font-bold tracking-tighter pr-1">Motors Line</span>
           </div>
         </header>
 
@@ -338,7 +338,7 @@ export default function NewMissionPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="pb-56 md:pb-10">
+        <form onSubmit={handleSubmit} className="pb-24 md:pb-10">
           <main className="max-w-lg md:max-w-2xl mx-auto px-6 mt-6 space-y-8">
 
             {/* Service level selector */}
@@ -528,6 +528,7 @@ export default function NewMissionPage() {
                       value={pickupDate}
                       onChange={(e) => setPickupDate(e.target.value)}
                       className="w-full bg-[#131313] border-none rounded-lg p-3 text-white text-sm focus:outline-none focus:ring-[0.5px] focus:ring-white [color-scheme:dark]"
+                      style={{ WebkitAppearance: "none", maxWidth: "100%", boxSizing: "border-box" }}
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -663,6 +664,18 @@ export default function NewMissionPage() {
               </p>
             )}
 
+            {/* CTA Mobile (inline) */}
+            <div className="md:hidden pb-2">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-14 rounded-full font-bold text-base text-[#0A0A0A] shadow-[0_8px_32px_rgba(255,255,255,0.1)] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: "linear-gradient(to right, #949493, #E0E0E0, #949493)" }}
+              >
+                {loading ? "Création..." : "Créer la mission"}
+              </button>
+            </div>
+
             {/* CTA Desktop (inline) */}
             <div className="hidden md:block pb-10">
               <button
@@ -676,20 +689,6 @@ export default function NewMissionPage() {
             </div>
 
           </main>
-
-          {/* CTA Mobile (fixed) */}
-          <div className="md:hidden fixed bottom-24 left-0 w-full px-6 z-40 pointer-events-none">
-            <div className="max-w-lg mx-auto pointer-events-auto">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full h-14 rounded-full font-bold text-base text-[#0A0A0A] shadow-[0_8px_32px_rgba(255,255,255,0.1)] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: "linear-gradient(to right, #949493, #E0E0E0, #949493)" }}
-              >
-                {loading ? "Création..." : "Créer la mission"}
-              </button>
-            </div>
-          </div>
         </form>
 
         {/* Bottom Nav (mobile only) */}

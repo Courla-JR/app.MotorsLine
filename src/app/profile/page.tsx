@@ -119,7 +119,7 @@ export default function ConvoyeurProfilePage() {
       {/* ── Desktop Sidebar ── */}
       <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-60 bg-[#0A0A0A] border-r border-[#2A2A2A] z-50 py-8 px-4">
         <div className="mb-10 px-2">
-          <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text" style={{ fontFamily: "Inter, sans-serif" }}>
+          <h1 className="text-xl font-bold tracking-tighter italic silver-gradient-text overflow-visible pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
             Motors Line
           </h1>
           <p className="text-[10px] text-[#949493] uppercase tracking-widest mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
@@ -171,9 +171,6 @@ export default function ConvoyeurProfilePage() {
           <span className="text-xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-[#949493] via-[#E0E0E0] to-[#949493] pr-1" style={{ fontFamily: "Inter, sans-serif" }}>
             Motors Line
           </span>
-          <div className="w-8 h-8 rounded-full border border-[#2A2A2A] bg-[#1A1A1A] flex items-center justify-center">
-            <span className="material-symbols-outlined text-[#c4c7c8] text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
-          </div>
         </header>
 
         <main className="pt-24 md:pt-8 pb-8 px-4 md:px-6 max-w-lg md:max-w-2xl mx-auto">
