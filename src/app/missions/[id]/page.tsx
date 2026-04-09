@@ -28,7 +28,7 @@ type Mission = {
 const CONVOYEUR_NAV = [
   { icon: "dashboard", label: "Dashboard", href: "/dashboard" },
   { icon: "local_shipping", label: "Missions", href: "/missions" },
-  { icon: "add_circle", label: "Nouvelle mission", href: "/missions/new" },
+  { icon: "add_circle", label: "Nouvelle mission", href: "/missions/new?from=convoyeur" },
   { icon: "receipt_long", label: "Facturation", href: "/billing" },
   { icon: "person", label: "Profil", href: "/profile" },
 ];
@@ -223,6 +223,80 @@ export default function ConvoyeurMissionDetailPage() {
                 </span>
               </div>
 
+              {/* ── Suivi en direct (en_cours seulement) ── */}
+              {mission.status === "en_cours" && (
+                <section className="bg-[#1c1b1b] rounded-2xl overflow-hidden border border-white/[0.04]">
+                  <div className="px-6 pt-6 pb-4 flex items-center justify-between">
+                    <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      Suivi en direct
+                    </h3>
+                    <span className="flex items-center gap-1.5 text-[10px] text-[#66ff8e] font-bold uppercase tracking-wider">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#66ff8e] animate-pulse" />
+                      Live
+                    </span>
+                  </div>
+                  <div className="relative h-64 bg-[#111] flex flex-col items-center justify-center gap-3">
+                    <div className="absolute inset-0 opacity-5" style={{
+                      backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)",
+                      backgroundSize: "32px 32px",
+                    }} />
+                    <span className="material-symbols-outlined text-[#353534] text-5xl">map</span>
+                    <p className="text-[#444748] text-sm font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      Localisation en cours de chargement…
+                    </p>
+                  </div>
+                </section>
+              )}
+
+              {/* ── Timeline ── */}
+              {mission.status !== "annulee" && (
+                <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
+                  <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-6" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    Suivi
+                  </h3>
+                  <div className="flex flex-col gap-0">
+                    {TIMELINE_STEPS.map((s, i) => {
+                      const isDone   = i < step;
+                      const isActive = i === step;
+                      return (
+                        <div key={s.label} className="flex gap-4">
+                          <div className="flex flex-col items-center">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                              isDone   ? "bg-white/10 border border-white/20"  :
+                              isActive ? "bg-white shadow-[0_0_12px_rgba(255,255,255,0.25)]" :
+                                         "bg-[#1a1a1a] border border-[#2a2a2a]"
+                            }`}>
+                              {isDone ? (
+                                <span className="material-symbols-outlined text-[#66ff8e]" style={{ fontSize: "16px", fontVariationSettings: "'FILL' 1" }}>check</span>
+                              ) : (
+                                <span className={`material-symbols-outlined ${isActive ? "text-[#0A0A0A]" : "text-[#444748]"}`}
+                                  style={{ fontSize: "16px", fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
+                                  {s.icon}
+                                </span>
+                              )}
+                            </div>
+                            {i < TIMELINE_STEPS.length - 1 && (
+                              <div className={`w-0.5 h-8 my-1 rounded-full ${isDone ? "bg-white/20" : "bg-[#2a2a2a]"}`} />
+                            )}
+                          </div>
+                          <div className="pt-1 pb-8 last:pb-0">
+                            <p className={`text-sm font-semibold ${isActive ? "text-white" : isDone ? "text-[#c4c7c8]" : "text-[#444748]"}`}
+                              style={{ fontFamily: "Inter, sans-serif" }}>
+                              {s.label}
+                            </p>
+                            {isActive && i < TIMELINE_STEPS.length - 1 && (
+                              <p className="text-[10px] text-[#949493] mt-0.5 uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                                Étape en cours
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
               {/* ── Véhicule ── */}
               <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
                 <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-4" style={{ fontFamily: "Montserrat, sans-serif" }}>
@@ -323,55 +397,6 @@ export default function ConvoyeurMissionDetailPage() {
                 )}
               </section>
 
-              {/* ── Timeline ── */}
-              {mission.status !== "annulee" && (
-                <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
-                  <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-6" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                    Suivi
-                  </h3>
-                  <div className="flex flex-col gap-0">
-                    {TIMELINE_STEPS.map((s, i) => {
-                      const isDone   = i < step;
-                      const isActive = i === step;
-                      return (
-                        <div key={s.label} className="flex gap-4">
-                          <div className="flex flex-col items-center">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all ${
-                              isDone   ? "bg-white/10 border border-white/20"  :
-                              isActive ? "bg-white shadow-[0_0_12px_rgba(255,255,255,0.25)]" :
-                                         "bg-[#1a1a1a] border border-[#2a2a2a]"
-                            }`}>
-                              {isDone ? (
-                                <span className="material-symbols-outlined text-[#66ff8e]" style={{ fontSize: "16px", fontVariationSettings: "'FILL' 1" }}>check</span>
-                              ) : (
-                                <span className={`material-symbols-outlined ${isActive ? "text-[#0A0A0A]" : "text-[#444748]"}`}
-                                  style={{ fontSize: "16px", fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
-                                  {s.icon}
-                                </span>
-                              )}
-                            </div>
-                            {i < TIMELINE_STEPS.length - 1 && (
-                              <div className={`w-0.5 h-8 my-1 rounded-full ${isDone ? "bg-white/20" : "bg-[#2a2a2a]"}`} />
-                            )}
-                          </div>
-                          <div className="pt-1 pb-8 last:pb-0">
-                            <p className={`text-sm font-semibold ${isActive ? "text-white" : isDone ? "text-[#c4c7c8]" : "text-[#444748]"}`}
-                              style={{ fontFamily: "Inter, sans-serif" }}>
-                              {s.label}
-                            </p>
-                            {isActive && i < TIMELINE_STEPS.length - 1 && (
-                              <p className="text-[10px] text-[#949493] mt-0.5 uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                                Étape en cours
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              )}
-
               {/* ── Notes ── */}
               {mission.notes && (
                 <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
@@ -382,48 +407,18 @@ export default function ConvoyeurMissionDetailPage() {
                 </section>
               )}
 
-              {/* ── Suivi en direct (en_cours seulement) ── */}
-              {mission.status === "en_cours" && (
-                <section className="bg-[#1c1b1b] rounded-2xl overflow-hidden border border-white/[0.04]">
-                  <div className="px-6 pt-6 pb-4 flex items-center justify-between">
-                    <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                      Suivi en direct
-                    </h3>
-                    <span className="flex items-center gap-1.5 text-[10px] text-[#66ff8e] font-bold uppercase tracking-wider">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#66ff8e] animate-pulse" />
-                      Live
-                    </span>
-                  </div>
-                  <div className="relative h-64 bg-[#111] flex flex-col items-center justify-center gap-3">
-                    <div className="absolute inset-0 opacity-5" style={{
-                      backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)",
-                      backgroundSize: "32px 32px",
-                    }} />
-                    <span className="material-symbols-outlined text-[#353534] text-5xl">map</span>
-                    <p className="text-[#444748] text-sm font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                      Localisation en cours de chargement…
-                    </p>
-                  </div>
-                </section>
-              )}
-
             </div>
           ) : null}
         </main>
 
         {/* Bottom Nav (mobile only) */}
         <nav className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl fixed bottom-0 w-full z-50 rounded-t-2xl border-t border-[#2A2A2A] shadow-[0_-4px_24px_rgba(255,255,255,0.05)]">
-          <div className="flex justify-around items-center pt-3 pb-6 px-4">
-            {[
-              { icon: "dashboard", href: "/dashboard" },
-              { icon: "local_shipping", href: "/missions" },
-              { icon: "add_circle", href: "/missions/new" },
-              { icon: "person", href: "/profile" },
-            ].map((item) => (
+          <div className="flex justify-around items-center h-16 px-4">
+            {CONVOYEUR_NAV.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center justify-center transition-colors ${item.href === "/missions" ? "text-white scale-110" : "text-[#949493] hover:text-white"}`}
+                className={`flex items-center justify-center transition-colors ${item.href === "/missions" ? "text-white" : "text-[#949493] hover:text-white"}`}
               >
                 <span className="material-symbols-outlined" style={item.href === "/missions" ? { fontVariationSettings: "'FILL' 1" } : undefined}>
                   {item.icon}

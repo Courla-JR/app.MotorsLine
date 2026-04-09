@@ -218,6 +218,86 @@ export default function ClientMissionDetailPage() {
                 </span>
               </div>
 
+              {/* ── Suivi en direct (seulement si en_cours) ── */}
+              {mission.status === "en_cours" && (
+                <section className="bg-[#1c1b1b] rounded-2xl overflow-hidden border border-white/[0.04]">
+                  <div className="px-6 pt-6 pb-4 flex items-center justify-between">
+                    <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      Suivi en direct
+                    </h3>
+                    <span className="flex items-center gap-1.5 text-[10px] text-[#66ff8e] font-bold uppercase tracking-wider">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#66ff8e] animate-pulse" />
+                      Live
+                    </span>
+                  </div>
+                  <div className="relative h-64 bg-[#111] flex flex-col items-center justify-center gap-3">
+                    <div className="absolute inset-0 opacity-5" style={{
+                      backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)",
+                      backgroundSize: "32px 32px",
+                    }} />
+                    <span className="material-symbols-outlined text-[#353534] text-5xl">map</span>
+                    <p className="text-[#444748] text-sm font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      Localisation en cours de chargement…
+                    </p>
+                  </div>
+                </section>
+              )}
+
+              {/* ── Timeline de suivi ── */}
+              {mission.status !== "annulee" && (
+                <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
+                  <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-6" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    Suivi
+                  </h3>
+                  <div className="flex flex-col gap-0">
+                    {TIMELINE_STEPS.map((s, i) => {
+                      const isDone   = i < step;
+                      const isActive = i === step;
+                      return (
+                        <div key={s.label} className="flex gap-4">
+                          {/* Colonne icône + trait */}
+                          <div className="flex flex-col items-center">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                              isDone   ? "bg-white/10 border border-white/20"  :
+                              isActive ? "bg-white shadow-[0_0_12px_rgba(255,255,255,0.25)]" :
+                                         "bg-[#1a1a1a] border border-[#2a2a2a]"
+                            }`}>
+                              {isDone ? (
+                                <span className="material-symbols-outlined text-[#66ff8e]" style={{ fontSize: "16px", fontVariationSettings: "'FILL' 1" }}>
+                                  check
+                                </span>
+                              ) : (
+                                <span
+                                  className={`material-symbols-outlined ${isActive ? "text-[#0A0A0A]" : "text-[#444748]"}`}
+                                  style={{ fontSize: "16px", fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
+                                >
+                                  {s.icon}
+                                </span>
+                              )}
+                            </div>
+                            {i < TIMELINE_STEPS.length - 1 && (
+                              <div className={`w-0.5 h-8 my-1 rounded-full ${isDone ? "bg-white/20" : "bg-[#2a2a2a]"}`} />
+                            )}
+                          </div>
+                          {/* Label */}
+                          <div className="pt-1 pb-8 last:pb-0">
+                            <p className={`text-sm font-semibold ${isActive ? "text-white" : isDone ? "text-[#c4c7c8]" : "text-[#444748]"}`}
+                              style={{ fontFamily: "Inter, sans-serif" }}>
+                              {s.label}
+                            </p>
+                            {isActive && i < TIMELINE_STEPS.length - 1 && (
+                              <p className="text-[10px] text-[#949493] mt-0.5 uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                                Étape en cours
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
               {/* ── Récap véhicule ── */}
               <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
                 <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-4" style={{ fontFamily: "Montserrat, sans-serif" }}>
@@ -320,62 +400,6 @@ export default function ClientMissionDetailPage() {
                 )}
               </section>
 
-              {/* ── Timeline de suivi ── */}
-              {mission.status !== "annulee" && (
-                <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
-                  <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-6" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                    Suivi
-                  </h3>
-                  <div className="flex flex-col gap-0">
-                    {TIMELINE_STEPS.map((s, i) => {
-                      const isDone   = i < step;
-                      const isActive = i === step;
-                      const isFuture = i > step;
-                      return (
-                        <div key={s.label} className="flex gap-4">
-                          {/* Colonne icône + trait */}
-                          <div className="flex flex-col items-center">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all ${
-                              isDone   ? "bg-white/10 border border-white/20"  :
-                              isActive ? "bg-white shadow-[0_0_12px_rgba(255,255,255,0.25)]" :
-                                         "bg-[#1a1a1a] border border-[#2a2a2a]"
-                            }`}>
-                              {isDone ? (
-                                <span className="material-symbols-outlined text-[#66ff8e]" style={{ fontSize: "16px", fontVariationSettings: "'FILL' 1" }}>
-                                  check
-                                </span>
-                              ) : (
-                                <span
-                                  className={`material-symbols-outlined ${isActive ? "text-[#0A0A0A]" : "text-[#444748]"}`}
-                                  style={{ fontSize: "16px", fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
-                                >
-                                  {s.icon}
-                                </span>
-                              )}
-                            </div>
-                            {i < TIMELINE_STEPS.length - 1 && (
-                              <div className={`w-0.5 h-8 my-1 rounded-full ${isDone ? "bg-white/20" : "bg-[#2a2a2a]"}`} />
-                            )}
-                          </div>
-                          {/* Label */}
-                          <div className="pt-1 pb-8 last:pb-0">
-                            <p className={`text-sm font-semibold ${isActive ? "text-white" : isDone ? "text-[#c4c7c8]" : "text-[#444748]"}`}
-                              style={{ fontFamily: "Inter, sans-serif" }}>
-                              {s.label}
-                            </p>
-                            {isActive && i < TIMELINE_STEPS.length - 1 && (
-                              <p className="text-[10px] text-[#949493] mt-0.5 uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                                Étape en cours
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              )}
-
               {/* ── Notes logistiques ── */}
               {mission.notes && (
                 <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
@@ -386,48 +410,25 @@ export default function ClientMissionDetailPage() {
                 </section>
               )}
 
-              {/* ── Suivi en direct (seulement si en_cours) ── */}
-              {mission.status === "en_cours" && (
-                <section className="bg-[#1c1b1b] rounded-2xl overflow-hidden border border-white/[0.04]">
-                  <div className="px-6 pt-6 pb-4 flex items-center justify-between">
-                    <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                      Suivi en direct
-                    </h3>
-                    <span className="flex items-center gap-1.5 text-[10px] text-[#66ff8e] font-bold uppercase tracking-wider">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#66ff8e] animate-pulse" />
-                      Live
-                    </span>
-                  </div>
-                  <div className="relative h-64 bg-[#111] flex flex-col items-center justify-center gap-3">
-                    <div className="absolute inset-0 opacity-5" style={{
-                      backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)",
-                      backgroundSize: "32px 32px",
-                    }} />
-                    <span className="material-symbols-outlined text-[#353534] text-5xl">map</span>
-                    <p className="text-[#444748] text-sm font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                      Localisation en cours de chargement…
-                    </p>
-                  </div>
-                </section>
-              )}
-
             </div>
           ) : null}
         </main>
 
         {/* Bottom Nav (mobile only) */}
-        <nav className="md:hidden fixed bottom-0 left-0 w-full h-20 flex justify-around items-center px-4 pb-4 bg-neutral-950/80 backdrop-blur-xl rounded-t-2xl z-50 shadow-[0_-4px_24px_rgba(255,255,255,0.02)]">
-          {CLIENT_NAV.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`flex items-center justify-center transition-all ${item.href === "/client/missions" ? "text-white scale-110" : "text-zinc-600 hover:text-zinc-300"}`}
-            >
-              <span className="material-symbols-outlined" style={item.href === "/client/missions" ? { fontVariationSettings: "'FILL' 1" } : undefined}>
-                {item.icon}
-              </span>
-            </Link>
-          ))}
+        <nav className="md:hidden fixed bottom-0 left-0 w-full bg-[#0A0A0A]/80 backdrop-blur-xl rounded-t-2xl z-50 border-t border-[#2A2A2A] shadow-[0_-4px_24px_rgba(255,255,255,0.02)]">
+          <div className="flex justify-around items-center h-16 px-4">
+            {CLIENT_NAV.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`flex items-center justify-center transition-colors ${item.href === "/client/missions" ? "text-white" : "text-[#949493] hover:text-white"}`}
+              >
+                <span className="material-symbols-outlined" style={item.href === "/client/missions" ? { fontVariationSettings: "'FILL' 1" } : undefined}>
+                  {item.icon}
+                </span>
+              </Link>
+            ))}
+          </div>
         </nav>
 
       </div>
