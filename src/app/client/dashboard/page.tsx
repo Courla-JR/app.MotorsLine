@@ -62,20 +62,11 @@ export default function ClientDashboardPage() {
         .single();
       setContactName(profile?.full_name ?? null);
 
-      // Try by user_id first (direct link), fallback to email match
-      let { data: client } = await supabase
+      const { data: client } = await supabase
         .from("clients")
         .select("id, company_name")
         .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!client && user.email) {
-        ({ data: client } = await supabase
-          .from("clients")
-          .select("id, company_name")
-          .ilike("email", user.email)
-          .maybeSingle());
-      }
+        .single();
 
       if (!client) { setLoading(false); return; }
       setCompanyName(client.company_name);
