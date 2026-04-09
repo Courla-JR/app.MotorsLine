@@ -32,8 +32,7 @@ const CLIENT_NAV = [
   { icon: "dashboard", label: "Dashboard", href: "/client/dashboard" },
   { icon: "local_shipping", label: "Missions", href: "/client/missions" },
   { icon: "add_circle", label: "Nouvelle", href: "/client/missions/new" },
-  { icon: "receipt_long", label: "Facturation", href: "/client/billing" },
-  { icon: "settings", label: "Paramètres", href: "/client/settings" },
+  { icon: "person", label: "Profil", href: "/client/profile" },
 ];
 
 export default function ClientDashboardPage() {
@@ -158,9 +157,9 @@ export default function ClientDashboardPage() {
           >
             Motors Line
           </h1>
-          <div className="w-10 h-10 rounded-full border border-white/10 bg-[#1A1A1A] flex items-center justify-center">
+          <Link href="/client/profile" className="w-10 h-10 rounded-full border border-white/10 bg-[#1A1A1A] flex items-center justify-center">
             <span className="material-symbols-outlined text-[#c4c7c8] text-lg">person</span>
-          </div>
+          </Link>
         </header>
 
         <main className="pt-24 md:pt-8 px-6 max-w-lg md:max-w-5xl mx-auto">
@@ -179,9 +178,9 @@ export default function ClientDashboardPage() {
               </p>
             </div>
             <div className="hidden md:flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full border border-white/10 bg-[#1A1A1A] flex items-center justify-center">
+              <Link href="/client/profile" className="w-10 h-10 rounded-full border border-white/10 bg-[#1A1A1A] flex items-center justify-center hover:bg-[#2a2a2a] transition-colors">
                 <span className="material-symbols-outlined text-[#c4c7c8] text-lg">person</span>
-              </div>
+              </Link>
             </div>
           </section>
 
@@ -284,9 +283,10 @@ export default function ClientDashboardPage() {
               </h3>
               <div className="grid gap-4 md:grid-cols-2">
                 {upcomingMissions.map((m) => (
-                  <div
+                  <Link
                     key={m.id}
-                    className="bg-[#0e0e0e] p-5 rounded-2xl flex items-center justify-between border border-white/[0.02] hover:bg-[#201f1f] transition-colors group cursor-pointer"
+                    href={`/client/missions/${m.id}`}
+                    className="bg-[#0e0e0e] p-5 rounded-2xl flex items-center justify-between border border-white/[0.02] hover:bg-[#201f1f] transition-colors group"
                   >
                     <div className="flex items-center gap-5">
                       <div className="w-12 h-12 rounded-xl bg-[#2a2a2a] flex items-center justify-center shrink-0">
@@ -304,7 +304,7 @@ export default function ClientDashboardPage() {
                     <span className="material-symbols-outlined text-zinc-600 group-hover:text-white transition-colors">
                       chevron_right
                     </span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </section>

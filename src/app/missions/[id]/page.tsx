@@ -25,18 +25,18 @@ type Mission = {
   duration: string | null;
 };
 
-const CLIENT_NAV = [
-  { icon: "dashboard", label: "Dashboard", href: "/client/dashboard" },
-  { icon: "local_shipping", label: "Missions", href: "/client/missions" },
-  { icon: "add_circle", label: "Nouvelle", href: "/client/missions/new" },
-  { icon: "person", label: "Profil", href: "/client/profile" },
+const CONVOYEUR_NAV = [
+  { icon: "dashboard", label: "Dashboard", href: "/dashboard" },
+  { icon: "local_shipping", label: "Missions", href: "/missions" },
+  { icon: "add_circle", label: "Nouvelle mission", href: "/missions/new" },
+  { icon: "person", label: "Profil", href: "/profile" },
 ];
 
 const STATUS_CONFIG: Record<MissionStatus, { label: string; color: string; bg: string; icon: string }> = {
-  a_faire:  { label: "Planifiée",  color: "text-[#c4c7c8]",  bg: "bg-[#353534]",       icon: "schedule"       },
-  en_cours: { label: "En cours",   color: "text-[#0A0A0A]",  bg: "bg-white",           icon: "local_shipping" },
-  terminee: { label: "Terminée",   color: "text-[#66ff8e]",  bg: "bg-[#353534]",       icon: "check_circle"   },
-  annulee:  { label: "Annulée",    color: "text-[#ffb4ab]",  bg: "bg-[#ffb4ab]/10",    icon: "cancel"         },
+  a_faire:  { label: "Planifiée",  color: "text-[#c4c7c8]",  bg: "bg-[#353534]",    icon: "schedule"       },
+  en_cours: { label: "En cours",   color: "text-[#002109]",  bg: "bg-[#66ff8e]",   icon: "local_shipping" },
+  terminee: { label: "Terminée",   color: "text-[#c4c7c8]/60", bg: "bg-[#2a2a2a]/40", icon: "check_circle" },
+  annulee:  { label: "Annulée",    color: "text-[#ffb4ab]",  bg: "bg-[#ffb4ab]/10", icon: "cancel"         },
 };
 
 const SERVICE_LABELS: Record<string, string> = {
@@ -45,20 +45,18 @@ const SERVICE_LABELS: Record<string, string> = {
   sur_mesure: "Sur Mesure",
 };
 
-// Timeline steps — 4 étapes, progress dépend du statut DB
 const TIMELINE_STEPS = [
-  { label: "Planifiée",       icon: "schedule"        },
-  { label: "Prise en charge", icon: "handshake"       },
-  { label: "En transit",      icon: "local_shipping"  },
-  { label: "Livrée",          icon: "where_to_vote"   },
+  { label: "Planifiée",       icon: "schedule"       },
+  { label: "Prise en charge", icon: "handshake"      },
+  { label: "En transit",      icon: "local_shipping" },
+  { label: "Livrée",          icon: "where_to_vote"  },
 ];
 
-// Retourne l'index de l'étape active (0-3), -1 si annulée
 function activeStep(status: MissionStatus): number {
   if (status === "a_faire")  return 0;
   if (status === "en_cours") return 2;
   if (status === "terminee") return 3;
-  return -1; // annulee
+  return -1;
 }
 
 function formatDate(iso: string | null) {
@@ -69,35 +67,39 @@ function formatDate(iso: string | null) {
   });
 }
 
-export default function ClientMissionDetailPage() {
+export default function ConvoyeurMissionDetailPage() {
   const router = useRouter();
   const params = useParams();
   const missionId = params.id as string;
 
   const [mission, setMission] = useState<Mission | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     async function fetchMission() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push("/client/login"); return; }
+      if (!user) { router.push("/login"); return; }
 
-      const { data: client } = await supabase
-        .from("clients")
-        .select("id")
-        .eq("user_id", user.id)
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
         .single();
 
-      if (!client) { router.push("/client/login"); return; }
+      if (!profile || (profile.role !== "convoyeur" && profile.role !== "admin")) {
+        router.push("/login");
+        return;
+      }
+      setIsAdmin(profile.role === "admin");
 
       const { data } = await supabase
         .from("missions")
         .select("id, vehicle_brand, vehicle_model, vehicle_plate, vehicle_color, status, pickup_address, delivery_address, pickup_date, delivery_date, notes, price, service_level, distance_km, duration")
         .eq("id", missionId)
-        .eq("client_id", client.id)
         .single();
 
-      if (!data) { router.push("/client/missions"); return; }
+      if (!data) { router.push("/missions"); return; }
       setMission(data as Mission);
       setLoading(false);
     }
@@ -107,7 +109,7 @@ export default function ClientMissionDetailPage() {
   async function handleLogout() {
     await supabase.auth.signOut();
     document.cookie = "user-role=; path=/; Max-Age=0";
-    router.push("/client/login");
+    router.push("/login");
   }
 
   const statusCfg = mission ? STATUS_CONFIG[mission.status] : null;
@@ -123,21 +125,21 @@ export default function ClientMissionDetailPage() {
             Motors Line
           </h1>
           <p className="text-[10px] text-[#949493] uppercase tracking-widest mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
-            Espace Client
+            Espace Convoyeur
           </p>
         </div>
         <nav className="flex flex-col gap-1 flex-1">
-          {CLIENT_NAV.map((item) => (
+          {CONVOYEUR_NAV.map((item) => (
             <Link
               key={item.label}
               href={item.href}
               className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-colors ${
-                item.href === "/client/missions" ? "bg-white/10 text-white" : "text-[#949493] hover:text-white hover:bg-white/5"
+                item.href === "/missions" ? "bg-white/10 text-white" : "text-[#949493] hover:text-white hover:bg-white/5"
               }`}
             >
               <span
                 className="material-symbols-outlined text-xl"
-                style={item.href === "/client/missions" ? { fontVariationSettings: "'FILL' 1" } : undefined}
+                style={item.href === "/missions" ? { fontVariationSettings: "'FILL' 1" } : undefined}
               >
                 {item.icon}
               </span>
@@ -145,6 +147,12 @@ export default function ClientMissionDetailPage() {
             </Link>
           ))}
         </nav>
+        {isAdmin && (
+          <Link href="/admin" className="flex items-center gap-3 px-3 py-3 rounded-xl text-[#949493] hover:text-white hover:bg-white/5 transition-colors mt-1">
+            <span className="material-symbols-outlined text-xl">swap_horiz</span>
+            <span className="font-medium text-sm" style={{ fontFamily: "Inter, sans-serif" }}>Espace admin</span>
+          </Link>
+        )}
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-3 rounded-xl text-[#949493] hover:text-white hover:bg-white/5 transition-colors w-full mt-2"
@@ -158,30 +166,27 @@ export default function ClientMissionDetailPage() {
       <div className="md:ml-60 pb-32 md:pb-10">
 
         {/* TopAppBar (mobile only) */}
-        <header className="md:hidden fixed top-0 w-full z-50 bg-neutral-950/80 backdrop-blur-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex justify-between items-center px-6 h-16">
+        <header className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl fixed top-0 w-full z-50 flex items-center justify-between px-6 h-16">
           <div className="flex items-center gap-4">
-            <Link href="/client/missions">
+            <Link href="/missions">
               <span className="material-symbols-outlined text-white cursor-pointer active:opacity-70 active:scale-95 duration-150">
                 arrow_back
               </span>
             </Link>
-            <h1
-              className="text-xl font-bold tracking-tighter italic bg-clip-text text-transparent bg-gradient-to-r from-zinc-400 via-zinc-100 to-zinc-400"
-              style={{ fontFamily: "Inter, sans-serif" }}
-            >
+            <h1 className="text-xl font-bold tracking-tighter text-white" style={{ fontFamily: "Inter, sans-serif" }}>
               Motors Line
             </h1>
           </div>
-          <div className="w-10 h-10 rounded-full border border-white/10 bg-[#1A1A1A] flex items-center justify-center">
-            <span className="material-symbols-outlined text-[#c4c7c8] text-lg">person</span>
+          <div className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center">
+            <span className="material-symbols-outlined text-[#c4c7c8]">person</span>
           </div>
         </header>
 
         <main className="pt-24 md:pt-8 pb-8 px-4 md:px-6 max-w-lg md:max-w-3xl mx-auto">
 
-          {/* Back link (desktop) */}
+          {/* Back (desktop) */}
           <Link
-            href="/client/missions"
+            href="/missions"
             className="hidden md:inline-flex items-center gap-2 text-[#949493] hover:text-white text-sm mb-8 transition-colors"
             style={{ fontFamily: "Inter, sans-serif" }}
           >
@@ -214,7 +219,7 @@ export default function ClientMissionDetailPage() {
                 </span>
               </div>
 
-              {/* ── Récap véhicule ── */}
+              {/* ── Véhicule ── */}
               <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
                 <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-4" style={{ fontFamily: "Montserrat, sans-serif" }}>
                   Véhicule
@@ -269,8 +274,6 @@ export default function ClientMissionDetailPage() {
                     </div>
                   </div>
                 </div>
-
-                {/* Distance & Durée */}
                 {(mission.distance_km || mission.duration) && (
                   <div className="mt-5 pt-5 border-t border-white/[0.05] flex gap-6">
                     {mission.distance_km && (
@@ -316,7 +319,7 @@ export default function ClientMissionDetailPage() {
                 )}
               </section>
 
-              {/* ── Timeline de suivi ── */}
+              {/* ── Timeline ── */}
               {mission.status !== "annulee" && (
                 <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
                   <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-6" style={{ fontFamily: "Montserrat, sans-serif" }}>
@@ -326,10 +329,8 @@ export default function ClientMissionDetailPage() {
                     {TIMELINE_STEPS.map((s, i) => {
                       const isDone   = i < step;
                       const isActive = i === step;
-                      const isFuture = i > step;
                       return (
                         <div key={s.label} className="flex gap-4">
-                          {/* Colonne icône + trait */}
                           <div className="flex flex-col items-center">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all ${
                               isDone   ? "bg-white/10 border border-white/20"  :
@@ -337,14 +338,10 @@ export default function ClientMissionDetailPage() {
                                          "bg-[#1a1a1a] border border-[#2a2a2a]"
                             }`}>
                               {isDone ? (
-                                <span className="material-symbols-outlined text-[#66ff8e]" style={{ fontSize: "16px", fontVariationSettings: "'FILL' 1" }}>
-                                  check
-                                </span>
+                                <span className="material-symbols-outlined text-[#66ff8e]" style={{ fontSize: "16px", fontVariationSettings: "'FILL' 1" }}>check</span>
                               ) : (
-                                <span
-                                  className={`material-symbols-outlined ${isActive ? "text-[#0A0A0A]" : "text-[#444748]"}`}
-                                  style={{ fontSize: "16px", fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
-                                >
+                                <span className={`material-symbols-outlined ${isActive ? "text-[#0A0A0A]" : "text-[#444748]"}`}
+                                  style={{ fontSize: "16px", fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
                                   {s.icon}
                                 </span>
                               )}
@@ -353,7 +350,6 @@ export default function ClientMissionDetailPage() {
                               <div className={`w-0.5 h-8 my-1 rounded-full ${isDone ? "bg-white/20" : "bg-[#2a2a2a]"}`} />
                             )}
                           </div>
-                          {/* Label */}
                           <div className="pt-1 pb-8 last:pb-0">
                             <p className={`text-sm font-semibold ${isActive ? "text-white" : isDone ? "text-[#c4c7c8]" : "text-[#444748]"}`}
                               style={{ fontFamily: "Inter, sans-serif" }}>
@@ -372,7 +368,7 @@ export default function ClientMissionDetailPage() {
                 </section>
               )}
 
-              {/* ── Notes logistiques ── */}
+              {/* ── Notes ── */}
               {mission.notes && (
                 <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
                   <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-3" style={{ fontFamily: "Montserrat, sans-serif" }}>
@@ -382,7 +378,7 @@ export default function ClientMissionDetailPage() {
                 </section>
               )}
 
-              {/* ── Suivi en direct (seulement si en_cours) ── */}
+              {/* ── Suivi en direct (en_cours seulement) ── */}
               {mission.status === "en_cours" && (
                 <section className="bg-[#1c1b1b] rounded-2xl overflow-hidden border border-white/[0.04]">
                   <div className="px-6 pt-6 pb-4 flex items-center justify-between">
@@ -412,18 +408,25 @@ export default function ClientMissionDetailPage() {
         </main>
 
         {/* Bottom Nav (mobile only) */}
-        <nav className="md:hidden fixed bottom-0 left-0 w-full h-20 flex justify-around items-center px-4 pb-4 bg-neutral-950/80 backdrop-blur-xl rounded-t-2xl z-50 shadow-[0_-4px_24px_rgba(255,255,255,0.02)]">
-          {CLIENT_NAV.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`flex items-center justify-center transition-all ${item.href === "/client/missions" ? "text-white scale-110" : "text-zinc-600 hover:text-zinc-300"}`}
-            >
-              <span className="material-symbols-outlined" style={item.href === "/client/missions" ? { fontVariationSettings: "'FILL' 1" } : undefined}>
-                {item.icon}
-              </span>
-            </Link>
-          ))}
+        <nav className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl fixed bottom-0 w-full z-50 rounded-t-2xl border-t border-[#2A2A2A] shadow-[0_-4px_24px_rgba(255,255,255,0.05)]">
+          <div className="flex justify-around items-center pt-3 pb-6 px-4">
+            {[
+              { icon: "dashboard", href: "/dashboard" },
+              { icon: "local_shipping", href: "/missions" },
+              { icon: "add_circle", href: "/missions/new" },
+              { icon: "person", href: "/profile" },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center justify-center transition-colors ${item.href === "/missions" ? "text-white scale-110" : "text-[#949493] hover:text-white"}`}
+              >
+                <span className="material-symbols-outlined" style={item.href === "/missions" ? { fontVariationSettings: "'FILL' 1" } : undefined}>
+                  {item.icon}
+                </span>
+              </Link>
+            ))}
+          </div>
         </nav>
 
       </div>

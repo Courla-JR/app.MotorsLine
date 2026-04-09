@@ -265,15 +265,16 @@ export default function MissionsPage() {
                   ) : (
                     <div />
                   )}
-                  <button
-                    className={`text-xs font-bold uppercase tracking-widest flex items-center gap-2 ${m.status === "terminee" ? "text-white/40" : "text-white"}`}
+                  <Link
+                    href={`/missions/${m.id}`}
+                    className={`text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:opacity-70 transition-opacity ${m.status === "terminee" ? "text-white/40" : "text-white"}`}
                     style={{ fontFamily: "Inter, sans-serif" }}
                   >
                     {m.status === "terminee" ? "Archives" : "Détails"}
                     <span className="material-symbols-outlined text-sm">
                       {m.status === "terminee" ? "history" : "arrow_forward_ios"}
                     </span>
-                  </button>
+                  </Link>
                 </div>
               </div>
             ))}
@@ -284,21 +285,18 @@ export default function MissionsPage() {
         <nav className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl fixed bottom-0 w-full z-50 rounded-t-2xl border-t border-[#2A2A2A] shadow-[0_-4px_24px_rgba(255,255,255,0.05)]">
           <div className="flex justify-around items-center pt-3 pb-6 px-4">
             {[
-              { icon: "dashboard", label: "Dashboard", href: "/dashboard", active: false },
-              { icon: "local_shipping", label: "Missions", href: "/missions", active: true },
-              { icon: "add_circle", label: "Nouveau", href: "/missions/new", active: false },
-              { icon: "person", label: "Profil", href: "#", active: false },
+              { icon: "dashboard", href: "/dashboard" },
+              { icon: "local_shipping", href: "/missions" },
+              { icon: "add_circle", href: "/missions/new" },
+              { icon: "person", href: "/profile" },
             ].map((item) => (
               <Link
-                key={item.label}
+                key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center transition-colors ${item.active ? "text-white scale-110" : "text-[#949493] hover:text-white"}`}
+                className={`flex items-center justify-center transition-colors ${item.href === "/missions" ? "text-white scale-110" : "text-[#949493] hover:text-white"}`}
               >
-                <span className="material-symbols-outlined mb-1" style={item.active ? { fontVariationSettings: "'FILL' 1" } : undefined}>
+                <span className="material-symbols-outlined" style={item.href === "/missions" ? { fontVariationSettings: "'FILL' 1" } : undefined}>
                   {item.icon}
-                </span>
-                <span className="font-medium text-[10px] uppercase tracking-widest" style={{ fontFamily: "Inter, sans-serif" }}>
-                  {item.label}
                 </span>
               </Link>
             ))}

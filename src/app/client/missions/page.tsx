@@ -30,8 +30,7 @@ const CLIENT_NAV = [
   { icon: "dashboard", label: "Dashboard", href: "/client/dashboard" },
   { icon: "local_shipping", label: "Missions", href: "/client/missions" },
   { icon: "add_circle", label: "Nouvelle", href: "/client/missions/new" },
-  { icon: "receipt_long", label: "Facturation", href: "/client/billing" },
-  { icon: "settings", label: "Paramètres", href: "/client/settings" },
+  { icon: "person", label: "Profil", href: "/client/profile" },
 ];
 
 function StatusBadge({ status }: { status: DbMission["status"] }) {
@@ -218,9 +217,10 @@ export default function ClientMissionsPage() {
           {/* Mission grid */}
           <div className="grid gap-6 md:grid-cols-2">
             {missions.map((m) => (
-              <div
+              <Link
                 key={m.id}
-                className={`relative bg-[#1c1b1b] rounded-2xl p-6 flex flex-col gap-4 ${
+                href={`/client/missions/${m.id}`}
+                className={`relative bg-[#1c1b1b] rounded-2xl p-6 flex flex-col gap-4 hover:bg-[#242323] transition-colors ${
                   m.status === "terminee" || m.status === "annulee" ? "opacity-70" : ""
                 }`}
               >
@@ -273,18 +273,17 @@ export default function ClientMissionsPage() {
                   ) : (
                     <div />
                   )}
-                  <Link
-                    href={`/client/missions/${m.id}`}
-                    className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-1 hover:opacity-70 transition-opacity"
+                  <span
+                    className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-1"
                     style={{ fontFamily: "Inter, sans-serif" }}
                   >
                     {m.status === "terminee" ? "Archives" : "Détails"}
                     <span className="material-symbols-outlined text-sm">
                       {m.status === "terminee" ? "history" : "arrow_forward_ios"}
                     </span>
-                  </Link>
+                  </span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </main>

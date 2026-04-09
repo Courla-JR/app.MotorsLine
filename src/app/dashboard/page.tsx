@@ -16,83 +16,6 @@ type DbMission = {
   pickup_date: string | null;
 };
 
-type Stats = {
-  total: number;
-  en_cours: number;
-  a_faire: number;
-};
-
-function StatusBadge({ status }: { status: DbMission["status"] }) {
-  if (status === "en_cours")
-    return <span className="bg-white text-[#0A0A0A] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter">En cours</span>;
-  if (status === "a_faire")
-    return <span className="bg-[#1A1A1A] text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter border border-white/10">À faire</span>;
-  return <span className="bg-[#1A1A1A] text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter border border-white/10">Terminée</span>;
-}
-
-function formatTime(iso: string | null) {
-  if (!iso) return null;
-  return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-}
-
-function isToday(iso: string | null) {
-  if (!iso) return false;
-  const d = new Date(iso);
-  const now = new Date();
-  return d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate();
-}
-
-function isFuture(iso: string | null) {
-  if (!iso) return false;
-  return new Date(iso) > new Date();
-}
-
-function MissionCard({ mission }: { mission: DbMission }) {
-  const time = formatTime(mission.pickup_date);
-  const icon = mission.status === "a_faire" && !isToday(mission.pickup_date) ? "event" : "schedule";
-
-  return (
-    <div className="bg-[#1c1b1b] rounded-xl p-5 border border-white/5 h-full">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <h4 className="text-white font-bold text-lg mb-1" style={{ fontFamily: "Inter, sans-serif" }}>
-            {mission.vehicle_brand} {mission.vehicle_model}
-          </h4>
-          <span className="text-[#949493] text-xs tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
-            {mission.vehicle_plate}
-          </span>
-        </div>
-        <StatusBadge status={mission.status} />
-      </div>
-
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex flex-col items-center gap-1">
-          <div className="w-2 h-2 rounded-full bg-white" />
-          <div className="w-0.5 h-6 bg-[#353534] rounded-full" />
-          <div className="w-2 h-2 border border-[#949493] rounded-full" />
-        </div>
-        <div className="flex flex-col gap-2">
-          <span className="text-[#E0E0E0] text-sm truncate" style={{ fontFamily: "Montserrat, sans-serif" }}>
-            {mission.pickup_address}
-          </span>
-          <span className="text-[#E0E0E0] text-sm truncate" style={{ fontFamily: "Montserrat, sans-serif" }}>
-            {mission.delivery_address}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex items-center pt-4 border-t border-white/5">
-        <span className="material-symbols-outlined text-[#949493] text-sm">{icon}</span>
-        <span className="text-[#949493] text-xs ml-2" style={{ fontFamily: "Montserrat, sans-serif" }}>
-          {time ?? "—"}
-        </span>
-      </div>
-    </div>
-  );
-}
-
 const CONVOYEUR_NAV = [
   { icon: "dashboard", label: "Dashboard", href: "/dashboard" },
   { icon: "local_shipping", label: "Missions", href: "/missions" },
@@ -100,11 +23,24 @@ const CONVOYEUR_NAV = [
   { icon: "person", label: "Profil", href: "/profile" },
 ];
 
+function formatPickup(iso: string | null) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleString("fr-FR", {
+    weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+  });
+}
+
+function isFuture(iso: string | null) {
+  if (!iso) return false;
+  return new Date(iso) > new Date();
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<{ full_name: string | null; role: string | null } | null>(null);
-  const [stats, setStats] = useState<Stats>({ total: 0, en_cours: 0, a_faire: 0 });
-  const [todayMissions, setTodayMissions] = useState<DbMission[]>([]);
+  const [statsTotal, setStatsTotal] = useState(0);
+  const [statsEnCours, setStatsEnCours] = useState(0);
+  const [activeMissions, setActiveMissions] = useState<DbMission[]>([]);
   const [upcomingMissions, setUpcomingMissions] = useState<DbMission[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -115,7 +51,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchData() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) { router.push("/login"); return; }
 
       const { data: profileData } = await supabase
         .from("profiles")
@@ -130,29 +66,26 @@ export default function DashboardPage() {
         .order("pickup_date", { ascending: true });
 
       const list = (allMissions as DbMission[]) ?? [];
+      const now = new Date();
 
-      setStats({
-        total: list.length,
-        en_cours: list.filter((m) => m.status === "en_cours").length,
-        a_faire: list.filter((m) => m.status === "a_faire").length,
+      // Missions ce mois
+      const thisMonth = list.filter((m) => {
+        if (!m.pickup_date) return false;
+        const d = new Date(m.pickup_date);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
       });
+      setStatsTotal(thisMonth.length);
+      setStatsEnCours(list.filter((m) => m.status === "en_cours").length);
 
-      setTodayMissions(
-        list.filter(
-          (m) => m.status === "en_cours" || (m.status === "a_faire" && isToday(m.pickup_date))
-        )
-      );
-
+      setActiveMissions(list.filter((m) => m.status === "en_cours"));
       setUpcomingMissions(
-        list.filter(
-          (m) => m.status === "a_faire" && !isToday(m.pickup_date) && isFuture(m.pickup_date)
-        ).slice(0, 4)
+        list.filter((m) => m.status === "a_faire" && isFuture(m.pickup_date)).slice(0, 4)
       );
 
       setLoading(false);
     }
     fetchData();
-  }, []);
+  }, [router]);
 
   const displayName = profile?.full_name?.split(" ")[0] ?? "Convoyeur";
 
@@ -163,7 +96,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="bg-[#0A0A0A] min-h-screen">
+    <div className="bg-[#0A0A0A] text-[#e5e2e1] min-h-screen antialiased">
 
       {/* ── Desktop Sidebar ── */}
       <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-60 bg-[#0A0A0A] border-r border-[#2A2A2A] z-50 py-8 px-4">
@@ -216,54 +149,51 @@ export default function DashboardPage() {
       <div className="md:ml-60 pb-24 md:pb-10">
 
         {/* TopAppBar (mobile only) */}
-        <header className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl sticky top-0 z-40 border-b border-transparent">
+        <header className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl fixed top-0 w-full z-50">
           <div className="flex items-center justify-between px-6 h-16 w-full max-w-md mx-auto">
             <span className="text-xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-[#949493] via-[#E0E0E0] to-[#949493]" style={{ fontFamily: "Inter, sans-serif" }}>
               Motors Line
             </span>
-            <div className="flex items-center gap-4">
-              <span className="material-symbols-outlined text-white cursor-pointer">notifications</span>
-              <div className="w-8 h-8 rounded-full overflow-hidden border border-[#2A2A2A] bg-[#1A1A1A] flex items-center justify-center">
-                <span className="material-symbols-outlined text-[#c4c7c8] text-lg">person</span>
-              </div>
-            </div>
+            <Link href="/profile" className="w-8 h-8 rounded-full border border-[#2A2A2A] bg-[#1A1A1A] flex items-center justify-center hover:bg-[#2a2a2a] transition-colors">
+              <span className="material-symbols-outlined text-[#c4c7c8] text-sm">person</span>
+            </Link>
           </div>
         </header>
 
-        <main className="max-w-md md:max-w-5xl mx-auto px-6 pt-6">
+        <main className="max-w-md md:max-w-5xl mx-auto px-6 pt-24 md:pt-8">
 
-          {/* Greeting */}
-          <section className="mb-8 flex items-start justify-between">
+          {/* Welcome */}
+          <section className="mb-10 flex items-start justify-between">
             <div>
-              <h2 className="text-[26px] font-semibold text-white leading-tight" style={{ fontFamily: "Inter, sans-serif" }}>
+              <h2 className="text-3xl font-semibold tracking-tight text-white mb-1" style={{ fontFamily: "Inter, sans-serif" }}>
                 Bonjour, {loading ? "..." : displayName}
               </h2>
-              <p className="text-[#949493] text-sm mt-1 capitalize" style={{ fontFamily: "Montserrat, sans-serif" }}>
+              <p className="text-[#949493] text-sm font-medium capitalize" style={{ fontFamily: "Montserrat, sans-serif" }}>
                 {today}
               </p>
             </div>
-            {/* Desktop actions */}
             <div className="hidden md:flex items-center gap-3">
-              <span className="material-symbols-outlined text-white cursor-pointer">notifications</span>
-              <div className="w-8 h-8 rounded-full overflow-hidden border border-[#2A2A2A] bg-[#1A1A1A] flex items-center justify-center">
+              <Link href="/profile" className="w-10 h-10 rounded-full border border-white/10 bg-[#1A1A1A] flex items-center justify-center hover:bg-[#2a2a2a] transition-colors">
                 <span className="material-symbols-outlined text-[#c4c7c8] text-lg">person</span>
-              </div>
+              </Link>
             </div>
           </section>
 
-          {/* Stats cards */}
-          <section className="mb-10">
-            <div className="flex gap-4 overflow-x-auto -mx-6 px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:overflow-visible md:mx-0 md:px-0 md:grid md:grid-cols-3">
+          {/* Stats */}
+          <section className="mb-12">
+            <div className="flex gap-4 overflow-x-auto -mx-6 px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:overflow-visible md:mx-0 md:px-0 md:grid md:grid-cols-2">
               {[
-                { label: "Total missions", value: loading ? "—" : String(stats.total) },
-                { label: "En cours", value: loading ? "—" : String(stats.en_cours) },
-                { label: "À faire", value: loading ? "—" : String(stats.a_faire) },
+                { label: "Missions ce mois", value: loading ? "—" : String(statsTotal) },
+                { label: "En cours", value: loading ? "—" : String(statsEnCours) },
               ].map((stat) => (
-                <div key={stat.label} className="min-w-[160px] md:min-w-0 bg-[#1A1A1A] p-5 rounded-lg flex flex-col justify-between h-32 border border-white/5 shrink-0 md:shrink">
-                  <span className="text-[#949493] text-xs uppercase tracking-wider" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                <div
+                  key={stat.label}
+                  className="min-w-[160px] md:min-w-0 bg-[#1A1A1A] p-6 rounded-2xl flex flex-col justify-between h-32 border border-white/[0.03] shrink-0 md:shrink"
+                >
+                  <span className="text-[#949493] text-xs uppercase tracking-widest font-semibold" style={{ fontFamily: "Montserrat, sans-serif" }}>
                     {stat.label}
                   </span>
-                  <span className="text-white text-3xl font-bold" style={{ fontFamily: "Inter, sans-serif" }}>
+                  <span className="text-4xl font-bold text-white" style={{ fontFamily: "Inter, sans-serif" }}>
                     {stat.value}
                   </span>
                 </div>
@@ -271,37 +201,95 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          {/* Aujourd'hui */}
-          <section className="mb-10">
+          {/* Missions en cours */}
+          <section className="mb-12">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-[20px] font-bold text-white" style={{ fontFamily: "Inter, sans-serif" }}>
-                Aujourd&apos;hui
+              <h3 className="text-lg font-semibold tracking-tight text-white" style={{ fontFamily: "Inter, sans-serif" }}>
+                Missions en cours
               </h3>
-              <span className="text-xs text-[#949493]" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                {loading ? "..." : `${todayMissions.length} mission${todayMissions.length !== 1 ? "s" : ""}`}
+              <span className="text-xs text-white/40 uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                En direct
               </span>
             </div>
-            {!loading && todayMissions.length === 0 && (
+
+            {!loading && activeMissions.length === 0 && (
               <p className="text-[#949493] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                Aucune mission pour aujourd&apos;hui.
+                Aucune mission en cours.
               </p>
             )}
+
             <div className="grid gap-4 md:grid-cols-2">
-              {todayMissions.map((m) => (
-                <MissionCard key={m.id} mission={m} />
+              {activeMissions.map((m) => (
+                <Link key={m.id} href={`/missions/${m.id}`} className="bg-[#1c1b1b] rounded-3xl p-6 border border-white/[0.05] hover:bg-[#242323] transition-colors block">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h4 className="text-xl font-bold text-white" style={{ fontFamily: "Inter, sans-serif" }}>
+                        {m.vehicle_brand} {m.vehicle_model}
+                      </h4>
+                      <p className="text-[#949493] text-xs tracking-widest mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                        {m.vehicle_plate}
+                      </p>
+                    </div>
+                    <span className="bg-[#66ff8e] text-[#002109] text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                      En cours
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-white" />
+                      <div className="w-0.5 h-6 bg-[#353534] rounded-full" />
+                      <div className="w-2 h-2 border border-[#949493] rounded-full" />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <span className="text-[#E0E0E0] text-sm truncate" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                        {m.pickup_address}
+                      </span>
+                      <span className="text-[#E0E0E0] text-sm truncate" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                        {m.delivery_address}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="w-full flex items-center justify-center gap-2 border border-[#2A2A2A] text-white px-6 py-2.5 rounded-full text-sm font-semibold" style={{ fontFamily: "Inter, sans-serif" }}>
+                    Voir les détails
+                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                  </div>
+                </Link>
               ))}
             </div>
           </section>
 
-          {/* À venir */}
+          {/* Prochaines missions */}
           {upcomingMissions.length > 0 && (
-            <section className="mb-12">
-              <h3 className="text-[20px] font-bold text-white mb-6" style={{ fontFamily: "Inter, sans-serif" }}>
-                À venir
+            <section className="mb-8">
+              <h3 className="text-lg font-semibold tracking-tight text-white mb-6" style={{ fontFamily: "Inter, sans-serif" }}>
+                Prochaines missions
               </h3>
               <div className="grid gap-4 md:grid-cols-2">
                 {upcomingMissions.map((m) => (
-                  <MissionCard key={m.id} mission={m} />
+                  <Link
+                    key={m.id}
+                    href={`/missions/${m.id}`}
+                    className="bg-[#0e0e0e] p-5 rounded-2xl flex items-center justify-between border border-white/[0.02] hover:bg-[#201f1f] transition-colors group"
+                  >
+                    <div className="flex items-center gap-5">
+                      <div className="w-12 h-12 rounded-xl bg-[#2a2a2a] flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-white/60">directions_car</span>
+                      </div>
+                      <div>
+                        <p className="font-bold text-white" style={{ fontFamily: "Inter, sans-serif" }}>
+                          {m.vehicle_brand} {m.vehicle_model}
+                        </p>
+                        <p className="text-[11px] text-[#949493] uppercase tracking-tighter capitalize" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          {formatPickup(m.pickup_date) ?? "—"}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-zinc-600 group-hover:text-white transition-colors">
+                      chevron_right
+                    </span>
+                  </Link>
                 ))}
               </div>
             </section>
@@ -311,23 +299,19 @@ export default function DashboardPage() {
         {/* Bottom Nav (mobile only) */}
         <nav className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl fixed bottom-0 w-full z-50 rounded-t-2xl border-t border-[#2A2A2A] shadow-[0_-4px_24px_rgba(255,255,255,0.05)]">
           <div className="flex justify-around items-center pt-3 pb-6 px-4 max-w-md mx-auto">
-            <Link href="/dashboard" className="flex flex-col items-center text-white scale-110 transition-transform">
-              <span className="material-symbols-outlined mb-1" style={{ fontVariationSettings: "'FILL' 1" }}>dashboard</span>
-              <span className="font-medium text-[10px] uppercase tracking-widest" style={{ fontFamily: "Inter, sans-serif" }}>Dashboard</span>
+            <Link href="/dashboard" className="flex items-center justify-center text-white scale-110 transition-transform">
+              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>dashboard</span>
             </Link>
-            <Link href="/missions" className="flex flex-col items-center text-[#949493] hover:text-white transition-colors">
-              <span className="material-symbols-outlined mb-1">local_shipping</span>
-              <span className="font-medium text-[10px] uppercase tracking-widest" style={{ fontFamily: "Inter, sans-serif" }}>Missions</span>
+            <Link href="/missions" className="flex items-center justify-center text-[#949493] hover:text-white transition-colors">
+              <span className="material-symbols-outlined">local_shipping</span>
             </Link>
-            <Link href="/missions/new" className="flex flex-col items-center text-[#949493] hover:text-white transition-colors relative -top-4">
+            <Link href="/missions/new" className="flex items-center justify-center text-[#949493] hover:text-white transition-colors relative -top-4">
               <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg active:scale-90 duration-200 ease-out">
                 <span className="material-symbols-outlined text-[#0A0A0A] text-3xl">add</span>
               </div>
-              <span className="font-medium text-[10px] uppercase tracking-widest mt-5" style={{ fontFamily: "Inter, sans-serif" }}>Nouveau</span>
             </Link>
-            <Link href="/profile" className="flex flex-col items-center text-[#949493] hover:text-white transition-colors">
-              <span className="material-symbols-outlined mb-1">person</span>
-              <span className="font-medium text-[10px] uppercase tracking-widest" style={{ fontFamily: "Inter, sans-serif" }}>Profil</span>
+            <Link href="/profile" className="flex items-center justify-center text-[#949493] hover:text-white transition-colors">
+              <span className="material-symbols-outlined">person</span>
             </Link>
           </div>
         </nav>

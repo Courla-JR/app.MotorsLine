@@ -8,8 +8,7 @@ const CLIENT_NAV = [
   { icon: "dashboard", label: "Dashboard", href: "/client/dashboard" },
   { icon: "local_shipping", label: "Missions", href: "/client/missions" },
   { icon: "add_circle", label: "Nouvelle", href: "/client/missions/new" },
-  { icon: "receipt_long", label: "Facturation", href: "/client/billing" },
-  { icon: "settings", label: "Paramètres", href: "/client/settings" },
+  { icon: "person", label: "Profil", href: "/client/profile" },
 ];
 
 export default function ClientBillingPage() {
