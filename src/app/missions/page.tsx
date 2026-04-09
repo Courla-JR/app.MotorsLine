@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type DbMission = {
@@ -55,9 +56,21 @@ function formatDate(iso: string | null) {
 }
 
 export default function MissionsPage() {
+  const router = useRouter();
   const [missions, setMissions] = useState<DbMission[]>([]);
   const [filter, setFilter] = useState<Filter>("toutes");
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    async function checkRole() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/login"); return; }
+      const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+      setIsAdmin(profile?.role === "admin");
+    }
+    checkRole();
+  }, [router]);
 
   useEffect(() => {
     async function fetchMissions() {
@@ -91,7 +104,7 @@ export default function MissionsPage() {
             Espace Convoyeur
           </p>
         </div>
-        <nav className="flex flex-col gap-1">
+        <nav className="flex flex-col gap-1 flex-1">
           {CONVOYEUR_NAV.map((item) => (
             <Link
               key={item.label}
@@ -110,6 +123,15 @@ export default function MissionsPage() {
             </Link>
           ))}
         </nav>
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="flex items-center gap-3 px-3 py-3 rounded-xl text-[#949493] hover:text-white hover:bg-white/5 transition-colors mt-1"
+          >
+            <span className="material-symbols-outlined text-xl">swap_horiz</span>
+            <span className="font-medium text-sm" style={{ fontFamily: "Inter, sans-serif" }}>Espace admin</span>
+          </Link>
+        )}
       </aside>
 
       {/* ── Main Content ── */}

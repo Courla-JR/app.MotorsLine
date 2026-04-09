@@ -33,11 +33,6 @@ type Client = {
   phone: string | null;
 };
 
-type Convoyeur = {
-  id: string;
-  full_name: string | null;
-};
-
 type Tab = "missions" | "clients";
 type Filter = "toutes" | "a_faire" | "en_cours" | "terminee" | "annulee";
 
@@ -85,9 +80,7 @@ export default function AdminPage() {
   const [filter, setFilter] = useState<Filter>("toutes");
   const [missions, setMissions] = useState<Mission[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [convoyeurs, setConvoyeurs] = useState<Convoyeur[]>([]);
   const [loading, setLoading] = useState(true);
-  const [assigning, setAssigning] = useState<string | null>(null);
   const [showCreateClient, setShowCreateClient] = useState(false);
   const [createClientForm, setCreateClientForm] = useState<CreateClientForm>({
     company_name: "", contact_name: "", email: "", phone: "",
@@ -122,7 +115,7 @@ export default function AdminPage() {
 
       if (profile?.role !== "admin") { router.push("/dashboard"); return; }
 
-      await Promise.all([fetchMissions(), fetchClients(), fetchConvoyeurs()]);
+      await Promise.all([fetchMissions(), fetchClients()]);
       setLoading(false);
     }
     bootstrap();
@@ -149,25 +142,6 @@ export default function AdminPage() {
       .select("id, company_name, contact_name, email, phone")
       .order("company_name");
     setClients((data as Client[]) ?? []);
-  }
-
-  async function fetchConvoyeurs() {
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, full_name")
-      .eq("role", "convoyeur")
-      .order("full_name");
-    setConvoyeurs((data as Convoyeur[]) ?? []);
-  }
-
-  async function assignConvoyeur(missionId: string, convoyeurId: string) {
-    setAssigning(missionId);
-    await supabase
-      .from("missions")
-      .update({ convoyeur_id: convoyeurId || null })
-      .eq("id", missionId);
-    await fetchMissions();
-    setAssigning(null);
   }
 
   async function updateStatus(missionId: string, status: MissionStatus) {
@@ -247,6 +221,13 @@ export default function AdminPage() {
             </span>
           </div>
           <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 px-4 py-2 bg-[#1c1b1b] border border-white/10 text-[#c4c7c8] rounded-full text-sm font-semibold hover:text-white hover:border-white/20 transition-colors"
+            >
+              <span className="material-symbols-outlined text-base">swap_horiz</span>
+              Espace convoyeur
+            </Link>
             <Link
               href="/missions/new"
               className="flex items-center gap-2 px-4 py-2 bg-white text-[#0A0A0A] rounded-full text-sm font-bold hover:bg-zinc-100 transition-colors active:scale-95"
@@ -335,7 +316,7 @@ export default function AdminPage() {
 
             <div className="grid gap-4 md:grid-cols-2">
               {filtered.map((m) => (
-                <div key={m.id} className="bg-[#1A1A1A] rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-colors">
+                <div key={m.id} className="bg-[#1A1A1A] rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-colors cursor-pointer" onClick={() => router.push(`/admin/missions/${m.id}`)}>
                   <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                     <div>
                       <div className="flex items-center gap-3 mb-1">
@@ -365,7 +346,8 @@ export default function AdminPage() {
                       <div className="relative">
                         <select
                           value={m.status}
-                          onChange={(e) => updateStatus(m.id, e.target.value as MissionStatus)}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => { e.stopPropagation(); updateStatus(m.id, e.target.value as MissionStatus); }}
                           className="bg-[#131313] border border-[#2a2a2a] text-white text-xs rounded-lg px-3 py-2 pr-8 appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-white/20"
                         >
                           {Object.entries(STATUS_LABELS).map(([val, label]) => (
@@ -378,7 +360,7 @@ export default function AdminPage() {
                       </div>
                       {/* Delete mission */}
                       <button
-                        onClick={() => handleDeleteMission(m.id, `${m.vehicle_brand} ${m.vehicle_model}`)}
+                        onClick={(e) => { e.stopPropagation(); handleDeleteMission(m.id, `${m.vehicle_brand} ${m.vehicle_model}`); }}
                         disabled={deletingMission === m.id}
                         title="Supprimer cette mission"
                         className="flex items-center justify-center w-7 h-7 rounded-lg text-[#444748] hover:text-[#ffb4ab] hover:bg-[#ffb4ab]/10 transition-colors disabled:opacity-40"
@@ -403,31 +385,11 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* Assign convoyeur */}
+                  {/* Convoyeur assigné */}
                   <div className="flex items-center gap-3 pt-4 border-t border-white/5">
                     <span className="material-symbols-outlined text-[#949493] text-sm">person_pin</span>
                     <span className="text-[#949493] text-xs shrink-0" style={{ fontFamily: "Montserrat, sans-serif" }}>Convoyeur :</span>
-                    <div className="relative flex-1 max-w-xs">
-                      <select
-                        value={m.convoyeur_id ?? ""}
-                        onChange={(e) => assignConvoyeur(m.id, e.target.value)}
-                        disabled={assigning === m.id}
-                        className="w-full bg-[#131313] border border-[#2a2a2a] text-white text-xs rounded-lg px-3 py-2 pr-8 appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-white/20 disabled:opacity-50"
-                      >
-                        <option value="">— Non assigné —</option>
-                        {convoyeurs.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.full_name ?? c.id.slice(0, 8)}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="material-symbols-outlined absolute right-2 top-2 text-[#949493] text-sm pointer-events-none">
-                        expand_more
-                      </span>
-                    </div>
-                    {assigning === m.id && (
-                      <span className="text-[10px] text-[#949493]" style={{ fontFamily: "Montserrat, sans-serif" }}>Enregistrement…</span>
-                    )}
+                    <span className="text-white text-xs font-semibold" style={{ fontFamily: "Montserrat, sans-serif" }}>Jeremy Courla</span>
                   </div>
                 </div>
               ))}

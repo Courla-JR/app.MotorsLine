@@ -33,6 +33,14 @@ const CONVOYEUR_NAV = [
   { icon: "person", label: "Profil", href: "/profile" },
 ];
 
+const TIME_SLOTS: string[] = [];
+for (let h = 6; h <= 22; h++) {
+  for (let m = 0; m < 60; m += 15) {
+    if (h === 22 && m > 0) break;
+    TIME_SLOTS.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+  }
+}
+
 const ADMIN_NAV = [
   { icon: "dashboard", label: "Dashboard", href: "/admin" },
   { icon: "add_circle", label: "Nouvelle mission", href: "/missions/new" },
@@ -162,7 +170,7 @@ export default function NewMissionPage() {
 
     const { error: insertError } = await supabase.from("missions").insert({
       status: "a_faire",
-      convoyeur_id: userRole === "admin" ? null : user.id,
+      convoyeur_id: user.id,
       client_id: userRole === "admin" ? (selectedClientId || null) : null,
       vehicle_brand: brand,
       vehicle_model: model,
@@ -228,7 +236,7 @@ export default function NewMissionPage() {
             {userRole === "admin" ? "Espace Admin" : "Espace Convoyeur"}
           </p>
         </div>
-        <nav className="flex flex-col gap-1">
+        <nav className="flex flex-col gap-1 flex-1">
           {(userRole === "admin" ? ADMIN_NAV : CONVOYEUR_NAV).map((item) => (
             <Link
               key={item.label}
@@ -247,6 +255,15 @@ export default function NewMissionPage() {
             </Link>
           ))}
         </nav>
+        {userRole === "convoyeur" && (
+          <Link
+            href="/admin"
+            className="flex items-center gap-3 px-3 py-3 rounded-xl text-[#949493] hover:text-white hover:bg-white/5 transition-colors mt-1"
+          >
+            <span className="material-symbols-outlined text-xl">swap_horiz</span>
+            <span className="font-medium text-sm" style={{ fontFamily: "Inter, sans-serif" }}>Espace admin</span>
+          </Link>
+        )}
       </aside>
 
       {/* ── Main Content ── */}
@@ -453,17 +470,24 @@ export default function NewMissionPage() {
                       type="date"
                       value={pickupDate}
                       onChange={(e) => setPickupDate(e.target.value)}
-                      className="w-full bg-[#131313] border-none rounded-lg p-3 text-white text-sm focus:outline-none focus:ring-[0.5px] focus:ring-white"
+                      className="w-full bg-[#131313] border-none rounded-lg p-3 text-white text-sm focus:outline-none focus:ring-[0.5px] focus:ring-white [color-scheme:dark]"
                     />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] text-[#c4c7c8] uppercase font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>Heure</label>
-                    <input
-                      type="time"
-                      value={pickupTime}
-                      onChange={(e) => setPickupTime(e.target.value)}
-                      className="w-full bg-[#131313] border-none rounded-lg p-3 text-white text-sm focus:outline-none focus:ring-[0.5px] focus:ring-white"
-                    />
+                    <div className="relative">
+                      <select
+                        value={pickupTime}
+                        onChange={(e) => setPickupTime(e.target.value)}
+                        className="w-full bg-[#131313] border-none rounded-lg p-3 text-white text-sm appearance-none pr-8 focus:outline-none focus:ring-[0.5px] focus:ring-white"
+                      >
+                        <option value="">— Heure —</option>
+                        {TIME_SLOTS.map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                      <span className="material-symbols-outlined absolute right-2.5 top-3 text-[#949493] text-base pointer-events-none">expand_more</span>
+                    </div>
                   </div>
                 </div>
               </div>

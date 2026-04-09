@@ -1,0 +1,339 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter, useParams } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+
+type MissionStatus = "a_faire" | "en_cours" | "terminee" | "annulee";
+
+const STATUS_LABELS: Record<MissionStatus, string> = {
+  a_faire: "À faire",
+  en_cours: "En cours",
+  terminee: "Terminée",
+  annulee: "Annulée",
+};
+
+type Client = { id: string; company_name: string };
+
+const TIME_SLOTS: string[] = [];
+for (let h = 6; h <= 22; h++) {
+  for (let m = 0; m < 60; m += 15) {
+    if (h === 22 && m > 0) break;
+    TIME_SLOTS.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+  }
+}
+
+export default function AdminEditMissionPage() {
+  const router = useRouter();
+  const params = useParams();
+  const missionId = params.id as string;
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [clients, setClients] = useState<Client[]>([]);
+
+  // Form fields
+  const [brand, setBrand] = useState("");
+  const [model, setModel] = useState("");
+  const [plate, setPlate] = useState("");
+  const [color, setColor] = useState("");
+  const [vin, setVin] = useState("");
+  const [pickupAddress, setPickupAddress] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [pickupDate, setPickupDate] = useState("");
+  const [pickupTime, setPickupTime] = useState("");
+  const [status, setStatus] = useState<MissionStatus>("a_faire");
+  const [clientId, setClientId] = useState("");
+  const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    async function bootstrap() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/login"); return; }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      if (profile?.role !== "admin") { router.push("/dashboard"); return; }
+
+      const [{ data: mission }, { data: clientsData }] = await Promise.all([
+        supabase
+          .from("missions")
+          .select("*")
+          .eq("id", missionId)
+          .single(),
+        supabase.from("clients").select("id, company_name").order("company_name"),
+      ]);
+
+      if (!mission) { router.push("/admin"); return; }
+
+      setBrand(mission.vehicle_brand ?? "");
+      setModel(mission.vehicle_model ?? "");
+      setPlate(mission.vehicle_plate ?? "");
+      setColor(mission.vehicle_color ?? "");
+      setVin(mission.vehicle_vin ?? "");
+      setPickupAddress(mission.pickup_address ?? "");
+      setDeliveryAddress(mission.delivery_address ?? "");
+      setStatus(mission.status ?? "a_faire");
+      setClientId(mission.client_id ?? "");
+      setNotes(mission.notes ?? "");
+
+      if (mission.pickup_date) {
+        const d = new Date(mission.pickup_date);
+        setPickupDate(d.toISOString().slice(0, 10));
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mm = String(d.getMinutes()).padStart(2, "0");
+        setPickupTime(`${hh}:${mm}`);
+      }
+
+      setClients((clientsData as Client[]) ?? []);
+      setLoading(false);
+    }
+    bootstrap();
+  }, [missionId, router]);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+
+    const pickupDatetime = pickupDate && pickupTime
+      ? new Date(`${pickupDate}T${pickupTime}`).toISOString()
+      : pickupDate ? new Date(pickupDate).toISOString() : null;
+
+    const { error: updateError } = await supabase
+      .from("missions")
+      .update({
+        vehicle_brand: brand,
+        vehicle_model: model,
+        vehicle_plate: plate,
+        vehicle_color: color || null,
+        vehicle_vin: vin || null,
+        pickup_address: pickupAddress,
+        delivery_address: deliveryAddress,
+        pickup_date: pickupDatetime,
+        status,
+        client_id: clientId || null,
+        notes: notes || null,
+      })
+      .eq("id", missionId);
+
+    if (updateError) {
+      setError(updateError.message);
+      setSaving(false);
+      return;
+    }
+
+    router.push("/admin");
+  }
+
+  return (
+    <div className="bg-[#0A0A0A] text-[#e5e2e1] min-h-screen" style={{ fontFamily: "Inter, sans-serif" }}>
+
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-[#1c1b1b]">
+        <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/admin">
+              <span className="material-symbols-outlined text-[#949493] hover:text-white cursor-pointer transition-colors">
+                arrow_back
+              </span>
+            </Link>
+            <span className="text-xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-[#949493] via-[#E0E0E0] to-[#949493]">
+              Motors Line
+            </span>
+            <span className="text-[10px] uppercase tracking-widest text-[#444748] font-medium px-2 py-0.5 rounded border border-[#2a2a2a]">
+              Admin
+            </span>
+          </div>
+          <h1 className="text-sm font-semibold text-[#949493]">Modifier la mission</h1>
+        </div>
+      </header>
+
+      <main className="max-w-3xl mx-auto px-6 py-8">
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <p className="text-[#949493] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>Chargement…</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSave} className="space-y-8">
+
+            {/* Véhicule */}
+            <section className="space-y-4">
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#949493] text-sm">directions_car</span>
+                Véhicule
+              </h2>
+              <div className="bg-[#1A1A1A] p-5 rounded-xl space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-[#c4c7c8] uppercase font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>Marque</label>
+                    <input required value={brand} onChange={(e) => setBrand(e.target.value)}
+                      className="w-full bg-[#131313] rounded-lg p-3 text-white text-sm focus:outline-none focus:ring-[0.5px] focus:ring-white" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-[#c4c7c8] uppercase font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>Modèle</label>
+                    <input required value={model} onChange={(e) => setModel(e.target.value)}
+                      className="w-full bg-[#131313] rounded-lg p-3 text-white text-sm focus:outline-none focus:ring-[0.5px] focus:ring-white" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-[#c4c7c8] uppercase font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>Immatriculation</label>
+                    <input required value={plate} onChange={(e) => setPlate(e.target.value)}
+                      className="w-full bg-[#131313] rounded-lg p-3 text-white text-sm font-mono focus:outline-none focus:ring-[0.5px] focus:ring-white" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-[#c4c7c8] uppercase font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>Couleur</label>
+                    <input value={color} onChange={(e) => setColor(e.target.value)}
+                      className="w-full bg-[#131313] rounded-lg p-3 text-white text-sm focus:outline-none focus:ring-[0.5px] focus:ring-white" />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-[#c4c7c8] uppercase font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>Numéro VIN</label>
+                  <input value={vin} onChange={(e) => setVin(e.target.value)}
+                    className="w-full bg-[#131313] rounded-lg p-3 text-white text-sm font-mono focus:outline-none focus:ring-[0.5px] focus:ring-white" />
+                </div>
+              </div>
+            </section>
+
+            {/* Itinéraire */}
+            <section className="space-y-4">
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#949493] text-sm">route</span>
+                Itinéraire
+              </h2>
+              <div className="bg-[#1A1A1A] p-5 rounded-xl space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-[#c4c7c8] uppercase font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>Adresse de départ</label>
+                  <input required value={pickupAddress} onChange={(e) => setPickupAddress(e.target.value)}
+                    className="w-full bg-[#131313] rounded-lg p-3 text-white text-sm focus:outline-none focus:ring-[0.5px] focus:ring-white" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-[#c4c7c8] uppercase font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>Adresse d'arrivée</label>
+                  <input required value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)}
+                    className="w-full bg-[#131313] rounded-lg p-3 text-white text-sm focus:outline-none focus:ring-[0.5px] focus:ring-white" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-[#c4c7c8] uppercase font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>Date</label>
+                    <input
+                      type="date"
+                      value={pickupDate}
+                      onChange={(e) => setPickupDate(e.target.value)}
+                      className="w-full bg-[#131313] rounded-lg p-3 text-white text-sm focus:outline-none focus:ring-[0.5px] focus:ring-white [color-scheme:dark]"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-[#c4c7c8] uppercase font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>Heure</label>
+                    <div className="relative">
+                      <select
+                        value={pickupTime}
+                        onChange={(e) => setPickupTime(e.target.value)}
+                        className="w-full bg-[#131313] rounded-lg p-3 text-white text-sm appearance-none pr-8 focus:outline-none focus:ring-[0.5px] focus:ring-white"
+                      >
+                        <option value="">— Heure —</option>
+                        {TIME_SLOTS.map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                      <span className="material-symbols-outlined absolute right-2.5 top-3 text-[#949493] text-base pointer-events-none">expand_more</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Statut */}
+            <section className="space-y-4">
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider">Statut</h2>
+              <div className="bg-[#1A1A1A] p-5 rounded-xl">
+                <div className="relative">
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as MissionStatus)}
+                    className="w-full bg-[#131313] rounded-lg p-3 text-white text-sm appearance-none pr-8 focus:outline-none focus:ring-[0.5px] focus:ring-white"
+                  >
+                    {Object.entries(STATUS_LABELS).map(([val, label]) => (
+                      <option key={val} value={val}>{label}</option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-2.5 top-3 text-[#949493] text-base pointer-events-none">expand_more</span>
+                </div>
+              </div>
+            </section>
+
+            {/* Client */}
+            <section className="space-y-4">
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#949493] text-sm">domain</span>
+                Client
+              </h2>
+              <div className="bg-[#1A1A1A] p-5 rounded-xl">
+                <div className="relative">
+                  <select
+                    value={clientId}
+                    onChange={(e) => setClientId(e.target.value)}
+                    className="w-full bg-[#131313] rounded-lg p-3 text-white text-sm appearance-none pr-8 focus:outline-none focus:ring-[0.5px] focus:ring-white"
+                  >
+                    <option value="">— Sans client —</option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id}>{c.company_name}</option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-2.5 top-3 text-[#949493] text-base pointer-events-none">expand_more</span>
+                </div>
+              </div>
+            </section>
+
+            {/* Notes */}
+            <section className="space-y-4">
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#949493] text-sm">sticky_note_2</span>
+                Notes logistiques
+              </h2>
+              <div className="bg-[#1A1A1A] p-5 rounded-xl">
+                <textarea
+                  rows={4}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Instructions, accès site, contact sur place..."
+                  className="w-full bg-[#131313] rounded-lg p-3 text-white text-sm resize-none placeholder:text-[#444748] focus:outline-none focus:ring-[0.5px] focus:ring-white"
+                  style={{ fontFamily: "Montserrat, sans-serif" }}
+                />
+              </div>
+            </section>
+
+            {error && (
+              <p className="text-[#ffb4ab] text-sm text-center" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                {error}
+              </p>
+            )}
+
+            <div className="flex gap-3 pb-10">
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex-1 h-14 rounded-full font-bold text-base text-[#0A0A0A] active:scale-95 transition-all disabled:opacity-50"
+                style={{ background: "linear-gradient(to right, #949493, #E0E0E0, #949493)" }}
+              >
+                {saving ? "Enregistrement…" : "Enregistrer"}
+              </button>
+              <Link
+                href="/admin"
+                className="px-8 h-14 flex items-center justify-center rounded-full bg-[#1A1A1A] text-[#949493] font-semibold text-sm hover:text-white transition-colors"
+              >
+                Annuler
+              </Link>
+            </div>
+
+          </form>
+        )}
+      </main>
+    </div>
+  );
+}

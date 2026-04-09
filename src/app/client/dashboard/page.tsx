@@ -65,7 +65,7 @@ export default function ClientDashboardPage() {
       const { data: client } = await supabase
         .from("clients")
         .select("id, company_name")
-        .eq("email", user.email!)
+        .ilike("email", user.email!)
         .single();
 
       if (!client) { setLoading(false); return; }

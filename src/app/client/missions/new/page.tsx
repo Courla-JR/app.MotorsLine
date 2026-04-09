@@ -26,6 +26,14 @@ function getPricing(distanceMeters: number): Pricing {
   return               { surDevis: true,  tranche: "Grande distance",  essentiel: null, premium: null };
 }
 
+const TIME_SLOTS: string[] = [];
+for (let h = 6; h <= 22; h++) {
+  for (let m = 0; m < 60; m += 15) {
+    if (h === 22 && m > 0) break;
+    TIME_SLOTS.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+  }
+}
+
 const CLIENT_NAV = [
   { icon: "dashboard", label: "Dashboard", href: "/client/dashboard" },
   { icon: "local_shipping", label: "Missions", href: "/client/missions" },
@@ -137,11 +145,11 @@ export default function ClientNewMissionPage() {
       return;
     }
 
-    // Resolve client_id from clients table using authenticated user's email
+    // Resolve client_id from clients table using authenticated user's email (case-insensitive)
     const { data: client } = await supabase
       .from("clients")
       .select("id")
-      .eq("email", user.email!)
+      .ilike("email", user.email!)
       .single();
 
     if (!client) {
@@ -150,6 +158,13 @@ export default function ClientNewMissionPage() {
       return;
     }
 
+    // Auto-assign the admin as convoyeur
+    const { data: adminProfile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("role", "admin")
+      .single();
+
     const pickupDatetime = pickupDate && pickupTime
       ? new Date(`${pickupDate}T${pickupTime}`).toISOString()
       : pickupDate ? new Date(pickupDate).toISOString() : null;
@@ -157,7 +172,7 @@ export default function ClientNewMissionPage() {
     const { error: insertError } = await supabase.from("missions").insert({
       status: "a_faire",
       client_id: client.id,
-      convoyeur_id: null,
+      convoyeur_id: adminProfile?.id ?? null,
       vehicle_brand: brand,
       vehicle_model: model,
       vehicle_plate: plate,
@@ -452,17 +467,24 @@ export default function ClientNewMissionPage() {
                       type="date"
                       value={pickupDate}
                       onChange={(e) => setPickupDate(e.target.value)}
-                      className="w-full bg-[#131313] border-none rounded-lg p-3 text-white text-sm focus:outline-none focus:ring-[0.5px] focus:ring-white"
+                      className="w-full bg-[#131313] border-none rounded-lg p-3 text-white text-sm focus:outline-none focus:ring-[0.5px] focus:ring-white [color-scheme:dark]"
                     />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] text-[#c4c7c8] uppercase font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>Heure</label>
-                    <input
-                      type="time"
-                      value={pickupTime}
-                      onChange={(e) => setPickupTime(e.target.value)}
-                      className="w-full bg-[#131313] border-none rounded-lg p-3 text-white text-sm focus:outline-none focus:ring-[0.5px] focus:ring-white"
-                    />
+                    <div className="relative">
+                      <select
+                        value={pickupTime}
+                        onChange={(e) => setPickupTime(e.target.value)}
+                        className="w-full bg-[#131313] border-none rounded-lg p-3 text-white text-sm appearance-none pr-8 focus:outline-none focus:ring-[0.5px] focus:ring-white"
+                      >
+                        <option value="">— Heure —</option>
+                        {TIME_SLOTS.map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                      <span className="material-symbols-outlined absolute right-2.5 top-3 text-[#949493] text-base pointer-events-none">expand_more</span>
+                    </div>
                   </div>
                 </div>
               </div>

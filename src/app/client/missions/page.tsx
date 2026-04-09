@@ -72,7 +72,7 @@ export default function ClientMissionsPage() {
       const { data: client } = await supabase
         .from("clients")
         .select("id")
-        .eq("email", user.email!)
+        .ilike("email", user.email!)
         .single();
 
       setClientId(client?.id ?? null);

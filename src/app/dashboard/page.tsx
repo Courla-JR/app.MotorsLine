@@ -102,7 +102,7 @@ const CONVOYEUR_NAV = [
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
+  const [profile, setProfile] = useState<{ full_name: string | null; role: string | null } | null>(null);
   const [stats, setStats] = useState<Stats>({ total: 0, en_cours: 0, a_faire: 0 });
   const [todayMissions, setTodayMissions] = useState<DbMission[]>([]);
   const [upcomingMissions, setUpcomingMissions] = useState<DbMission[]>([]);
@@ -119,7 +119,7 @@ export default function DashboardPage() {
 
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("full_name")
+        .select("full_name, role")
         .eq("id", user.id)
         .single();
       setProfile(profileData);
@@ -194,6 +194,15 @@ export default function DashboardPage() {
             </Link>
           ))}
         </nav>
+        {profile?.role === "admin" && (
+          <Link
+            href="/admin"
+            className="flex items-center gap-3 px-3 py-3 rounded-xl text-[#949493] hover:text-white hover:bg-white/5 transition-colors mt-1"
+          >
+            <span className="material-symbols-outlined text-xl">swap_horiz</span>
+            <span className="font-medium text-sm" style={{ fontFamily: "Inter, sans-serif" }}>Espace admin</span>
+          </Link>
+        )}
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-3 rounded-xl text-[#949493] hover:text-white hover:bg-white/5 transition-colors w-full mt-2"
