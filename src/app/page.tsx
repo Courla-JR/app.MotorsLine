@@ -94,10 +94,10 @@ export default function HomePage() {
         </p>
 
         {/* CTAs */}
-        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
+        <div className="flex flex-col sm:flex-row gap-4 w-full">
           <Link
             href="/login"
-            className="flex-1 py-4 bg-white text-[#0A0A0A] font-bold text-lg rounded-lg flex items-center justify-center gap-2 hover:bg-zinc-100 active:scale-95 transition-all duration-150 shadow-[0_0_24px_rgba(255,255,255,0.08)]"
+            className="flex-1 py-4 bg-white text-[#0A0A0A] font-bold text-lg rounded-lg flex items-center justify-center gap-2 hover:bg-zinc-100 active:scale-95 transition-all duration-150 shadow-[0_0_24px_rgba(255,255,255,0.08)] whitespace-nowrap"
             style={{ fontFamily: "Inter, sans-serif" }}
           >
             <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -107,7 +107,7 @@ export default function HomePage() {
           </Link>
           <Link
             href="/client/login"
-            className="flex-1 py-4 bg-transparent text-white font-bold text-lg rounded-lg flex items-center justify-center gap-2 border border-[#2A2A2A] hover:bg-white/5 hover:border-white/20 active:scale-95 transition-all duration-150"
+            className="flex-1 py-4 bg-transparent text-white font-bold text-lg rounded-lg flex items-center justify-center gap-2 border border-[#2A2A2A] hover:bg-white/5 hover:border-white/20 active:scale-95 transition-all duration-150 whitespace-nowrap"
             style={{ fontFamily: "Inter, sans-serif" }}
           >
             <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -117,23 +117,26 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* Divider */}
-        <div className="mt-16 flex items-center gap-4 w-full max-w-xs opacity-20">
-          <div className="flex-1 h-px bg-white/40" />
-          <span className="text-[10px] text-white uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
-            Est. 2024
-          </span>
-          <div className="flex-1 h-px bg-white/40" />
-        </div>
+        {/* Vitrine link */}
+        <a
+          href="https://motorsline.fr"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-6 flex items-center gap-1.5 text-[#949493] hover:text-white transition-colors duration-150 text-sm"
+          style={{ fontFamily: "Montserrat, sans-serif" }}
+        >
+          Découvrir nos services
+          <span className="material-symbols-outlined text-sm leading-none">open_in_new</span>
+        </a>
       </main>
 
       {/* Footer */}
       <footer className="absolute bottom-8 left-0 w-full flex justify-center px-6">
         <p
-          className="text-[10px] text-[#444748] uppercase tracking-widest"
+          className="text-[10px] text-[#444748] tracking-wide"
           style={{ fontFamily: "Montserrat, sans-serif" }}
         >
-          High-End Vehicle Transport · France
+          © 2026 CJagency — Tous droits réservés
         </p>
       </footer>
     </div>
