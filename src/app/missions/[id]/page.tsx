@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -76,6 +76,52 @@ export default function ConvoyeurMissionDetailPage() {
   const [mission, setMission] = useState<Mission | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // ── Geolocation tracking ──
+  const [isTracking, setIsTracking] = useState(false);
+  const positionRef = useRef<GeolocationCoordinates | null>(null);
+  const watchIdRef  = useRef<number | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  function startTracking() {
+    if (!navigator.geolocation) return;
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => { positionRef.current = pos.coords; },
+      (err) => console.error("[tracking] watchPosition error:", err.message),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+    );
+    intervalRef.current = setInterval(async () => {
+      if (!positionRef.current || !missionId) return;
+      const { latitude, longitude, speed, heading } = positionRef.current;
+      const { error } = await supabase.from("mission_tracking").upsert(
+        { mission_id: missionId, latitude, longitude, speed: speed ?? null, heading: heading ?? null, updated_at: new Date().toISOString() },
+        { onConflict: "mission_id" }
+      );
+      if (error) console.error("[tracking] upsert error:", error.message);
+    }, 10_000);
+    setIsTracking(true);
+  }
+
+  function stopTracking() {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    if (intervalRef.current !== null) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    setIsTracking(false);
+  }
+
+  // Auto-stop when status becomes terminee or component unmounts
+  useEffect(() => {
+    if (mission?.status === "terminee") stopTracking();
+  }, [mission?.status]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    return () => { stopTracking(); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     async function fetchMission() {
@@ -227,28 +273,39 @@ export default function ConvoyeurMissionDetailPage() {
                 </span>
               </div>
 
-              {/* ── Suivi en direct (en_cours seulement) ── */}
+              {/* ── Partage de position (en_cours seulement) ── */}
               {mission.status === "en_cours" && (
-                <section className="bg-[#1c1b1b] rounded-2xl overflow-hidden border border-white/[0.04]">
-                  <div className="px-6 pt-6 pb-4 flex items-center justify-between">
+                <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
+                  <div className="flex items-center justify-between mb-4">
                     <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                      Suivi en direct
+                      Partage de position
                     </h3>
-                    <span className="flex items-center gap-1.5 text-[10px] text-[#66ff8e] font-bold uppercase tracking-wider">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#66ff8e] animate-pulse" />
-                      Live
+                    {isTracking && (
+                      <span className="flex items-center gap-1.5 text-[10px] text-[#66ff8e] font-bold uppercase tracking-wider">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#66ff8e] animate-pulse" />
+                        Actif
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#949493] mb-5 leading-relaxed" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    {isTracking
+                      ? "Votre position est partagée avec le client en temps réel (toutes les 10 s)."
+                      : "Activez le partage pour que le client suive votre progression en temps réel."}
+                  </p>
+                  <button
+                    onClick={isTracking ? stopTracking : startTracking}
+                    className={`w-full flex items-center justify-center gap-2.5 py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${
+                      isTracking
+                        ? "bg-[#ffb4ab]/10 border border-[#ffb4ab]/30 text-[#ffb4ab] hover:bg-[#ffb4ab]/20"
+                        : "bg-white text-[#0A0A0A] hover:bg-[#e5e2e1] active:scale-[0.98]"
+                    }`}
+                    style={{ fontFamily: "Inter, sans-serif" }}
+                  >
+                    <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
+                      {isTracking ? "location_off" : "my_location"}
                     </span>
-                  </div>
-                  <div className="relative h-64 bg-[#111] flex flex-col items-center justify-center gap-3">
-                    <div className="absolute inset-0 opacity-5" style={{
-                      backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)",
-                      backgroundSize: "32px 32px",
-                    }} />
-                    <span className="material-symbols-outlined text-[#353534] text-5xl">map</span>
-                    <p className="text-[#444748] text-sm font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                      Localisation en cours de chargement…
-                    </p>
-                  </div>
+                    {isTracking ? "Arrêter le partage" : "Partager ma position"}
+                  </button>
                 </section>
               )}
 

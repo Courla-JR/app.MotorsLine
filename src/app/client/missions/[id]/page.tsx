@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
+import Script from "next/script";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -25,17 +26,26 @@ type Mission = {
   duration: string | null;
 };
 
+type TrackingRow = {
+  mission_id: string;
+  latitude: number;
+  longitude: number;
+  speed: number | null;
+  heading: number | null;
+  updated_at: string;
+};
+
 const CLIENT_NAV = [
-  { icon: "dashboard", label: "Dashboard", href: "/client/dashboard" },
-  { icon: "local_shipping", label: "Missions", href: "/client/missions" },
-  { icon: "add_circle", label: "Nouvelle", href: "/client/missions/new" },
-  { icon: "receipt_long", label: "Facturation", href: "/client/billing" },
-  { icon: "person", label: "Profil", href: "/client/profile" },
+  { icon: "dashboard",      label: "Dashboard",  href: "/client/dashboard" },
+  { icon: "local_shipping", label: "Missions",   href: "/client/missions"  },
+  { icon: "add_circle",     label: "Nouvelle",   href: "/client/missions/new" },
+  { icon: "receipt_long",   label: "Facturation",href: "/client/billing"   },
+  { icon: "person",         label: "Profil",     href: "/client/profile"   },
 ];
 
 const STATUS_CONFIG: Record<MissionStatus, { label: string; color: string; bg: string; icon: string }> = {
   a_faire:  { label: "Planifiée",  color: "text-[#c4c7c8]",  bg: "bg-[#353534]",       icon: "schedule"       },
-  en_cours: { label: "En cours",   color: "text-[#0A0A0A]",  bg: "bg-white",           icon: "local_shipping" },
+  en_cours: { label: "En cours",   color: "text-[#0A0A0A]",  bg: "bg-[#F59E0B]",       icon: "local_shipping" },
   terminee: { label: "Terminée",   color: "text-[#66ff8e]",  bg: "bg-[#353534]",       icon: "check_circle"   },
   annulee:  { label: "Annulée",    color: "text-[#ffb4ab]",  bg: "bg-[#ffb4ab]/10",    icon: "cancel"         },
 };
@@ -46,20 +56,14 @@ const SERVICE_LABELS: Record<string, string> = {
   sur_mesure: "Sur Mesure",
 };
 
-// Timeline steps — 4 étapes, progress dépend du statut DB
-const TIMELINE_STEPS = [
-  { label: "Planifiée",       icon: "schedule"        },
-  { label: "Prise en charge", icon: "handshake"       },
-  { label: "En transit",      icon: "local_shipping"  },
-  { label: "Livrée",          icon: "where_to_vote"   },
-];
+// Progress steps mapped to status
+const STEPS = ["Planifiée", "Prise en charge", "En transit", "Livrée"] as const;
 
-// Retourne l'index de l'étape active (0-3), -1 si annulée
 function activeStep(status: MissionStatus): number {
   if (status === "a_faire")  return 0;
   if (status === "en_cours") return 2;
   if (status === "terminee") return 3;
-  return -1; // annulee
+  return -1;
 }
 
 function formatDate(iso: string | null) {
@@ -70,43 +74,242 @@ function formatDate(iso: string | null) {
   });
 }
 
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Dark map style for Google Maps
+const DARK_MAP_STYLES: google.maps.MapTypeStyle[] = [
+  { elementType: "geometry",           stylers: [{ color: "#111111" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#0a0a0a" }] },
+  { elementType: "labels.text.fill",   stylers: [{ color: "#555555" }] },
+  { featureType: "road",               elementType: "geometry",           stylers: [{ color: "#2a2a2a" }] },
+  { featureType: "road",               elementType: "geometry.stroke",    stylers: [{ color: "#1a1a1a" }] },
+  { featureType: "road.highway",       elementType: "geometry",           stylers: [{ color: "#353535" }] },
+  { featureType: "water",              elementType: "geometry",           stylers: [{ color: "#070707" }] },
+  { featureType: "poi",                stylers:                           [{ visibility: "off" }] },
+  { featureType: "transit",            stylers:                           [{ visibility: "off" }] },
+  { featureType: "administrative",     elementType: "geometry.stroke",    stylers: [{ color: "#2a2a2a" }] },
+  { featureType: "administrative",     elementType: "labels.text.fill",   stylers: [{ color: "#444444" }] },
+];
+
 export default function ClientMissionDetailPage() {
-  const router = useRouter();
-  const params = useParams();
+  const router   = useRouter();
+  const params   = useParams();
   const missionId = params.id as string;
 
-  const [mission, setMission] = useState<Mission | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [mission,  setMission]  = useState<Mission | null>(null);
+  const [loading,  setLoading]  = useState(true);
+  const [tracking, setTracking] = useState<TrackingRow | null>(null);
+  const [eta,      setEta]      = useState<string | null>(null);
+  const [mapsReady, setMapsReady] = useState(false);
+  const [noTracking, setNoTracking] = useState(false);
 
+  // Map refs
+  const mapDivRef      = useRef<HTMLDivElement | null>(null);
+  const mapRef         = useRef<google.maps.Map | null>(null);
+  const carMarkerRef   = useRef<google.maps.Marker | null>(null);
+  const deliveryLatLng = useRef<{ lat: number; lng: number } | null>(null);
+
+  // ── Auth + mission fetch ──
   useEffect(() => {
     async function fetchMission() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/client/login"); return; }
 
       const { data: client } = await supabase
-        .from("clients")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
-
+        .from("clients").select("id").eq("user_id", user.id).single();
       if (!client) { router.push("/client/login"); return; }
 
-      const { data, error: missionError } = await supabase
-        .from("missions")
-        .select("*")
-        .eq("id", missionId)
-        .eq("client_id", client.id)
-        .single();
-
-      if (missionError) {
-        console.error("[mission detail] fetch error:", missionError.message, missionError.code);
-      }
+      const { data, error } = await supabase
+        .from("missions").select("*")
+        .eq("id", missionId).eq("client_id", client.id).single();
+      if (error) console.error("[mission detail] fetch error:", error.message);
       if (!data) { router.push("/client/missions"); return; }
       setMission(data as Mission);
       setLoading(false);
     }
     fetchMission();
   }, [missionId, router]);
+
+  // ── Realtime subscription + initial tracking fetch ──
+  useEffect(() => {
+    if (!mission || mission.status !== "en_cours") return;
+
+    // Initial fetch
+    supabase.from("mission_tracking").select("*")
+      .eq("mission_id", missionId).single()
+      .then(({ data }) => {
+        if (data) setTracking(data as TrackingRow);
+        else setNoTracking(true);
+      });
+
+    const channel = supabase
+      .channel(`tracking:${missionId}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "mission_tracking",
+        filter: `mission_id=eq.${missionId}`,
+      }, (payload) => {
+        const row = payload.new as TrackingRow;
+        setTracking(row);
+        setNoTracking(false);
+        moveCarMarker(row.latitude, row.longitude);
+        computeEta(row.latitude, row.longitude, row.speed);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [mission, missionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── ETA calculation ──
+  function computeEta(lat: number, lng: number, speed: number | null) {
+    if (!deliveryLatLng.current || !speed || speed <= 0) { setEta(null); return; }
+    const distKm = haversineKm(lat, lng, deliveryLatLng.current.lat, deliveryLatLng.current.lng);
+    const hours  = distKm / speed; // speed is m/s from geolocation
+    const hours2 = distKm / (speed * 3.6); // convert m/s → km/h
+    void hours; // unused
+    const mins   = Math.round(hours2 * 60);
+    if (mins <= 0)       { setEta("Arrivée imminente"); return; }
+    if (mins < 60)       { setEta(`~${mins} min`); return; }
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    setEta(`~${h}h${m > 0 ? m.toString().padStart(2, "0") : "00"}`);
+  }
+
+  // ── Google Maps init ──
+  const initMap = useCallback(() => {
+    if (!mapDivRef.current || !mission) return;
+
+    const map = new google.maps.Map(mapDivRef.current, {
+      center:            { lat: 46.2276, lng: 2.2137 }, // France center
+      zoom:              6,
+      styles:            DARK_MAP_STYLES,
+      disableDefaultUI:  true,
+      zoomControl:       false,
+    });
+    mapRef.current = map;
+
+    // Directions route
+    const directionsService  = new google.maps.DirectionsService();
+    const directionsRenderer = new google.maps.DirectionsRenderer({
+      map,
+      suppressMarkers: true,
+      polylineOptions: {
+        strokeColor:   "#ffffff",
+        strokeOpacity: 0.35,
+        strokeWeight:  3,
+      },
+    });
+
+    directionsService.route({
+      origin:      mission.pickup_address,
+      destination: mission.delivery_address,
+      travelMode:  google.maps.TravelMode.DRIVING,
+    }, (result, status) => {
+      if (status !== "OK" || !result) return;
+      directionsRenderer.setDirections(result);
+
+      const route = result.routes[0]?.legs[0];
+      if (!route) return;
+
+      // Custom origin marker (white dot)
+      new google.maps.Marker({
+        position: route.start_location,
+        map,
+        icon: {
+          path:        google.maps.SymbolPath.CIRCLE,
+          scale:       6,
+          fillColor:   "#ffffff",
+          fillOpacity: 1,
+          strokeColor: "#0A0A0A",
+          strokeWeight: 2,
+        },
+      });
+
+      // Custom destination marker (outlined)
+      new google.maps.Marker({
+        position: route.end_location,
+        map,
+        icon: {
+          path:        google.maps.SymbolPath.CIRCLE,
+          scale:       6,
+          fillColor:   "#1c1b1b",
+          fillOpacity: 1,
+          strokeColor: "#949493",
+          strokeWeight: 2,
+        },
+      });
+
+      // Store delivery coords for ETA
+      deliveryLatLng.current = {
+        lat: route.end_location.lat(),
+        lng: route.end_location.lng(),
+      };
+    });
+
+    // If we already have tracking data, place the car marker
+    if (tracking) {
+      placeCarMarker(map, tracking.latitude, tracking.longitude);
+      computeEta(tracking.latitude, tracking.longitude, tracking.speed);
+    }
+  }, [mission, tracking]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-init map when mapsReady + mission are both available
+  useEffect(() => {
+    if (mapsReady && mission && mission.status === "en_cours") {
+      initMap();
+    }
+  }, [mapsReady, mission, initMap]);
+
+  // When tracking arrives after map is already init'd
+  useEffect(() => {
+    if (tracking && mapRef.current) {
+      moveCarMarker(tracking.latitude, tracking.longitude);
+      computeEta(tracking.latitude, tracking.longitude, tracking.speed);
+    }
+  }, [tracking]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function placeCarMarker(map: google.maps.Map, lat: number, lng: number) {
+    if (carMarkerRef.current) {
+      carMarkerRef.current.setPosition({ lat, lng });
+      return;
+    }
+    carMarkerRef.current = new google.maps.Marker({
+      position: { lat, lng },
+      map,
+      icon: {
+        url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="#F59E0B">
+            <circle cx="12" cy="12" r="11" fill="#1c1b1b" stroke="#F59E0B" stroke-width="1.5"/>
+            <path d="M17.5 10.5c-.28-.84-1.06-1.5-2-1.5H8.5c-.94 0-1.72.66-2 1.5L5 14v5c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-5l-1.5-3.5zM8.5 16a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm7 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2zM7 13l1-3h8l1 3H7z" fill="#F59E0B"/>
+          </svg>
+        `),
+        scaledSize: new google.maps.Size(32, 32),
+        anchor:     new google.maps.Point(16, 16),
+      },
+      title: "Position du convoyeur",
+    });
+    map.panTo({ lat, lng });
+  }
+
+  function moveCarMarker(lat: number, lng: number) {
+    if (!mapRef.current) return;
+    if (!carMarkerRef.current) {
+      placeCarMarker(mapRef.current, lat, lng);
+    } else {
+      carMarkerRef.current.setPosition({ lat, lng });
+      mapRef.current.panTo({ lat, lng });
+    }
+  }
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -115,10 +318,19 @@ export default function ClientMissionDetailPage() {
   }
 
   const statusCfg = mission ? STATUS_CONFIG[mission.status] : null;
-  const step = mission ? activeStep(mission.status) : -1;
+  const step      = mission ? activeStep(mission.status) : -1;
 
   return (
     <div className="bg-[#0A0A0A] text-[#e5e2e1] min-h-screen antialiased">
+
+      {/* Google Maps API — only loaded when en_cours */}
+      {mission?.status === "en_cours" && (
+        <Script
+          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=geometry`}
+          strategy="afterInteractive"
+          onLoad={() => setMapsReady(true)}
+        />
+      )}
 
       {/* ── Desktop Sidebar ── */}
       <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-60 bg-[#0A0A0A] border-r border-[#2A2A2A] z-50 py-8 px-4">
@@ -202,30 +414,31 @@ export default function ClientMissionDetailPage() {
               <span className="text-[#949493] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>Chargement...</span>
             </div>
           ) : mission && statusCfg ? (
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-5">
 
-              {/* ── Header ── */}
-              <div className="flex items-start justify-between">
-                <div>
-                  <h2 className="text-3xl font-semibold text-white tracking-tight" style={{ fontFamily: "Inter, sans-serif" }}>
+              {/* ── HEADER ── */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-2xl font-semibold text-white tracking-tight leading-tight" style={{ fontFamily: "Inter, sans-serif" }}>
                     {mission.vehicle_brand} {mission.vehicle_model}
                   </h2>
                   <p className="text-xs font-mono uppercase tracking-widest text-[#c4c7c8] mt-1">
                     {mission.vehicle_plate}
                   </p>
                 </div>
-                <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusCfg.bg} ${statusCfg.color}`}>
-                  <span className="material-symbols-outlined" style={{ fontSize: "14px", fontVariationSettings: "'FILL' 1" }}>
+                <span className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusCfg.bg} ${statusCfg.color}`}>
+                  <span className="material-symbols-outlined" style={{ fontSize: "13px", fontVariationSettings: "'FILL' 1" }}>
                     {statusCfg.icon}
                   </span>
                   {statusCfg.label}
                 </span>
               </div>
 
-              {/* ── Suivi en direct (seulement si en_cours) ── */}
+              {/* ── MAP CARD (en_cours only) ── */}
               {mission.status === "en_cours" && (
                 <section className="bg-[#1c1b1b] rounded-2xl overflow-hidden border border-white/[0.04]">
-                  <div className="px-6 pt-6 pb-4 flex items-center justify-between">
+                  {/* Live indicator */}
+                  <div className="px-5 pt-4 pb-3 flex items-center justify-between">
                     <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold" style={{ fontFamily: "Montserrat, sans-serif" }}>
                       Suivi en direct
                     </h3>
@@ -234,67 +447,73 @@ export default function ClientMissionDetailPage() {
                       Live
                     </span>
                   </div>
-                  <div className="relative h-64 bg-[#111] flex flex-col items-center justify-center gap-3">
-                    <div className="absolute inset-0 opacity-5" style={{
-                      backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)",
-                      backgroundSize: "32px 32px",
-                    }} />
-                    <span className="material-symbols-outlined text-[#353534] text-5xl">map</span>
-                    <p className="text-[#444748] text-sm font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                      Localisation en cours de chargement…
-                    </p>
+
+                  {/* Map container */}
+                  <div className="relative" style={{ height: "220px" }}>
+                    <div ref={mapDivRef} className="absolute inset-0" />
+
+                    {/* Fallback overlay — shown until map + tracking ready */}
+                    {(!mapsReady || noTracking) && (
+                      <div className="absolute inset-0 bg-[#111] flex flex-col items-center justify-center gap-3 pointer-events-none">
+                        <div className="absolute inset-0 opacity-5" style={{
+                          backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)",
+                          backgroundSize:  "32px 32px",
+                        }} />
+                        <span className="material-symbols-outlined text-[#353534] text-5xl">map</span>
+                        <p className="text-[#444748] text-sm font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          {noTracking ? "Localisation indisponible" : "Chargement de la carte…"}
+                        </p>
+                      </div>
+                    )}
                   </div>
+
+                  {/* ETA row */}
+                  {eta && (
+                    <div className="px-5 py-3 border-t border-white/[0.04] flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[#F59E0B] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        schedule
+                      </span>
+                      <p className="text-sm font-semibold text-white" style={{ fontFamily: "Inter, sans-serif" }}>
+                        ETA : {eta}
+                      </p>
+                    </div>
+                  )}
                 </section>
               )}
 
-              {/* ── Timeline de suivi ── */}
+              {/* ── PROGRESS BAR ── */}
               {mission.status !== "annulee" && (
-                <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
-                  <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-6" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                    Suivi
+                <section className="bg-[#1c1b1b] rounded-2xl px-5 py-5 border border-white/[0.04]">
+                  <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-5" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    Avancement
                   </h3>
-                  <div className="flex flex-col gap-0">
-                    {TIMELINE_STEPS.map((s, i) => {
+                  <div className="flex items-center gap-0">
+                    {STEPS.map((label, i) => {
                       const isDone   = i < step;
                       const isActive = i === step;
+                      const isFuture = i > step;
                       return (
-                        <div key={s.label} className="flex gap-4">
-                          {/* Colonne icône + trait */}
-                          <div className="flex flex-col items-center">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all ${
-                              isDone   ? "bg-white/10 border border-white/20"  :
-                              isActive ? "bg-white shadow-[0_0_12px_rgba(255,255,255,0.25)]" :
-                                         "bg-[#1a1a1a] border border-[#2a2a2a]"
-                            }`}>
-                              {isDone ? (
-                                <span className="material-symbols-outlined text-[#66ff8e]" style={{ fontSize: "16px", fontVariationSettings: "'FILL' 1" }}>
-                                  check
-                                </span>
-                              ) : (
-                                <span
-                                  className={`material-symbols-outlined ${isActive ? "text-[#0A0A0A]" : "text-[#444748]"}`}
-                                  style={{ fontSize: "16px", fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
-                                >
-                                  {s.icon}
-                                </span>
-                              )}
-                            </div>
-                            {i < TIMELINE_STEPS.length - 1 && (
-                              <div className={`w-0.5 h-8 my-1 rounded-full ${isDone ? "bg-white/20" : "bg-[#2a2a2a]"}`} />
-                            )}
-                          </div>
-                          {/* Label */}
-                          <div className="pt-1 pb-8 last:pb-0">
-                            <p className={`text-sm font-semibold ${isActive ? "text-white" : isDone ? "text-[#c4c7c8]" : "text-[#444748]"}`}
-                              style={{ fontFamily: "Inter, sans-serif" }}>
-                              {s.label}
+                        <div key={label} className="flex items-center flex-1 last:flex-none">
+                          {/* Step dot + label */}
+                          <div className="flex flex-col items-center gap-1.5 shrink-0">
+                            <div className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                              isDone   ? "bg-white"                                                            :
+                              isActive ? "bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)] animate-pulse"      :
+                                         "bg-[#2a2a2a] border border-[#3a3a3a]"
+                            }`} />
+                            <p className={`text-[9px] font-semibold uppercase tracking-wide leading-none text-center ${
+                              isFuture ? "text-[#444748]" : "text-white"
+                            }`} style={{ fontFamily: "Montserrat, sans-serif", maxWidth: "52px" }}>
+                              {label}
                             </p>
-                            {isActive && i < TIMELINE_STEPS.length - 1 && (
-                              <p className="text-[10px] text-[#949493] mt-0.5 uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                                Étape en cours
-                              </p>
-                            )}
                           </div>
+
+                          {/* Connector line (not after last) */}
+                          {i < STEPS.length - 1 && (
+                            <div className="flex-1 h-0.5 mx-1.5 mb-5 rounded-full">
+                              <div className={`h-full rounded-full transition-all duration-500 ${isDone ? "bg-white/40" : "bg-[#2a2a2a]"}`} />
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -302,8 +521,8 @@ export default function ClientMissionDetailPage() {
                 </section>
               )}
 
-              {/* ── Récap véhicule ── */}
-              <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
+              {/* ── VÉHICULE ── */}
+              <section className="bg-[#1c1b1b] rounded-2xl p-5 border border-white/[0.04]">
                 <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-4" style={{ fontFamily: "Montserrat, sans-serif" }}>
                   Véhicule
                 </h3>
@@ -329,15 +548,15 @@ export default function ClientMissionDetailPage() {
                 </div>
               </section>
 
-              {/* ── Itinéraire ── */}
-              <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
+              {/* ── ITINÉRAIRE ── */}
+              <section className="bg-[#1c1b1b] rounded-2xl p-5 border border-white/[0.04]">
                 <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-5" style={{ fontFamily: "Montserrat, sans-serif" }}>
                   Itinéraire
                 </h3>
                 <div className="flex gap-4">
                   <div className="flex flex-col items-center pt-1 shrink-0">
                     <div className="w-2.5 h-2.5 rounded-full bg-white" />
-                    <div className="w-0.5 flex-1 bg-[#353534] rounded-full my-2" style={{ minHeight: "40px" }} />
+                    <div className="w-px flex-1 border-l border-dashed border-[#353534] my-2" style={{ minHeight: "40px" }} />
                     <div className="w-2.5 h-2.5 rounded-full border-2 border-[#949493]" />
                   </div>
                   <div className="flex flex-col gap-6 flex-1">
@@ -357,8 +576,6 @@ export default function ClientMissionDetailPage() {
                     </div>
                   </div>
                 </div>
-
-                {/* Distance & Durée */}
                 {(mission.distance_km || mission.duration) && (
                   <div className="mt-5 pt-5 border-t border-white/[0.05] flex gap-6">
                     {mission.distance_km && (
@@ -377,8 +594,8 @@ export default function ClientMissionDetailPage() {
                 )}
               </section>
 
-              {/* ── Tarif ── */}
-              <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
+              {/* ── TARIF ── */}
+              <section className="bg-[#1c1b1b] rounded-2xl p-5 border border-white/[0.04]">
                 <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-4" style={{ fontFamily: "Montserrat, sans-serif" }}>
                   Tarif
                 </h3>
@@ -404,9 +621,9 @@ export default function ClientMissionDetailPage() {
                 )}
               </section>
 
-              {/* ── Notes logistiques ── */}
+              {/* ── NOTES ── */}
               {mission.notes && (
-                <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
+                <section className="bg-[#1c1b1b] rounded-2xl p-5 border border-white/[0.04]">
                   <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-3" style={{ fontFamily: "Montserrat, sans-serif" }}>
                     Notes logistiques
                   </h3>
