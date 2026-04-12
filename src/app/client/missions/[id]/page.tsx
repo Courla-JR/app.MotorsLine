@@ -112,6 +112,15 @@ export default function ClientMissionDetailPage() {
   const [mapsReady, setMapsReady] = useState(false);
   const [noTracking, setNoTracking] = useState(false);
 
+  // If Maps API is already loaded in the browser (cached from another page),
+  // onLoad on the Script tag won't fire — detect it here instead.
+  useEffect(() => {
+    if (mission?.status !== "en_cours") return;
+    if (typeof window !== "undefined" && (window as unknown as { google?: { maps?: unknown } }).google?.maps) {
+      setMapsReady(true);
+    }
+  }, [mission?.status]);
+
   // Map refs
   const mapDivRef      = useRef<HTMLDivElement | null>(null);
   const mapRef         = useRef<google.maps.Map | null>(null);
