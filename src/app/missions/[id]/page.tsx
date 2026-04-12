@@ -46,6 +46,17 @@ const SERVICE_LABELS: Record<string, string> = {
   sur_mesure: "Sur Mesure",
 };
 
+type PhotoType = "before" | "after";
+
+type MissionPhoto = {
+  id: string;
+  mission_id: string;
+  photo_url: string;
+  type: PhotoType;
+  caption: string | null;
+  created_at: string;
+};
+
 const TIMELINE_STEPS = [
   { label: "Planifiée",       icon: "schedule"       },
   { label: "Prise en charge", icon: "handshake"      },
@@ -73,9 +84,15 @@ export default function ConvoyeurMissionDetailPage() {
   const params = useParams();
   const missionId = params.id as string;
 
-  const [mission, setMission] = useState<Mission | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [mission,   setMission]   = useState<Mission | null>(null);
+  const [loading,   setLoading]   = useState(true);
+  const [isAdmin,   setIsAdmin]   = useState(false);
+
+  // ── Photos ──
+  const [photos,    setPhotos]    = useState<MissionPhoto[]>([]);
+  const [photoTab,  setPhotoTab]  = useState<PhotoType>("before");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // ── Geolocation tracking ──
   const [isTracking, setIsTracking] = useState(false);
@@ -114,7 +131,7 @@ export default function ConvoyeurMissionDetailPage() {
     setIsTracking(false);
   }
 
-  // Auto-stop when status becomes terminee or component unmounts
+  // Auto-stop tracking when status becomes terminee or component unmounts
   useEffect(() => {
     if (mission?.status === "terminee") stopTracking();
   }, [mission?.status]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -122,6 +139,66 @@ export default function ConvoyeurMissionDetailPage() {
   useEffect(() => {
     return () => { stopTracking(); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Photo helpers ──────────────────────────────────────────────────────────
+
+  async function fetchPhotos() {
+    const { data } = await supabase
+      .from("mission_photos")
+      .select("*")
+      .eq("mission_id", missionId)
+      .order("created_at", { ascending: true });
+    setPhotos((data ?? []) as MissionPhoto[]);
+  }
+
+  useEffect(() => {
+    if (missionId) fetchPhotos();
+  }, [missionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function uploadPhoto(file: File, type: PhotoType) {
+    setUploading(true);
+    try {
+      const ext  = file.name.split(".").pop() ?? "jpg";
+      const path = `${missionId}/${type}/${Date.now()}.${ext}`;
+      const { error: storageErr } = await supabase.storage
+        .from("mission-photos")
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (storageErr) throw storageErr;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("mission-photos")
+        .getPublicUrl(path);
+
+      const { error: dbErr } = await supabase
+        .from("mission_photos")
+        .insert({ mission_id: missionId, photo_url: publicUrl, type });
+      if (dbErr) throw dbErr;
+
+      await fetchPhotos();
+    } catch (err) {
+      console.error("[photos] upload error:", err);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function deletePhoto(photo: MissionPhoto) {
+    const marker = "/mission-photos/";
+    const idx    = photo.photo_url.indexOf(marker);
+    if (idx !== -1) {
+      const storagePath = photo.photo_url.slice(idx + marker.length);
+      await supabase.storage.from("mission-photos").remove([storagePath]);
+    }
+    await supabase.from("mission_photos").delete().eq("id", photo.id);
+    await fetchPhotos();
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    uploadPhoto(file, photoTab);
+    e.target.value = "";
+  }
 
   useEffect(() => {
     async function fetchMission() {
@@ -248,6 +325,16 @@ export default function ConvoyeurMissionDetailPage() {
             Retour aux missions
           </Link>
 
+          {/* Hidden file input for camera capture */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
           {loading ? (
             <div className="flex items-center justify-center py-32">
               <span className="text-[#949493] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>Chargement...</span>
@@ -357,6 +444,102 @@ export default function ConvoyeurMissionDetailPage() {
                   </div>
                 </section>
               )}
+
+              {/* ── État du véhicule (photos) ── */}
+              {mission.status !== "annulee" && (() => {
+                const beforePhotos = photos.filter(p => p.type === "before");
+                const afterPhotos  = photos.filter(p => p.type === "after");
+                const displayed    = photoTab === "before" ? beforePhotos : afterPhotos;
+                // Upload allowed: before → en_cours only ; after → en_cours or terminee
+                const canUpload =
+                  photoTab === "before"
+                    ? mission.status === "en_cours"
+                    : mission.status === "en_cours" || mission.status === "terminee";
+
+                return (
+                  <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
+                    {/* Header + tabs */}
+                    <div className="flex items-center justify-between mb-5">
+                      <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                        État du véhicule
+                      </h3>
+                      <div className="flex gap-1 bg-[#111] rounded-lg p-0.5">
+                        {(["before", "after"] as PhotoType[]).map((tab) => (
+                          <button
+                            key={tab}
+                            onClick={() => setPhotoTab(tab)}
+                            className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all duration-150 ${
+                              photoTab === tab
+                                ? "bg-white text-[#0A0A0A]"
+                                : "text-[#949493] hover:text-white"
+                            }`}
+                            style={{ fontFamily: "Montserrat, sans-serif" }}
+                          >
+                            {tab === "before" ? "Prise en charge" : "Livraison"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Photo grid */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {/* Upload button — first cell, only when allowed */}
+                      {canUpload && (
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploading}
+                          className="aspect-square rounded-xl border-2 border-dashed border-[#2a2a2a] flex flex-col items-center justify-center gap-1.5 hover:border-white/30 hover:bg-white/[0.03] transition-all duration-150 disabled:opacity-50"
+                        >
+                          {uploading ? (
+                            <span className="material-symbols-outlined text-[#949493] text-2xl animate-spin" style={{ fontSize: "24px" }}>
+                              progress_activity
+                            </span>
+                          ) : (
+                            <>
+                              <span className="material-symbols-outlined text-[#949493] text-2xl" style={{ fontSize: "24px", fontVariationSettings: "'FILL' 0" }}>
+                                photo_camera
+                              </span>
+                              <span className="text-[9px] text-[#949493] uppercase tracking-wide" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                                Ajouter
+                              </span>
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                      {/* Thumbnails */}
+                      {displayed.map((photo) => (
+                        <div key={photo.id} className="relative aspect-square group">
+                          <img
+                            src={photo.photo_url}
+                            alt={photo.caption ?? `Photo ${photo.type}`}
+                            className="w-full h-full object-cover rounded-xl"
+                          />
+                          {/* Delete button */}
+                          <button
+                            onClick={() => deletePhoto(photo)}
+                            className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 hover:bg-[#ffb4ab]/80"
+                          >
+                            <span className="material-symbols-outlined text-white" style={{ fontSize: "14px", fontVariationSettings: "'FILL' 1" }}>
+                              close
+                            </span>
+                          </button>
+                        </div>
+                      ))}
+
+                      {/* Empty state */}
+                      {displayed.length === 0 && !canUpload && (
+                        <div className="col-span-3 py-6 flex flex-col items-center gap-2 opacity-40">
+                          <span className="material-symbols-outlined text-[#949493] text-3xl">photo_library</span>
+                          <p className="text-[10px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                            Aucune photo
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                );
+              })()}
 
               {/* ── Véhicule ── */}
               <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">

@@ -35,6 +35,17 @@ type TrackingRow = {
   updated_at: string;
 };
 
+type PhotoType = "before" | "after";
+
+type MissionPhoto = {
+  id: string;
+  mission_id: string;
+  photo_url: string;
+  type: PhotoType;
+  caption: string | null;
+  created_at: string;
+};
+
 const CLIENT_NAV = [
   { icon: "dashboard",      label: "Dashboard",  href: "/client/dashboard" },
   { icon: "local_shipping", label: "Missions",   href: "/client/missions"  },
@@ -107,10 +118,14 @@ export default function ClientMissionDetailPage() {
 
   const [mission,  setMission]  = useState<Mission | null>(null);
   const [loading,  setLoading]  = useState(true);
-  const [tracking, setTracking] = useState<TrackingRow | null>(null);
-  const [eta,      setEta]      = useState<string | null>(null);
-  const [mapsReady, setMapsReady] = useState(false);
+  const [tracking,   setTracking]   = useState<TrackingRow | null>(null);
+  const [eta,        setEta]        = useState<string | null>(null);
+  const [mapsReady,  setMapsReady]  = useState(false);
   const [noTracking, setNoTracking] = useState(false);
+
+  // ── Photos (read-only) ──
+  const [photos,   setPhotos]   = useState<MissionPhoto[]>([]);
+  const [photoTab, setPhotoTab] = useState<PhotoType>("before");
 
   // If Maps API is already loaded in the browser (cached from another page),
   // onLoad on the Script tag won't fire — detect it here instead.
@@ -126,6 +141,17 @@ export default function ClientMissionDetailPage() {
   const mapRef         = useRef<google.maps.Map | null>(null);
   const carMarkerRef   = useRef<google.maps.Marker | null>(null);
   const deliveryLatLng = useRef<{ lat: number; lng: number } | null>(null);
+
+  // ── Photos fetch ──
+  useEffect(() => {
+    if (!missionId) return;
+    supabase
+      .from("mission_photos")
+      .select("*")
+      .eq("mission_id", missionId)
+      .order("created_at", { ascending: true })
+      .then(({ data }) => setPhotos((data ?? []) as MissionPhoto[]));
+  }, [missionId]);
 
   // ── Auth + mission fetch ──
   useEffect(() => {
@@ -529,6 +555,67 @@ export default function ClientMissionDetailPage() {
                   </div>
                 </section>
               )}
+
+              {/* ── ÉTAT DU VÉHICULE (photos, read-only) ── */}
+              {photos.length > 0 && (() => {
+                const beforePhotos = photos.filter(p => p.type === "before");
+                const afterPhotos  = photos.filter(p => p.type === "after");
+                const displayed    = photoTab === "before" ? beforePhotos : afterPhotos;
+                return (
+                  <section className="bg-[#1c1b1b] rounded-2xl p-5 border border-white/[0.04]">
+                    {/* Header + tabs */}
+                    <div className="flex items-center justify-between mb-5">
+                      <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                        État du véhicule
+                      </h3>
+                      <div className="flex gap-1 bg-[#111] rounded-lg p-0.5">
+                        {(["before", "after"] as PhotoType[]).map((tab) => (
+                          <button
+                            key={tab}
+                            onClick={() => setPhotoTab(tab)}
+                            className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all duration-150 ${
+                              photoTab === tab
+                                ? "bg-white text-[#0A0A0A]"
+                                : "text-[#949493] hover:text-white"
+                            }`}
+                            style={{ fontFamily: "Montserrat, sans-serif" }}
+                          >
+                            {tab === "before" ? "Prise en charge" : "Livraison"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Photo grid */}
+                    {displayed.length > 0 ? (
+                      <div className="grid grid-cols-3 gap-2">
+                        {displayed.map((photo) => (
+                          <a
+                            key={photo.id}
+                            href={photo.photo_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="aspect-square block"
+                          >
+                            <img
+                              src={photo.photo_url}
+                              alt={photo.caption ?? `Photo ${photo.type}`}
+                              className="w-full h-full object-cover rounded-xl hover:opacity-90 transition-opacity"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="py-6 flex flex-col items-center gap-2 opacity-40">
+                        <span className="material-symbols-outlined text-[#949493] text-3xl">photo_library</span>
+                        <p className="text-[10px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          Aucune photo pour cet onglet
+                        </p>
+                      </div>
+                    )}
+                  </section>
+                );
+              })()}
 
               {/* ── VÉHICULE ── */}
               <section className="bg-[#1c1b1b] rounded-2xl p-5 border border-white/[0.04]">
