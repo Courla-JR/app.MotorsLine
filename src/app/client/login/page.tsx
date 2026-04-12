@@ -162,23 +162,14 @@ export default function ClientLoginPage() {
       </main>
 
       {/* Footer */}
-      <div className="fixed bottom-12 left-0 w-full px-6 pointer-events-none opacity-20">
-        <div className="max-w-md mx-auto border-t border-white/10 pt-4 flex justify-between items-center">
-          <span
-            className="text-[10px] tracking-tighter uppercase"
-            style={{ fontFamily: "Montserrat, sans-serif" }}
-          >
-            High-End Transport
-          </span>
-          <div className="h-[1px] flex-grow mx-4 bg-gradient-to-r from-transparent via-white/40 to-transparent" />
-          <span
-            className="text-[10px] tracking-tighter uppercase"
-            style={{ fontFamily: "Montserrat, sans-serif" }}
-          >
-            Est. 2024
-          </span>
-        </div>
-      </div>
+      <footer className="fixed bottom-8 left-0 w-full flex justify-center px-6 pointer-events-none">
+        <p
+          className="text-[10px] text-[#444748] tracking-wide"
+          style={{ fontFamily: "Montserrat, sans-serif" }}
+        >
+          © 2026 CJagency — Tous droits réservés
+        </p>
+      </footer>
     </div>
   );
 }

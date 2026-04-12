@@ -125,7 +125,7 @@ export default function HomePage() {
           className="mt-6 flex items-center gap-1.5 text-[#949493] hover:text-white transition-colors duration-150 text-sm"
           style={{ fontFamily: "Montserrat, sans-serif" }}
         >
-          Découvrir nos services
+          motorsline.fr
           <span className="material-symbols-outlined text-sm leading-none">open_in_new</span>
         </a>
       </main>
