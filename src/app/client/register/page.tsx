@@ -92,13 +92,19 @@ function RegisterForm() {
         console.error("[register] profile upsert error:", JSON.stringify(profileError));
       }
 
-      // Link the clients record to this auth user via user_id
-      const { error: clientLinkError } = await supabase
-        .from("clients")
-        .update({ user_id: userId })
-        .ilike("email", invitationEmail);
-      if (clientLinkError) {
-        console.error("[register] client user_id link error:", JSON.stringify(clientLinkError));
+      // Link the clients record to this auth user via server API (service role bypasses RLS).
+      // The handle_new_user trigger also does this, but we call the API as a safe fallback
+      // in case the trigger ran before the clients row existed or email casing differed.
+      try {
+        const linkRes = await fetch("/api/clients/link-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: userId, email: invitationEmail }),
+        });
+        const linkJson = await linkRes.json();
+        console.log("[register] client link-user result:", linkJson);
+      } catch (err) {
+        console.error("[register] client link-user fetch error:", err);
       }
     }
 
