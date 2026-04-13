@@ -132,11 +132,13 @@ export default function AdminEditMissionPage() {
 
     // Trigger email notification if status changed
     if (status !== originalStatus) {
+      const payload = { missionId, oldStatus: originalStatus, newStatus: status };
+      console.log("[status-notification] calling /api/missions/status-notification with:", payload);
       try {
         const res = await fetch("/api/missions/status-notification", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ missionId, oldStatus: originalStatus, newStatus: status }),
+          body: JSON.stringify(payload),
         });
         const json = await res.json();
         console.log("[status-notification] response:", json);

@@ -11,18 +11,23 @@ const serviceSupabase = createClient(
 );
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { missionId, oldStatus, newStatus } = body as {
-    missionId: string;
-    oldStatus: string;
-    newStatus: string;
-  };
+  let body: Record<string, string>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  // Accept both camelCase and snake_case keys
+  const missionId  = (body.missionId  ?? body.mission_id)  as string | undefined;
+  const newStatus  = (body.newStatus  ?? body.new_status)  as string | undefined;
+  const oldStatus  = (body.oldStatus  ?? body.old_status)  as string | undefined;
 
   console.log("[status-notification] received:", { missionId, oldStatus, newStatus });
 
   if (!missionId || !newStatus) {
-    console.warn("[status-notification] missing missionId or newStatus");
-    return NextResponse.json({ ok: true, skipped: "missing params" });
+    console.warn("[status-notification] missing missionId or newStatus — body:", body);
+    return NextResponse.json({ error: "missing missionId or newStatus" }, { status: 400 });
   }
 
   if (oldStatus && oldStatus === newStatus) {
@@ -30,55 +35,56 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, skipped: "status unchanged" });
   }
 
-  // Fetch mission with client email via foreign key join
+  // ── 1. Fetch mission ──────────────────────────────────────────────────────
   const { data: mission, error: missionError } = await serviceSupabase
     .from("missions")
-    .select("*, clients(id, email, company_name)")
+    .select("id, vehicle_brand, vehicle_model, vehicle_plate, pickup_address, delivery_address, distance_km, duration, delivery_date, price, service_level, client_id")
     .eq("id", missionId)
     .single();
 
-  if (missionError) {
-    console.error("[status-notification] mission fetch error:", missionError.message);
-    return NextResponse.json({ error: missionError.message }, { status: 500 });
+  if (missionError || !mission) {
+    console.error("[status-notification] mission fetch error:", missionError?.message ?? "not found");
+    return NextResponse.json({ error: missionError?.message ?? "Mission not found" }, { status: 404 });
   }
 
-  if (!mission) {
-    console.error("[status-notification] mission not found:", missionId);
-    return NextResponse.json({ error: "Mission not found" }, { status: 404 });
+  console.log("[status-notification] mission found:", mission.id, "client_id:", mission.client_id);
+
+  // ── 2. Fetch client email directly (more reliable than FK join) ───────────
+  let clientEmail: string | null = null;
+
+  if (mission.client_id) {
+    const { data: client, error: clientError } = await serviceSupabase
+      .from("clients")
+      .select("email")
+      .eq("id", mission.client_id)
+      .single();
+
+    if (clientError) {
+      console.error("[status-notification] client fetch error:", clientError.message);
+    } else {
+      clientEmail = client?.email ?? null;
+    }
   }
 
-  // Extract client email — handle both object and null
-  const clientRecord = mission.clients as { email?: string; company_name?: string } | null;
-  const clientEmail = clientRecord?.email ?? null;
-
-  console.log("[status-notification] mission found:", {
-    missionId,
-    vehicle: `${mission.vehicle_brand} ${mission.vehicle_model}`,
-    client_id: mission.client_id,
-    clientEmail,
-  });
+  console.log("[status-notification] client email resolved:", clientEmail);
 
   if (!clientEmail) {
-    console.warn("[status-notification] no client email, skipping. client_id:", mission.client_id);
+    console.warn("[status-notification] no client email found for client_id:", mission.client_id, "— skipping");
     return NextResponse.json({ ok: true, skipped: "no client email" });
   }
 
+  // ── 3. Send the appropriate email ─────────────────────────────────────────
   if (newStatus === "terminee") {
-    // Fetch photos for delivery recap
     const { data: photos } = await serviceSupabase
       .from("mission_photos")
       .select("photo_url, type")
       .eq("mission_id", missionId)
       .order("created_at", { ascending: true });
 
-    const beforeUrls = (photos ?? [])
-      .filter((p: { type: string }) => p.type === "before")
-      .map((p: { photo_url: string }) => p.photo_url);
-    const afterUrls = (photos ?? [])
-      .filter((p: { type: string }) => p.type === "after")
-      .map((p: { photo_url: string }) => p.photo_url);
+    const beforeUrls = (photos ?? []).filter((p: { type: string }) => p.type === "before").map((p: { photo_url: string }) => p.photo_url);
+    const afterUrls  = (photos ?? []).filter((p: { type: string }) => p.type === "after").map((p: { photo_url: string }) => p.photo_url);
 
-    console.log("[status-notification] sending delivery recap to:", clientEmail, "photos:", beforeUrls.length, "/", afterUrls.length);
+    console.log("[status-notification] sending delivery recap to:", clientEmail);
 
     const { error: emailError } = await sendDeliveryRecapEmail({
       to:              clientEmail,
@@ -101,6 +107,7 @@ export async function POST(request: NextRequest) {
       console.error("[status-notification] delivery recap email error:", emailError);
       return NextResponse.json({ error: String(emailError) }, { status: 500 });
     }
+
     console.log("[status-notification] delivery recap email sent OK to:", clientEmail);
   } else {
     console.log("[status-notification] sending status change email to:", clientEmail, oldStatus, "→", newStatus);
@@ -119,8 +126,9 @@ export async function POST(request: NextRequest) {
       console.error("[status-notification] status change email error:", emailError);
       return NextResponse.json({ error: String(emailError) }, { status: 500 });
     }
+
     console.log("[status-notification] status change email sent OK to:", clientEmail);
   }
 
-  return NextResponse.json({ ok: true, sentTo: clientEmail });
+  return NextResponse.json({ ok: true, sentTo: clientEmail, newStatus });
 }
