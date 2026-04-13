@@ -683,10 +683,14 @@ export default function ConvoyeurMissionDetailPage() {
                           min={0}
                           value={photoTab === "before" ? mileageStart : mileageEnd}
                           onChange={(e) => photoTab === "before" ? setMileageStart(e.target.value) : setMileageEnd(e.target.value)}
-                          onBlur={(e) => {
-                            const val = e.target.value !== "" ? parseInt(e.target.value) : null;
+                          onBlur={async (e) => {
+                            const raw = e.target.value.trim();
+                            const val = raw !== "" ? parseInt(raw, 10) : null;
                             const field = photoTab === "before" ? "mileage_start" : "mileage_end";
-                            supabase.from("missions").update({ [field]: val }).eq("id", missionId);
+                            console.log("[mileage save]", { field, raw, val });
+                            const { error } = await supabase.from("missions").update({ [field]: val }).eq("id", missionId);
+                            if (error) console.error("[mileage save] supabase error:", error.message, error);
+                            else console.log("[mileage save] ok");
                           }}
                           placeholder="ex. 45000"
                           className="w-full bg-[#111] rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-[0.5px] focus:ring-white/30 placeholder:text-[#444]"
