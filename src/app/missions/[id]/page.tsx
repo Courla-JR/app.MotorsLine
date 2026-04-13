@@ -48,14 +48,26 @@ const SERVICE_LABELS: Record<string, string> = {
 
 type PhotoType = "before" | "after";
 
+type SlotKey = "face_avant" | "cote_gauche" | "cote_droit" | "face_arriere" | "pare_brise" | "compteur";
+
 type MissionPhoto = {
   id: string;
   mission_id: string;
   photo_url: string;
   type: PhotoType;
   caption: string | null;
+  slot: SlotKey | null;
   created_at: string;
 };
+
+const SLOTS: { key: SlotKey; label: string; icon: string }[] = [
+  { key: "face_avant",   label: "Face avant",  icon: "directions_car"  },
+  { key: "cote_gauche",  label: "Côté gauche", icon: "arrow_back"      },
+  { key: "cote_droit",   label: "Côté droit",  icon: "arrow_forward"   },
+  { key: "face_arriere", label: "Face arrière", icon: "settings_backup_restore" },
+  { key: "pare_brise",   label: "Pare-brise",  icon: "window"          },
+  { key: "compteur",     label: "Compteur",    icon: "speed"           },
+];
 
 const TIMELINE_STEPS = [
   { label: "Planifiée",       icon: "schedule"       },
@@ -89,10 +101,11 @@ export default function ConvoyeurMissionDetailPage() {
   const [isAdmin,   setIsAdmin]   = useState(false);
 
   // ── Photos ──
-  const [photos,    setPhotos]    = useState<MissionPhoto[]>([]);
-  const [photoTab,  setPhotoTab]  = useState<PhotoType>("before");
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [photos,        setPhotos]        = useState<MissionPhoto[]>([]);
+  const [photoTab,      setPhotoTab]      = useState<PhotoType>("before");
+  const [uploading,     setUploading]     = useState<string | null>(null); // slot key or "free" or null
+  const [uploadingSlot, setUploadingSlot] = useState<{ type: PhotoType; slot: SlotKey | null } | null>(null);
+  const fileInputRef  = useRef<HTMLInputElement | null>(null);
 
   // ── Geolocation tracking ──
   const [isTracking, setIsTracking] = useState(false);
@@ -155,30 +168,40 @@ export default function ConvoyeurMissionDetailPage() {
     if (missionId) fetchPhotos();
   }, [missionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function uploadPhoto(file: File, type: PhotoType) {
-    setUploading(true);
+  async function uploadPhoto(file: File, type: PhotoType, slot: SlotKey | null) {
+    const key = slot ?? "free";
+    setUploading(key);
     try {
       const ext  = file.name.split(".").pop() ?? "jpg";
-      const path = `${missionId}/${type}/${Date.now()}.${ext}`;
+      const slotPath = slot ? slot : `free_${Date.now()}`;
+      const path = `${missionId}/${type}/${slotPath}.${ext}`;
       const { error: storageErr } = await supabase.storage
         .from("mission-photos")
-        .upload(path, file, { contentType: file.type, upsert: false });
+        .upload(path, file, { contentType: file.type, upsert: true });
       if (storageErr) throw storageErr;
 
       const { data: { publicUrl } } = supabase.storage
         .from("mission-photos")
         .getPublicUrl(path);
 
+      // If slot already has a photo, delete the old DB row first
+      if (slot) {
+        const existing = photos.find(p => p.type === type && p.slot === slot);
+        if (existing) {
+          await supabase.from("mission_photos").delete().eq("id", existing.id);
+        }
+      }
+
       const { error: dbErr } = await supabase
         .from("mission_photos")
-        .insert({ mission_id: missionId, photo_url: publicUrl, type });
+        .insert({ mission_id: missionId, photo_url: publicUrl, type, slot: slot ?? null });
       if (dbErr) throw dbErr;
 
       await fetchPhotos();
     } catch (err) {
       console.error("[photos] upload error:", err);
     } finally {
-      setUploading(false);
+      setUploading(null);
     }
   }
 
@@ -193,10 +216,16 @@ export default function ConvoyeurMissionDetailPage() {
     await fetchPhotos();
   }
 
+  function triggerSlotUpload(type: PhotoType, slot: SlotKey | null) {
+    setUploadingSlot({ type, slot });
+    fileInputRef.current?.click();
+  }
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
-    uploadPhoto(file, photoTab);
+    if (!file || !uploadingSlot) return;
+    uploadPhoto(file, uploadingSlot.type, uploadingSlot.slot);
+    setUploadingSlot(null);
     e.target.value = "";
   }
 
@@ -447,14 +476,13 @@ export default function ConvoyeurMissionDetailPage() {
 
               {/* ── État du véhicule (photos) ── */}
               {mission.status !== "annulee" && (() => {
-                const beforePhotos = photos.filter(p => p.type === "before");
-                const afterPhotos  = photos.filter(p => p.type === "after");
-                const displayed    = photoTab === "before" ? beforePhotos : afterPhotos;
-                // Upload allowed: before → en_cours only ; after → en_cours or terminee
                 const canUpload =
                   photoTab === "before"
                     ? mission.status === "en_cours"
                     : mission.status === "en_cours" || mission.status === "terminee";
+
+                const tabPhotos = photos.filter(p => p.type === photoTab);
+                const freePhotos = tabPhotos.filter(p => !p.slot);
 
                 return (
                   <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
@@ -469,9 +497,7 @@ export default function ConvoyeurMissionDetailPage() {
                             key={tab}
                             onClick={() => setPhotoTab(tab)}
                             className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all duration-150 ${
-                              photoTab === tab
-                                ? "bg-white text-[#0A0A0A]"
-                                : "text-[#949493] hover:text-white"
+                              photoTab === tab ? "bg-white text-[#0A0A0A]" : "text-[#949493] hover:text-white"
                             }`}
                             style={{ fontFamily: "Montserrat, sans-serif" }}
                           >
@@ -481,62 +507,98 @@ export default function ConvoyeurMissionDetailPage() {
                       </div>
                     </div>
 
-                    {/* Photo grid */}
+                    {/* Slot grid — 6 predefined */}
                     <div className="grid grid-cols-3 gap-2">
-                      {/* Upload button — first cell, only when allowed */}
-                      {canUpload && (
-                        <button
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={uploading}
-                          className="aspect-square rounded-xl border-2 border-dashed border-[#2a2a2a] flex flex-col items-center justify-center gap-1.5 hover:border-white/30 hover:bg-white/[0.03] transition-all duration-150 disabled:opacity-50"
-                        >
-                          {uploading ? (
-                            <span className="material-symbols-outlined text-[#949493] text-2xl animate-spin" style={{ fontSize: "24px" }}>
-                              progress_activity
-                            </span>
-                          ) : (
-                            <>
-                              <span className="material-symbols-outlined text-[#949493] text-2xl" style={{ fontSize: "24px", fontVariationSettings: "'FILL' 0" }}>
-                                photo_camera
-                              </span>
-                              <span className="text-[9px] text-[#949493] uppercase tracking-wide" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                                Ajouter
-                              </span>
-                            </>
-                          )}
-                        </button>
-                      )}
-
-                      {/* Thumbnails */}
-                      {displayed.map((photo) => (
-                        <div key={photo.id} className="relative aspect-square group">
-                          <img
-                            src={photo.photo_url}
-                            alt={photo.caption ?? `Photo ${photo.type}`}
-                            className="w-full h-full object-cover rounded-xl"
-                          />
-                          {/* Delete button */}
-                          <button
-                            onClick={() => deletePhoto(photo)}
-                            className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 hover:bg-[#ffb4ab]/80"
-                          >
-                            <span className="material-symbols-outlined text-white" style={{ fontSize: "14px", fontVariationSettings: "'FILL' 1" }}>
-                              close
-                            </span>
-                          </button>
-                        </div>
-                      ))}
-
-                      {/* Empty state */}
-                      {displayed.length === 0 && !canUpload && (
-                        <div className="col-span-3 py-6 flex flex-col items-center gap-2 opacity-40">
-                          <span className="material-symbols-outlined text-[#949493] text-3xl">photo_library</span>
-                          <p className="text-[10px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                            Aucune photo
-                          </p>
-                        </div>
-                      )}
+                      {SLOTS.map((slot) => {
+                        const photo = tabPhotos.find(p => p.slot === slot.key);
+                        const isUploading = uploading === slot.key;
+                        return (
+                          <div key={slot.key} className="flex flex-col gap-1">
+                            <div className="relative aspect-square">
+                              {photo ? (
+                                <>
+                                  <img
+                                    src={photo.photo_url}
+                                    alt={slot.label}
+                                    className="w-full h-full object-cover rounded-xl"
+                                  />
+                                  {canUpload && (
+                                    <div className="absolute inset-0 rounded-xl opacity-0 hover:opacity-100 transition-opacity bg-black/50 flex items-center justify-center gap-2">
+                                      <button
+                                        onClick={() => triggerSlotUpload(photoTab, slot.key)}
+                                        className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center transition-colors"
+                                        title="Reprendre"
+                                      >
+                                        <span className="material-symbols-outlined text-white" style={{ fontSize: "16px" }}>photo_camera</span>
+                                      </button>
+                                      <button
+                                        onClick={() => deletePhoto(photo)}
+                                        className="w-8 h-8 rounded-full bg-[#ffb4ab]/30 hover:bg-[#ffb4ab]/60 flex items-center justify-center transition-colors"
+                                        title="Supprimer"
+                                      >
+                                        <span className="material-symbols-outlined text-white" style={{ fontSize: "16px", fontVariationSettings: "'FILL' 1" }}>close</span>
+                                      </button>
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <button
+                                  onClick={() => canUpload && triggerSlotUpload(photoTab, slot.key)}
+                                  disabled={!canUpload || isUploading}
+                                  className={`w-full h-full rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 transition-all duration-150 ${
+                                    canUpload
+                                      ? "border-[#2a2a2a] hover:border-white/30 hover:bg-white/[0.03] cursor-pointer"
+                                      : "border-[#1e1e1e] cursor-default"
+                                  } disabled:opacity-40`}
+                                >
+                                  {isUploading ? (
+                                    <span className="material-symbols-outlined text-[#949493] animate-spin" style={{ fontSize: "22px" }}>progress_activity</span>
+                                  ) : (
+                                    <span className="material-symbols-outlined text-[#444748]" style={{ fontSize: "22px", fontVariationSettings: "'FILL' 0" }}>{slot.icon}</span>
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-[9px] text-[#555] text-center uppercase tracking-wide truncate" style={{ fontFamily: "Montserrat, sans-serif" }}>{slot.label}</p>
+                          </div>
+                        );
+                      })}
                     </div>
+
+                    {/* Free photos row */}
+                    {(freePhotos.length > 0 || canUpload) && (
+                      <div className="mt-4 pt-4 border-t border-white/[0.04]">
+                        <p className="text-[9px] text-[#555] uppercase tracking-widest mb-2" style={{ fontFamily: "Montserrat, sans-serif" }}>Photos libres</p>
+                        <div className="grid grid-cols-4 gap-2">
+                          {freePhotos.map((photo) => (
+                            <div key={photo.id} className="relative aspect-square group">
+                              <img src={photo.photo_url} alt="Photo libre" className="w-full h-full object-cover rounded-lg" />
+                              {canUpload && (
+                                <button
+                                  onClick={() => deletePhoto(photo)}
+                                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#ffb4ab]/80"
+                                >
+                                  <span className="material-symbols-outlined text-white" style={{ fontSize: "12px", fontVariationSettings: "'FILL' 1" }}>close</span>
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                          {canUpload && (
+                            <button
+                              onClick={() => triggerSlotUpload(photoTab, null)}
+                              disabled={uploading === "free"}
+                              className="aspect-square rounded-lg border-2 border-dashed border-[#2a2a2a] flex flex-col items-center justify-center hover:border-white/30 hover:bg-white/[0.03] transition-all disabled:opacity-40"
+                            >
+                              {uploading === "free" ? (
+                                <span className="material-symbols-outlined text-[#949493] animate-spin" style={{ fontSize: "20px" }}>progress_activity</span>
+                              ) : (
+                                <span className="material-symbols-outlined text-[#555]" style={{ fontSize: "20px" }}>add</span>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </section>
                 );
               })()}

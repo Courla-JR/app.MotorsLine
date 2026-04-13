@@ -37,14 +37,26 @@ type TrackingRow = {
 
 type PhotoType = "before" | "after";
 
+type SlotKey = "face_avant" | "cote_gauche" | "cote_droit" | "face_arriere" | "pare_brise" | "compteur";
+
 type MissionPhoto = {
   id: string;
   mission_id: string;
   photo_url: string;
   type: PhotoType;
   caption: string | null;
+  slot: SlotKey | null;
   created_at: string;
 };
+
+const SLOTS: { key: SlotKey; label: string; icon: string }[] = [
+  { key: "face_avant",   label: "Face avant",  icon: "directions_car"          },
+  { key: "cote_gauche",  label: "Côté gauche", icon: "arrow_back"              },
+  { key: "cote_droit",   label: "Côté droit",  icon: "arrow_forward"           },
+  { key: "face_arriere", label: "Face arrière", icon: "settings_backup_restore" },
+  { key: "pare_brise",   label: "Pare-brise",  icon: "window"                  },
+  { key: "compteur",     label: "Compteur",    icon: "speed"                   },
+];
 
 const CLIENT_NAV = [
   { icon: "dashboard",      label: "Dashboard",  href: "/client/dashboard" },
@@ -562,7 +574,13 @@ export default function ClientMissionDetailPage() {
 
               {/* ── ÉTAT DU VÉHICULE (photos, read-only) ── */}
               {photos.length > 0 && (() => {
-                const displayed = photos.filter(p => p.type === photoTab);
+                const tabPhotos  = photos.filter(p => p.type === photoTab);
+                const freePhotos = tabPhotos.filter(p => !p.slot);
+                // All displayed photos in order for lightbox: slots first, then free
+                const allDisplayed = [
+                  ...SLOTS.map(s => tabPhotos.find(p => p.slot === s.key)).filter(Boolean) as MissionPhoto[],
+                  ...freePhotos,
+                ];
                 return (
                   <section className="bg-[#1c1b1b] rounded-2xl p-5 border border-white/[0.04]">
                     {/* Header + tabs */}
@@ -576,9 +594,7 @@ export default function ClientMissionDetailPage() {
                             key={tab}
                             onClick={() => setPhotoTab(tab)}
                             className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all duration-150 ${
-                              photoTab === tab
-                                ? "bg-white text-[#0A0A0A]"
-                                : "text-[#949493] hover:text-white"
+                              photoTab === tab ? "bg-white text-[#0A0A0A]" : "text-[#949493] hover:text-white"
                             }`}
                             style={{ fontFamily: "Montserrat, sans-serif" }}
                           >
@@ -588,29 +604,47 @@ export default function ClientMissionDetailPage() {
                       </div>
                     </div>
 
-                    {/* Photo grid */}
-                    {displayed.length > 0 ? (
-                      <div className="grid grid-cols-3 gap-2">
-                        {displayed.map((photo, idx) => (
-                          <button
-                            key={photo.id}
-                            onClick={() => { setLightboxIndex(idx); setLightboxOpen(true); }}
-                            className="aspect-square block focus:outline-none"
-                          >
-                            <img
-                              src={photo.photo_url}
-                              alt={photo.caption ?? `Photo ${photo.type}`}
-                              className="w-full h-full object-cover rounded-xl hover:opacity-90 transition-opacity"
-                            />
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="py-6 flex flex-col items-center gap-2 opacity-40">
-                        <span className="material-symbols-outlined text-[#949493] text-3xl">photo_library</span>
-                        <p className="text-[10px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                          Aucune photo pour cet onglet
-                        </p>
+                    {/* Slot grid — read-only, only show filled slots */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {SLOTS.map((slot) => {
+                        const photo = tabPhotos.find(p => p.slot === slot.key);
+                        const lbIdx = allDisplayed.findIndex(p => p.id === photo?.id);
+                        if (!photo) return null;
+                        return (
+                          <div key={slot.key} className="flex flex-col gap-1">
+                            <button
+                              onClick={() => { setLightboxIndex(lbIdx); setLightboxOpen(true); }}
+                              className="aspect-square block focus:outline-none"
+                            >
+                              <img
+                                src={photo.photo_url}
+                                alt={slot.label}
+                                className="w-full h-full object-cover rounded-xl hover:opacity-90 transition-opacity"
+                              />
+                            </button>
+                            <p className="text-[9px] text-[#555] text-center uppercase tracking-wide truncate" style={{ fontFamily: "Montserrat, sans-serif" }}>{slot.label}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Free photos */}
+                    {freePhotos.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-white/[0.04]">
+                        <div className="grid grid-cols-4 gap-2">
+                          {freePhotos.map((photo) => {
+                            const lbIdx = allDisplayed.findIndex(p => p.id === photo.id);
+                            return (
+                              <button
+                                key={photo.id}
+                                onClick={() => { setLightboxIndex(lbIdx); setLightboxOpen(true); }}
+                                className="aspect-square block focus:outline-none"
+                              >
+                                <img src={photo.photo_url} alt="Photo libre" className="w-full h-full object-cover rounded-lg hover:opacity-90 transition-opacity" />
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </section>
@@ -741,7 +775,11 @@ export default function ClientMissionDetailPage() {
 
       {/* ── LIGHTBOX ── */}
       {lightboxOpen && (() => {
-        const displayed = photos.filter(p => p.type === photoTab);
+        const tabPhotos = photos.filter(p => p.type === photoTab);
+        const displayed = [
+          ...SLOTS.map(s => tabPhotos.find(p => p.slot === s.key)).filter(Boolean) as MissionPhoto[],
+          ...tabPhotos.filter(p => !p.slot),
+        ];
         const photo = displayed[lightboxIndex];
         if (!photo) return null;
         return (
