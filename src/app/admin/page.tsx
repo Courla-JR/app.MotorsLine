@@ -144,8 +144,15 @@ export default function AdminPage() {
     setClients((data as Client[]) ?? []);
   }
 
-  async function updateStatus(missionId: string, status: MissionStatus) {
-    await supabase.from("missions").update({ status }).eq("id", missionId);
+  async function updateStatus(missionId: string, newStatus: MissionStatus) {
+    const { error } = await supabase.from("missions").update({ status: newStatus }).eq("id", missionId);
+    if (!error) {
+      await fetch("/api/missions/status-notification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mission_id: missionId, new_status: newStatus }),
+      }).catch((err) => console.error("[status-notification] fetch error:", err));
+    }
     await fetchMissions();
   }
 
