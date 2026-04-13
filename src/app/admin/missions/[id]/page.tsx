@@ -44,8 +44,7 @@ export default function AdminEditMissionPage() {
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [pickupDate, setPickupDate] = useState("");
   const [pickupTime, setPickupTime] = useState("");
-  const [status,         setStatus]         = useState<MissionStatus>("a_faire");
-  const [originalStatus, setOriginalStatus] = useState<MissionStatus>("a_faire");
+  const [status, setStatus] = useState<MissionStatus>("a_faire");
   const [clientId, setClientId] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -80,7 +79,6 @@ export default function AdminEditMissionPage() {
       setPickupAddress(mission.pickup_address ?? "");
       setDeliveryAddress(mission.delivery_address ?? "");
       setStatus(mission.status ?? "a_faire");
-      setOriginalStatus(mission.status ?? "a_faire");
       setClientId(mission.client_id ?? "");
       setNotes(mission.notes ?? "");
 
@@ -130,21 +128,17 @@ export default function AdminEditMissionPage() {
       return;
     }
 
-    // Trigger email notification if status changed
-    if (status !== originalStatus) {
-      const payload = { missionId, oldStatus: originalStatus, newStatus: status };
-      console.log("[status-notification] calling /api/missions/status-notification with:", payload);
-      try {
-        const res = await fetch("/api/missions/status-notification", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const json = await res.json();
-        console.log("[status-notification] response:", json);
-      } catch (err) {
-        console.error("[status-notification] fetch error:", err);
-      }
+    // Notify client of status change (always fire after successful update)
+    try {
+      const res = await fetch("/api/missions/status-notification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mission_id: missionId, new_status: status }),
+      });
+      const json = await res.json();
+      console.log("[status-notification] response:", json);
+    } catch (err) {
+      console.error("[status-notification] fetch error:", err);
     }
 
     router.push("/admin");
