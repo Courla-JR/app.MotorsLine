@@ -66,6 +66,12 @@ export default function AdminEditMissionPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
+  // Vehicle state (read-only display)
+  const [mileageStart,   setMileageStart]   = useState<number | null>(null);
+  const [mileageEnd,     setMileageEnd]     = useState<number | null>(null);
+  const [fuelLevelStart, setFuelLevelStart] = useState<string | null>(null);
+  const [fuelLevelEnd,   setFuelLevelEnd]   = useState<string | null>(null);
+
   // Form fields
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
@@ -125,6 +131,10 @@ export default function AdminEditMissionPage() {
 
       setClients((clientsData as Client[]) ?? []);
       setExpenses((expensesData as Expense[]) ?? []);
+      setMileageStart(mission.mileage_start ?? null);
+      setMileageEnd(mission.mileage_end ?? null);
+      setFuelLevelStart(mission.fuel_level_start ?? null);
+      setFuelLevelEnd(mission.fuel_level_end ?? null);
       setLoading(false);
     }
     bootstrap();
@@ -357,6 +367,64 @@ export default function AdminEditMissionPage() {
                 />
               </div>
             </section>
+
+            {/* État du véhicule (read-only) */}
+            {(mileageStart != null || mileageEnd != null || fuelLevelStart || fuelLevelEnd) && (
+              <section className="space-y-4">
+                <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[#949493] text-sm">speed</span>
+                  État du véhicule
+                </h2>
+                <div className="bg-[#1A1A1A] p-5 rounded-xl">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-3 font-semibold" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                        Prise en charge
+                      </p>
+                      <div className="space-y-2">
+                        {mileageStart != null && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-[#949493]" style={{ fontFamily: "Montserrat, sans-serif" }}>Kilométrage</span>
+                            <span className="text-white text-sm font-mono">{mileageStart.toLocaleString("fr-FR")} km</span>
+                          </div>
+                        )}
+                        {fuelLevelStart && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-[#949493]" style={{ fontFamily: "Montserrat, sans-serif" }}>Carburant</span>
+                            <span className="text-white text-sm">{fuelLevelStart}</span>
+                          </div>
+                        )}
+                        {mileageStart == null && !fuelLevelStart && (
+                          <p className="text-[#444748] text-xs" style={{ fontFamily: "Montserrat, sans-serif" }}>Non renseigné</p>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-3 font-semibold" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                        Livraison
+                      </p>
+                      <div className="space-y-2">
+                        {mileageEnd != null && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-[#949493]" style={{ fontFamily: "Montserrat, sans-serif" }}>Kilométrage</span>
+                            <span className="text-white text-sm font-mono">{mileageEnd.toLocaleString("fr-FR")} km</span>
+                          </div>
+                        )}
+                        {fuelLevelEnd && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-[#949493]" style={{ fontFamily: "Montserrat, sans-serif" }}>Carburant</span>
+                            <span className="text-white text-sm">{fuelLevelEnd}</span>
+                          </div>
+                        )}
+                        {mileageEnd == null && !fuelLevelEnd && (
+                          <p className="text-[#444748] text-xs" style={{ fontFamily: "Montserrat, sans-serif" }}>Non renseigné</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
 
             {/* Frais de mission (read-only) */}
             <section className="space-y-4">

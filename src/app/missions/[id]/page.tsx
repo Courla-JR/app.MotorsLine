@@ -23,6 +23,10 @@ type Mission = {
   service_level: string | null;
   distance_km: string | null;
   duration: string | null;
+  mileage_start: number | null;
+  mileage_end: number | null;
+  fuel_level_start: string | null;
+  fuel_level_end: string | null;
 };
 
 const CONVOYEUR_NAV = [
@@ -144,6 +148,12 @@ export default function ConvoyeurMissionDetailPage() {
   const [savingExp,       setSavingExp]       = useState(false);
   const [deletingExpId,   setDeletingExpId]   = useState<string | null>(null);
   const expReceiptRef = useRef<HTMLInputElement | null>(null);
+
+  // ── Vehicle state (mileage + fuel) ──
+  const [mileageStart,   setMileageStart]   = useState("");
+  const [mileageEnd,     setMileageEnd]     = useState("");
+  const [fuelLevelStart, setFuelLevelStart] = useState("");
+  const [fuelLevelEnd,   setFuelLevelEnd]   = useState("");
 
   // ── Status update ──
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -354,6 +364,10 @@ export default function ConvoyeurMissionDetailPage() {
       }
       if (!data) { router.push("/missions"); return; }
       setMission(data as Mission);
+      setMileageStart(data.mileage_start != null ? String(data.mileage_start) : "");
+      setMileageEnd(data.mileage_end != null ? String(data.mileage_end) : "");
+      setFuelLevelStart(data.fuel_level_start ?? "");
+      setFuelLevelEnd(data.fuel_level_end ?? "");
       setLoading(false);
     }
     fetchMission();
@@ -655,6 +669,55 @@ export default function ConvoyeurMissionDetailPage() {
                             {tab === "before" ? "Prise en charge" : "Livraison"}
                           </button>
                         ))}
+                      </div>
+                    </div>
+
+                    {/* Kilométrage & Carburant */}
+                    <div className="grid grid-cols-2 gap-3 mb-5 pb-5 border-b border-white/[0.04]">
+                      <div>
+                        <label className="block text-[10px] text-[#949493] uppercase tracking-widest mb-1.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          {photoTab === "before" ? "Km départ" : "Km arrivée"}
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={photoTab === "before" ? mileageStart : mileageEnd}
+                          onChange={(e) => photoTab === "before" ? setMileageStart(e.target.value) : setMileageEnd(e.target.value)}
+                          onBlur={(e) => {
+                            const val = e.target.value !== "" ? parseInt(e.target.value) : null;
+                            const field = photoTab === "before" ? "mileage_start" : "mileage_end";
+                            supabase.from("missions").update({ [field]: val }).eq("id", missionId);
+                          }}
+                          placeholder="ex. 45000"
+                          className="w-full bg-[#111] rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-[0.5px] focus:ring-white/30 placeholder:text-[#444]"
+                          style={{ fontFamily: "Inter, sans-serif" }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-[#949493] uppercase tracking-widest mb-1.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          Carburant
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={photoTab === "before" ? fuelLevelStart : fuelLevelEnd}
+                            onChange={async (e) => {
+                              const val = e.target.value;
+                              const field = photoTab === "before" ? "fuel_level_start" : "fuel_level_end";
+                              if (photoTab === "before") setFuelLevelStart(val);
+                              else setFuelLevelEnd(val);
+                              await supabase.from("missions").update({ [field]: val || null }).eq("id", missionId);
+                            }}
+                            className="w-full bg-[#111] rounded-lg px-3 py-2.5 text-white text-sm appearance-none pr-7 focus:outline-none focus:ring-[0.5px] focus:ring-white/30"
+                            style={{ fontFamily: "Inter, sans-serif" }}
+                          >
+                            <option value="">—</option>
+                            <option value="1/4">1/4</option>
+                            <option value="1/2">1/2</option>
+                            <option value="3/4">3/4</option>
+                            <option value="Plein">Plein</option>
+                          </select>
+                          <span className="material-symbols-outlined absolute right-2 top-2.5 text-[#949493] text-sm pointer-events-none">expand_more</span>
+                        </div>
                       </div>
                     </div>
 

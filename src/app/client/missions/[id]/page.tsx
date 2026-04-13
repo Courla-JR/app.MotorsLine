@@ -24,6 +24,10 @@ type Mission = {
   service_level: string | null;
   distance_km: string | null;
   duration: string | null;
+  mileage_start: number | null;
+  mileage_end: number | null;
+  fuel_level_start: string | null;
+  fuel_level_end: string | null;
 };
 
 type TrackingRow = {
@@ -607,8 +611,8 @@ export default function ClientMissionDetailPage() {
                 </section>
               )}
 
-              {/* ── ÉTAT DU VÉHICULE (photos, read-only) ── */}
-              {photos.length > 0 && (() => {
+              {/* ── ÉTAT DU VÉHICULE (photos + km/carburant, read-only) ── */}
+              {(photos.length > 0 || mission.mileage_start != null || mission.mileage_end != null || mission.fuel_level_start || mission.fuel_level_end) && (() => {
                 const tabPhotos  = photos.filter(p => p.type === photoTab);
                 const freePhotos = tabPhotos.filter(p => !p.slot);
                 // All displayed photos in order for lightbox: slots first, then free
@@ -616,6 +620,8 @@ export default function ClientMissionDetailPage() {
                   ...SLOTS.map(s => tabPhotos.find(p => p.slot === s.key)).filter(Boolean) as MissionPhoto[],
                   ...freePhotos,
                 ];
+                const km   = photoTab === "before" ? mission.mileage_start   : mission.mileage_end;
+                const fuel = photoTab === "before" ? mission.fuel_level_start : mission.fuel_level_end;
                 return (
                   <section className="bg-[#1c1b1b] rounded-2xl p-5 border border-white/[0.04]">
                     {/* Header + tabs */}
@@ -638,6 +644,26 @@ export default function ClientMissionDetailPage() {
                         ))}
                       </div>
                     </div>
+
+                    {/* Kilométrage & Carburant — read-only */}
+                    {(km != null || fuel) && (
+                      <div className={`grid grid-cols-2 gap-4 ${tabPhotos.filter(p => p.slot || !p.slot).length > 0 ? "mb-5 pb-5 border-b border-white/[0.04]" : ""}`}>
+                        {km != null && (
+                          <div>
+                            <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                              {photoTab === "before" ? "Km départ" : "Km arrivée"}
+                            </p>
+                            <p className="text-white font-medium text-sm font-mono">{km.toLocaleString("fr-FR")} km</p>
+                          </div>
+                        )}
+                        {fuel && (
+                          <div>
+                            <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>Carburant</p>
+                            <p className="text-white font-medium text-sm">{fuel}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Slot grid — read-only, only show filled slots */}
                     <div className="grid grid-cols-3 gap-2">
