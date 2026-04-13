@@ -224,6 +224,8 @@ export default function NewMissionPage() {
       notes: notes || null,
       price: selectedPrice ?? null,
       service_level: selectedLevel,
+      distance_km: routeInfo?.distance ?? null,
+      duration: routeInfo?.duration ?? null,
     });
 
     if (insertError) {

@@ -299,9 +299,17 @@ export default function ClientDashboardPage() {
               <h3 className="text-lg font-semibold tracking-tight text-white" style={{ fontFamily: "Inter, sans-serif" }}>
                 Missions en cours
               </h3>
-              <span className="text-xs text-white/40 uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                En direct
-              </span>
+              {activeMissions.length > 0 && (
+                <Link
+                  href={`/client/missions/${activeMissions[0].id}`}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#22C55E]/10 border border-[#22C55E]/30 hover:bg-[#22C55E]/20 transition-colors"
+                >
+                  <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse shadow-[0_0_6px_#22C55E]" />
+                  <span className="text-[10px] font-bold text-[#22C55E] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    En direct
+                  </span>
+                </Link>
+              )}
             </div>
 
             {!loading && activeMissions.length === 0 && (

@@ -17,6 +17,13 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   title: "Motors Line",
   description: "High-End Transport — Espace Convoyeur",
+  icons: {
+    icon: [
+      { url: "/favicon.ico",      sizes: "32x32", type: "image/png" },
+      { url: "/favicon.svg",      type: "image/svg+xml" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
