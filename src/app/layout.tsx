@@ -19,8 +19,8 @@ export const metadata: Metadata = {
   description: "High-End Transport — Espace Convoyeur",
   icons: {
     icon: [
-      { url: "/favicon.ico",      sizes: "32x32", type: "image/png" },
-      { url: "/favicon.svg",      type: "image/svg+xml" },
+      { url: "/favicon.ico",     sizes: "32x32", type: "image/png" },
+      { url: "/favicon.png",     sizes: "any",   type: "image/png" },
     ],
     apple: "/apple-touch-icon.png",
   },
