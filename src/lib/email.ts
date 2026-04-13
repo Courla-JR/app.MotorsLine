@@ -372,15 +372,19 @@ export function buildStatusChangeEmail(data: StatusChangeEmailData): string {
 </html>`;
 }
 
-export async function sendStatusChangeEmail(data: StatusChangeEmailData) {
+export async function sendStatusChangeEmail(data: StatusChangeEmailData): Promise<{ error: unknown }> {
   const newLabel = STATUS_LABELS_FR[data.newStatus] ?? data.newStatus;
+  const from = process.env.RESEND_FROM_EMAIL
+    ? `Motors Line <${process.env.RESEND_FROM_EMAIL}>`
+    : "Motors Line <onboarding@resend.dev>";
   const { error } = await resend.emails.send({
-    from: "Motors Line <missions@motorsline.fr>",
+    from,
     to: data.to,
     subject: `Mission ${newLabel.toLowerCase()} — ${data.vehicleBrand} ${data.vehicleModel}`,
     html: buildStatusChangeEmail(data),
   });
-  if (error) console.error("[Resend] Failed to send status change email:", error);
+  if (error) console.error("[Resend] sendStatusChangeEmail error:", error);
+  return { error: error ?? null };
 }
 
 // ─── Delivery recap email ─────────────────────────────────
@@ -545,12 +549,16 @@ export function buildDeliveryRecapEmail(data: DeliveryRecapEmailData): string {
 </html>`;
 }
 
-export async function sendDeliveryRecapEmail(data: DeliveryRecapEmailData) {
+export async function sendDeliveryRecapEmail(data: DeliveryRecapEmailData): Promise<{ error: unknown }> {
+  const from = process.env.RESEND_FROM_EMAIL
+    ? `Motors Line <${process.env.RESEND_FROM_EMAIL}>`
+    : "Motors Line <onboarding@resend.dev>";
   const { error } = await resend.emails.send({
-    from: "Motors Line <missions@motorsline.fr>",
+    from,
     to: data.to,
     subject: `Livraison confirmée — ${data.vehicleBrand} ${data.vehicleModel} · ${data.vehiclePlate}`,
     html: buildDeliveryRecapEmail(data),
   });
-  if (error) console.error("[Resend] Failed to send delivery recap email:", error);
+  if (error) console.error("[Resend] sendDeliveryRecapEmail error:", error);
+  return { error: error ?? null };
 }
