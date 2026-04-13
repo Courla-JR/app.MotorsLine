@@ -11,7 +11,7 @@ type DbMission = {
   vehicle_model: string;
   vehicle_plate: string;
   vehicle_image_url: string | null;
-  status: "a_faire" | "en_cours" | "terminee" | "annulee";
+  status: "a_faire" | "prise_en_charge" | "en_cours" | "terminee" | "annulee";
   pickup_address: string;
   delivery_address: string;
   pickup_date: string | null;
@@ -156,14 +156,14 @@ export default function ClientDashboardPage() {
         return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
       });
       setStatsTotal(thisMonth.length);
-      setStatsEnCours(list.filter((m) => m.status === "en_cours").length);
+      setStatsEnCours(list.filter((m) => m.status === "en_cours" || m.status === "prise_en_charge").length);
       setStatsTerminees(list.filter((m) => {
         if (m.status !== "terminee" || !m.pickup_date) return false;
         const d = new Date(m.pickup_date);
         return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
       }).length);
 
-      setActiveMissions(list.filter((m) => m.status === "en_cours"));
+      setActiveMissions(list.filter((m) => m.status === "en_cours" || m.status === "prise_en_charge"));
       setUpcomingMissions(
         list.filter((m) => m.status === "a_faire" && isFuture(m.pickup_date)).slice(0, 4)
       );
@@ -319,9 +319,12 @@ export default function ClientDashboardPage() {
             )}
 
             <div className="grid gap-4 md:grid-cols-2">
-              {activeMissions.map((m) => (
-                <MissionCard key={m.id} mission={m} badge={{ label: "En cours", className: "bg-white text-black" }} />
-              ))}
+              {activeMissions.map((m) => {
+                const badge = m.status === "prise_en_charge"
+                  ? { label: "Prise en charge", className: "bg-[#3b82f6]/20 text-[#93c5fd]" }
+                  : { label: "En cours", className: "bg-white text-black" };
+                return <MissionCard key={m.id} mission={m} badge={badge} />;
+              })}
             </div>
           </section>
 

@@ -11,18 +11,19 @@ type DbMission = {
   vehicle_model: string;
   vehicle_plate: string;
   vehicle_image_url?: string | null;
-  status: "a_faire" | "en_cours" | "terminee" | "annulee";
+  status: "a_faire" | "prise_en_charge" | "en_cours" | "terminee" | "annulee";
   pickup_address: string;
   delivery_address: string;
   pickup_date: string | null;
   delivery_date: string | null;
 };
 
-type Filter = "toutes" | "en_cours" | "a_faire" | "terminee";
+type Filter = "toutes" | "en_cours" | "prise_en_charge" | "a_faire" | "terminee";
 
 const FILTERS: { label: string; value: Filter }[] = [
   { label: "Toutes", value: "toutes" },
   { label: "En cours", value: "en_cours" },
+  { label: "Prise en charge", value: "prise_en_charge" },
   { label: "Planifiées", value: "a_faire" },
   { label: "Terminées", value: "terminee" },
 ];
@@ -36,13 +37,15 @@ const CLIENT_NAV = [
 ];
 
 function StatusBadge({ status }: { status: DbMission["status"] }) {
-  if (status === "en_cours")
-    return <span className="px-3 py-1 rounded-full bg-white text-[#0A0A0A] text-[10px] font-bold uppercase tracking-wider">En cours</span>;
-  if (status === "a_faire")
-    return <span className="px-3 py-1 rounded-full bg-[#353534] text-[#c4c7c8] text-[10px] font-bold uppercase tracking-wider">Planifiée</span>;
-  if (status === "terminee")
-    return <span className="px-3 py-1 rounded-full bg-[#353534] text-[#66ff8e] text-[10px] font-bold uppercase tracking-wider">Terminée</span>;
-  return <span className="px-3 py-1 rounded-full bg-[#ffb4ab]/10 text-[#ffb4ab] text-[10px] font-bold uppercase tracking-wider">Annulée</span>;
+  const map: Record<DbMission["status"], { label: string; className: string }> = {
+    a_faire:         { label: "Planifiée",       className: "bg-[#353534] text-[#c4c7c8]" },
+    prise_en_charge: { label: "Prise en charge", className: "bg-[#3b82f6]/20 text-[#93c5fd]" },
+    en_cours:        { label: "En cours",        className: "bg-white text-[#0A0A0A]" },
+    terminee:        { label: "Terminée",        className: "bg-[#353534] text-[#66ff8e]" },
+    annulee:         { label: "Annulée",         className: "bg-[#ffb4ab]/10 text-[#ffb4ab]" },
+  };
+  const { label, className } = map[status] ?? map.annulee;
+  return <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${className}`}>{label}</span>;
 }
 
 function formatDate(iso: string | null) {
