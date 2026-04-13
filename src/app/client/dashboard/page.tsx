@@ -10,10 +10,13 @@ type DbMission = {
   vehicle_brand: string;
   vehicle_model: string;
   vehicle_plate: string;
+  vehicle_image_url: string | null;
   status: "a_faire" | "en_cours" | "terminee" | "annulee";
   pickup_address: string;
   delivery_address: string;
   pickup_date: string | null;
+  distance_km: string | null;
+  duration: string | null;
 };
 
 function isFuture(iso: string | null) {
@@ -26,6 +29,72 @@ function formatPickup(iso: string | null) {
   return new Date(iso).toLocaleString("fr-FR", {
     weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
   });
+}
+
+function MissionCard({ mission: m, badge }: { mission: DbMission; badge: { label: string; className: string } }) {
+  const distanceLine = [m.distance_km, m.duration].filter(Boolean).join(" · ");
+  return (
+    <div className="bg-[#1c1b1b] rounded-3xl overflow-hidden border border-white/[0.05] flex flex-col">
+      {/* Vehicle image */}
+      {m.vehicle_image_url && (
+        <div className="h-36 w-full overflow-hidden">
+          <img src={m.vehicle_image_url} alt={`${m.vehicle_brand} ${m.vehicle_model}`} className="w-full h-full object-cover" />
+        </div>
+      )}
+      <div className="p-6 flex flex-col flex-1">
+        {/* Header */}
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h4 className="text-xl font-bold text-white" style={{ fontFamily: "Inter, sans-serif" }}>
+              {m.vehicle_brand} {m.vehicle_model}
+            </h4>
+            <p className="text-[#949493] text-xs tracking-widest mt-0.5 font-mono uppercase" style={{ fontFamily: "Montserrat, sans-serif" }}>
+              {m.vehicle_plate}
+            </p>
+          </div>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${badge.className}`}>
+            {badge.label}
+          </span>
+        </div>
+
+        {/* Date */}
+        {m.pickup_date && (
+          <p className="text-[#949493] text-xs capitalize mb-3" style={{ fontFamily: "Montserrat, sans-serif" }}>
+            {formatPickup(m.pickup_date)}
+          </p>
+        )}
+
+        {/* Route */}
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex flex-col items-center gap-1 shrink-0">
+            <div className="w-2 h-2 rounded-full bg-white" />
+            <div className="w-0.5 h-5 bg-[#353534] rounded-full" />
+            <div className="w-2 h-2 border border-[#949493] rounded-full" />
+          </div>
+          <div className="flex flex-col gap-1.5 min-w-0">
+            <span className="text-[#E0E0E0] text-sm truncate" style={{ fontFamily: "Montserrat, sans-serif" }}>{m.pickup_address}</span>
+            <span className="text-[#E0E0E0] text-sm truncate" style={{ fontFamily: "Montserrat, sans-serif" }}>{m.delivery_address}</span>
+          </div>
+        </div>
+
+        {/* Distance · Durée */}
+        {distanceLine && (
+          <p className="text-[#949493] text-xs ml-5 mb-4" style={{ fontFamily: "Montserrat, sans-serif" }}>{distanceLine}</p>
+        )}
+
+        <div className="mt-auto">
+          <Link
+            href={`/client/missions/${m.id}`}
+            className="w-full flex items-center justify-center gap-2 border border-[#2A2A2A] text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-white/5 transition-all active:scale-95"
+            style={{ fontFamily: "Inter, sans-serif" }}
+          >
+            Voir les détails
+            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 const CLIENT_NAV = [
@@ -42,8 +111,9 @@ export default function ClientDashboardPage() {
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [activeMissions, setActiveMissions] = useState<DbMission[]>([]);
   const [upcomingMissions, setUpcomingMissions] = useState<DbMission[]>([]);
-  const [statsTotal, setStatsTotal] = useState(0);
-  const [statsEnCours, setStatsEnCours] = useState(0);
+  const [statsTotal,     setStatsTotal]     = useState(0);
+  const [statsEnCours,   setStatsEnCours]   = useState(0);
+  const [statsTerminees, setStatsTerminees] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const today = new Date().toLocaleDateString("fr-FR", {
@@ -73,7 +143,7 @@ export default function ClientDashboardPage() {
 
       const { data: missions } = await supabase
         .from("missions")
-        .select("id, vehicle_brand, vehicle_model, vehicle_plate, status, pickup_address, delivery_address, pickup_date")
+        .select("id, vehicle_brand, vehicle_model, vehicle_plate, vehicle_image_url, status, pickup_address, delivery_address, pickup_date, distance_km, duration")
         .eq("client_id", client.id)
         .order("pickup_date", { ascending: true });
 
@@ -87,6 +157,11 @@ export default function ClientDashboardPage() {
       });
       setStatsTotal(thisMonth.length);
       setStatsEnCours(list.filter((m) => m.status === "en_cours").length);
+      setStatsTerminees(list.filter((m) => {
+        if (m.status !== "terminee" || !m.pickup_date) return false;
+        const d = new Date(m.pickup_date);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      }).length);
 
       setActiveMissions(list.filter((m) => m.status === "en_cours"));
       setUpcomingMissions(
@@ -191,10 +266,11 @@ export default function ClientDashboardPage() {
 
           {/* Stats */}
           <section className="mb-12">
-            <div className="flex gap-4 overflow-x-auto -mx-6 px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:overflow-visible md:mx-0 md:px-0 md:grid md:grid-cols-2">
+            <div className="flex gap-4 overflow-x-auto -mx-6 px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:overflow-visible md:mx-0 md:px-0 md:grid md:grid-cols-3">
               {[
                 { label: "Missions ce mois", value: loading ? "—" : String(statsTotal) },
-                { label: "En cours", value: loading ? "—" : String(statsEnCours) },
+                { label: "En cours",          value: loading ? "—" : String(statsEnCours) },
+                { label: "Terminées",         value: loading ? "—" : String(statsTerminees) },
               ].map((stat) => (
                 <div
                   key={stat.label}
@@ -236,46 +312,7 @@ export default function ClientDashboardPage() {
 
             <div className="grid gap-4 md:grid-cols-2">
               {activeMissions.map((m) => (
-                <div key={m.id} className="bg-[#1c1b1b] rounded-3xl p-6 border border-white/[0.05]">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h4 className="text-xl font-bold text-white" style={{ fontFamily: "Inter, sans-serif" }}>
-                        {m.vehicle_brand} {m.vehicle_model}
-                      </h4>
-                      <p className="text-[#949493] text-xs tracking-widest mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                        {m.vehicle_plate}
-                      </p>
-                    </div>
-                    <span className="bg-white text-black text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                      En cours
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-white" />
-                      <div className="w-0.5 h-6 bg-[#353534] rounded-full" />
-                      <div className="w-2 h-2 border border-[#949493] rounded-full" />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <span className="text-[#E0E0E0] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                        {m.pickup_address}
-                      </span>
-                      <span className="text-[#E0E0E0] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                        {m.delivery_address}
-                      </span>
-                    </div>
-                  </div>
-
-                  <Link
-                    href={`/client/missions/${m.id}`}
-                    className="w-full flex items-center justify-center gap-2 border border-[#2A2A2A] text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-white/5 transition-all active:scale-95"
-                    style={{ fontFamily: "Inter, sans-serif" }}
-                  >
-                    Voir les détails
-                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                  </Link>
-                </div>
+                <MissionCard key={m.id} mission={m} badge={{ label: "En cours", className: "bg-white text-black" }} />
               ))}
             </div>
           </section>
@@ -288,28 +325,7 @@ export default function ClientDashboardPage() {
               </h3>
               <div className="grid gap-4 md:grid-cols-2">
                 {upcomingMissions.map((m) => (
-                  <Link
-                    key={m.id}
-                    href={`/client/missions/${m.id}`}
-                    className="bg-[#0e0e0e] p-5 rounded-2xl flex items-center justify-between border border-white/[0.02] hover:bg-[#201f1f] transition-colors group"
-                  >
-                    <div className="flex items-center gap-5">
-                      <div className="w-12 h-12 rounded-xl bg-[#2a2a2a] flex items-center justify-center shrink-0">
-                        <span className="material-symbols-outlined text-white/60">directions_car</span>
-                      </div>
-                      <div>
-                        <p className="font-bold text-white" style={{ fontFamily: "Inter, sans-serif" }}>
-                          {m.vehicle_brand} {m.vehicle_model}
-                        </p>
-                        <p className="text-[11px] text-[#949493] uppercase tracking-tighter capitalize" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                          {formatPickup(m.pickup_date) ?? "—"}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="material-symbols-outlined text-zinc-600 group-hover:text-white transition-colors">
-                      chevron_right
-                    </span>
-                  </Link>
+                  <MissionCard key={m.id} mission={m} badge={{ label: "Planifiée", className: "bg-[#353534] text-[#c4c7c8]" }} />
                 ))}
               </div>
             </section>

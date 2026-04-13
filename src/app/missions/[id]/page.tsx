@@ -597,20 +597,9 @@ export default function ConvoyeurMissionDetailPage() {
                   </div>
                 </div>
                 {(mission.distance_km || mission.duration) && (
-                  <div className="mt-5 pt-5 border-t border-white/[0.05] flex gap-6">
-                    {mission.distance_km && (
-                      <div>
-                        <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>Distance</p>
-                        <p className="text-white font-semibold text-sm" style={{ fontFamily: "Inter, sans-serif" }}>{mission.distance_km}</p>
-                      </div>
-                    )}
-                    {mission.duration && (
-                      <div>
-                        <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>Durée estimée</p>
-                        <p className="text-white font-semibold text-sm" style={{ fontFamily: "Inter, sans-serif" }}>{mission.duration}</p>
-                      </div>
-                    )}
-                  </div>
+                  <p className="mt-4 text-[#949493] text-xs" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    {[mission.distance_km, mission.duration].filter(Boolean).join(" · ")}
+                  </p>
                 )}
               </section>
 
