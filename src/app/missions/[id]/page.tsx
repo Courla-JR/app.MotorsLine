@@ -69,6 +69,36 @@ const SLOTS: { key: SlotKey; label: string; icon: string }[] = [
   { key: "compteur",     label: "Compteur",    icon: "speed"           },
 ];
 
+type ExpenseType = "carburant" | "peage" | "parking" | "repas" | "hotel" | "autre";
+
+type Expense = {
+  id: string;
+  mission_id: string;
+  type: ExpenseType;
+  amount: number;
+  description: string | null;
+  receipt_url: string | null;
+  created_at: string;
+};
+
+const EXPENSE_LABELS: Record<ExpenseType, string> = {
+  carburant: "Carburant",
+  peage:     "Péage",
+  parking:   "Parking",
+  repas:     "Repas",
+  hotel:     "Hôtel",
+  autre:     "Autre",
+};
+
+const EXPENSE_ICONS: Record<ExpenseType, string> = {
+  carburant: "local_gas_station",
+  peage:     "toll",
+  parking:   "local_parking",
+  repas:     "restaurant",
+  hotel:     "hotel",
+  autre:     "receipt",
+};
+
 const TIMELINE_STEPS = [
   { label: "Planifiée",       icon: "schedule"       },
   { label: "Prise en charge", icon: "handshake"      },
@@ -106,6 +136,17 @@ export default function ConvoyeurMissionDetailPage() {
   const [uploading,     setUploading]     = useState<string | null>(null); // slot key or "free" or null
   const [uploadingSlot, setUploadingSlot] = useState<{ type: PhotoType; slot: SlotKey | null } | null>(null);
   const fileInputRef  = useRef<HTMLInputElement | null>(null);
+
+  // ── Expenses ──
+  const [expenses,        setExpenses]        = useState<Expense[]>([]);
+  const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [expType,         setExpType]         = useState<ExpenseType>("carburant");
+  const [expAmount,       setExpAmount]       = useState("");
+  const [expDesc,         setExpDesc]         = useState("");
+  const [expReceipt,      setExpReceipt]      = useState<File | null>(null);
+  const [savingExp,       setSavingExp]       = useState(false);
+  const [deletingExpId,   setDeletingExpId]   = useState<string | null>(null);
+  const expReceiptRef = useRef<HTMLInputElement | null>(null);
 
   // ── Geolocation tracking ──
   const [isTracking, setIsTracking] = useState(false);
@@ -167,6 +208,62 @@ export default function ConvoyeurMissionDetailPage() {
   useEffect(() => {
     if (missionId) fetchPhotos();
   }, [missionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Expense helpers ────────────────────────────────────────────────────────
+
+  async function fetchExpenses() {
+    const { data } = await supabase
+      .from("mission_expenses")
+      .select("*")
+      .eq("mission_id", missionId)
+      .order("created_at", { ascending: true });
+    setExpenses((data ?? []) as Expense[]);
+  }
+
+  useEffect(() => {
+    if (missionId) fetchExpenses();
+  }, [missionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleAddExpense(e: React.FormEvent) {
+    e.preventDefault();
+    if (!expAmount || isNaN(parseFloat(expAmount))) return;
+    setSavingExp(true);
+    try {
+      let receipt_url: string | null = null;
+      if (expReceipt) {
+        const ext  = expReceipt.name.split(".").pop() ?? "jpg";
+        const path = `${missionId}/receipts/${Date.now()}.${ext}`;
+        const { error: storageErr } = await supabase.storage
+          .from("mission-photos")
+          .upload(path, expReceipt, { upsert: false });
+        if (!storageErr) {
+          const { data: urlData } = supabase.storage.from("mission-photos").getPublicUrl(path);
+          receipt_url = urlData.publicUrl;
+        }
+      }
+      await supabase.from("mission_expenses").insert({
+        mission_id:  missionId,
+        type:        expType,
+        amount:      parseFloat(expAmount),
+        description: expDesc || null,
+        receipt_url,
+      });
+      setExpAmount("");
+      setExpDesc("");
+      setExpReceipt(null);
+      setShowExpenseForm(false);
+      await fetchExpenses();
+    } finally {
+      setSavingExp(false);
+    }
+  }
+
+  async function handleDeleteExpense(id: string) {
+    setDeletingExpId(id);
+    await supabase.from("mission_expenses").delete().eq("id", id);
+    await fetchExpenses();
+    setDeletingExpId(null);
+  }
 
   async function uploadPhoto(file: File, type: PhotoType, slot: SlotKey | null) {
     const key = slot ?? "free";
@@ -701,6 +798,151 @@ export default function ConvoyeurMissionDetailPage() {
                   <p className="text-[#c4c7c8] text-sm leading-relaxed" style={{ fontFamily: "Montserrat, sans-serif" }}>{mission.notes}</p>
                 </section>
               )}
+
+              {/* ── Frais de mission ── */}
+              <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    Frais de mission
+                  </h3>
+                  {mission.status !== "annulee" && mission.status !== "terminee" && (
+                    <button
+                      onClick={() => { setShowExpenseForm((v) => !v); }}
+                      className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#949493] hover:text-white transition-colors"
+                      style={{ fontFamily: "Montserrat, sans-serif" }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>
+                        {showExpenseForm ? "close" : "add"}
+                      </span>
+                      {showExpenseForm ? "Annuler" : "Ajouter"}
+                    </button>
+                  )}
+                </div>
+
+                {/* Add form */}
+                {showExpenseForm && (
+                  <form onSubmit={handleAddExpense} className="mb-4 bg-[#131313] rounded-xl p-4 space-y-3 border border-white/[0.06]">
+                    {/* Type + Montant */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>Type</label>
+                        <div className="relative">
+                          <select
+                            value={expType}
+                            onChange={(e) => setExpType(e.target.value as ExpenseType)}
+                            className="w-full bg-[#1c1b1b] rounded-lg px-3 py-2.5 text-white text-sm appearance-none pr-7 focus:outline-none focus:ring-[0.5px] focus:ring-white"
+                          >
+                            {(Object.keys(EXPENSE_LABELS) as ExpenseType[]).map((t) => (
+                              <option key={t} value={t}>{EXPENSE_LABELS[t]}</option>
+                            ))}
+                          </select>
+                          <span className="material-symbols-outlined absolute right-2 top-2.5 text-[#949493] pointer-events-none" style={{ fontSize: "14px" }}>expand_more</span>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>Montant (€)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          required
+                          value={expAmount}
+                          onChange={(e) => setExpAmount(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full bg-[#1c1b1b] rounded-lg px-3 py-2.5 text-white text-sm placeholder:text-[#444748] focus:outline-none focus:ring-[0.5px] focus:ring-white"
+                        />
+                      </div>
+                    </div>
+                    {/* Description */}
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>Description (optionnel)</label>
+                      <input
+                        type="text"
+                        value={expDesc}
+                        onChange={(e) => setExpDesc(e.target.value)}
+                        placeholder="Ex: A7 Autoroute du soleil"
+                        className="w-full bg-[#1c1b1b] rounded-lg px-3 py-2.5 text-white text-sm placeholder:text-[#444748] focus:outline-none focus:ring-[0.5px] focus:ring-white"
+                      />
+                    </div>
+                    {/* Receipt photo */}
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>Photo du ticket (optionnel)</label>
+                      <input
+                        ref={expReceiptRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => setExpReceipt(e.target.files?.[0] ?? null)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => expReceiptRef.current?.click()}
+                        className="flex items-center gap-2 text-sm text-[#949493] hover:text-white transition-colors"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>
+                          {expReceipt ? "check_circle" : "attach_file"}
+                        </span>
+                        <span style={{ fontFamily: "Montserrat, sans-serif" }} className="text-[11px]">
+                          {expReceipt ? expReceipt.name : "Joindre un ticket"}
+                        </span>
+                      </button>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={savingExp}
+                      className="w-full h-10 rounded-full font-bold text-sm text-[#0A0A0A] disabled:opacity-50 transition-all active:scale-95"
+                      style={{ background: "linear-gradient(to right, #949493, #E0E0E0, #949493)", fontFamily: "Montserrat, sans-serif" }}
+                    >
+                      {savingExp ? "Enregistrement…" : "Enregistrer le frais"}
+                    </button>
+                  </form>
+                )}
+
+                {/* Expense list */}
+                {expenses.length === 0 ? (
+                  <p className="text-[#444748] text-xs text-center py-4" style={{ fontFamily: "Montserrat, sans-serif" }}>Aucun frais enregistré</p>
+                ) : (
+                  <div className="space-y-2">
+                    {expenses.map((exp) => (
+                      <div key={exp.id} className="flex items-center gap-3 bg-[#131313] rounded-xl px-4 py-3">
+                        <span className="material-symbols-outlined text-[#949493] shrink-0" style={{ fontSize: "18px", fontVariationSettings: "'FILL' 1" }}>
+                          {EXPENSE_ICONS[exp.type as ExpenseType]}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-sm font-medium" style={{ fontFamily: "Inter, sans-serif" }}>
+                            {EXPENSE_LABELS[exp.type as ExpenseType]}
+                            {exp.description && <span className="text-[#949493] font-normal"> · {exp.description}</span>}
+                          </p>
+                          {exp.receipt_url && (
+                            <a href={exp.receipt_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#949493] underline" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                              Voir le ticket
+                            </a>
+                          )}
+                        </div>
+                        <p className="text-white font-bold text-sm shrink-0" style={{ fontFamily: "Inter, sans-serif" }}>
+                          {exp.amount.toFixed(2)} €
+                        </p>
+                        {mission.status !== "annulee" && mission.status !== "terminee" && (
+                          <button
+                            onClick={() => handleDeleteExpense(exp.id)}
+                            disabled={deletingExpId === exp.id}
+                            className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors disabled:opacity-40"
+                          >
+                            <span className="material-symbols-outlined text-[#949493]" style={{ fontSize: "14px" }}>delete</span>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {/* Total */}
+                    <div className="flex justify-between items-center pt-2 border-t border-white/[0.06] mt-2">
+                      <span className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold" style={{ fontFamily: "Montserrat, sans-serif" }}>Total frais</span>
+                      <span className="text-white font-bold text-base" style={{ fontFamily: "Inter, sans-serif" }}>
+                        {expenses.reduce((sum, e) => sum + e.amount, 0).toFixed(2)} €
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </section>
 
             </div>
           ) : null}
