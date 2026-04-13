@@ -1,4 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <rect width="32" height="32" rx="6" fill="#0A0A0A"/>
-  <text x="16" y="22" font-family="Georgia, serif" font-style="italic" font-weight="700" font-size="15" fill="#e5e2e1" text-anchor="middle" letter-spacing="-0.5">ML</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+  <defs>
+    <clipPath id="clip">
+      <rect width="500" height="500" rx="80"/>
+    </clipPath>
+    <linearGradient id="sg1" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#7a7a7a"/>
+      <stop offset="45%"  stop-color="#d8d8d8"/>
+      <stop offset="100%" stop-color="#a0a0a0"/>
+    </linearGradient>
+    <linearGradient id="sg2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#7a7a7a"/>
+      <stop offset="50%"  stop-color="#e0e0e0"/>
+      <stop offset="100%" stop-color="#aaaaaa"/>
+    </linearGradient>
+    <linearGradient id="sg3" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#888888"/>
+      <stop offset="55%"  stop-color="#cccccc"/>
+      <stop offset="100%" stop-color="#b0b0b0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Black background -->
+  <rect width="500" height="500" rx="80" fill="#000"/>
+
+  <g clip-path="url(#clip)">
+    <!-- Stripe 1 — full height, leftmost -->
+    <polygon points="55,440 135,440 300,60 220,60" fill="url(#sg1)"/>
+
+    <!-- Stripe 2 — full height, middle -->
+    <polygon points="200,440 280,440 445,60 365,60" fill="url(#sg2)"/>
+
+    <!-- Stripe 3 — shorter (bottom cut), rightmost -->
+    <polygon points="390,260 470,260 570,60 490,60" fill="url(#sg3)"/>
+  </g>
 </svg>
