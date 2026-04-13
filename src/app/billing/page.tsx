@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type Client = { id: string; full_name: string | null; company: string | null };
+type Mission = { id: string; vehicle_brand: string; vehicle_model: string; vehicle_plate: string; client_id: string | null };
 type Invoice = {
   id: string;
   amount: number;
@@ -43,8 +44,11 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
 
+  const [missions, setMissions] = useState<Mission[]>([]);
+
   // Form state
   const [selectedClientId, setSelectedClientId] = useState("");
+  const [selectedMissionId, setSelectedMissionId] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [file, setFile] = useState<File | null>(null);
@@ -66,11 +70,17 @@ export default function BillingPage() {
       }
       setIsAdmin(profile.role === "admin");
 
-      // Fetch clients directly (company_name is a column on clients table)
+      // Fetch clients and missions
       const { data: clientRows } = await supabase
         .from("clients")
         .select("id, company_name, contact_name")
         .order("company_name");
+
+      const { data: missionRows } = await supabase
+        .from("missions")
+        .select("id, vehicle_brand, vehicle_model, vehicle_plate, client_id")
+        .order("created_at", { ascending: false });
+      setMissions((missionRows as Mission[]) ?? []);
 
       const mapped: Client[] = ((clientRows as any[]) ?? []).map((c) => ({
         id: c.id,
@@ -147,6 +157,7 @@ export default function BillingPage() {
         date,
         file_url: publicUrl,
         file_name: file.name,
+        mission_id: selectedMissionId || null,
       }),
     });
 
@@ -160,6 +171,7 @@ export default function BillingPage() {
 
     setUploadSuccess(true);
     setSelectedClientId("");
+    setSelectedMissionId("");
     setAmount("");
     setDate(new Date().toISOString().slice(0, 10));
     setFile(null);
@@ -321,7 +333,7 @@ export default function BillingPage() {
                   <label className={labelClass} style={{ fontFamily: "Montserrat, sans-serif" }}>Client</label>
                   <select
                     value={selectedClientId}
-                    onChange={(e) => setSelectedClientId(e.target.value)}
+                    onChange={(e) => { setSelectedClientId(e.target.value); setSelectedMissionId(""); }}
                     className={`${inputClass} cursor-pointer`}
                     style={{ fontFamily: "Inter, sans-serif" }}
                   >
@@ -331,6 +343,25 @@ export default function BillingPage() {
                         {c.company ?? c.full_name ?? c.id}
                       </option>
                     ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className={labelClass} style={{ fontFamily: "Montserrat, sans-serif" }}>Mission associée <span className="normal-case text-[#555]">(optionnel)</span></label>
+                  <select
+                    value={selectedMissionId}
+                    onChange={(e) => setSelectedMissionId(e.target.value)}
+                    className={`${inputClass} cursor-pointer`}
+                    style={{ fontFamily: "Inter, sans-serif" }}
+                  >
+                    <option value="">— Sans mission —</option>
+                    {missions
+                      .filter((m) => !selectedClientId || m.client_id === selectedClientId)
+                      .map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.vehicle_brand} {m.vehicle_model} · {m.vehicle_plate}
+                        </option>
+                      ))}
                   </select>
                 </div>
 

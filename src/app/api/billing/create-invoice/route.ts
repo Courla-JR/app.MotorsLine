@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
   // Parse body
   const body = await request.json();
-  const { client_id, amount, date, file_url, file_name } = body;
+  const { client_id, amount, date, file_url, file_name, mission_id } = body;
 
   if (!client_id || !amount || !date || !file_url) {
     return NextResponse.json({ error: "Champs manquants" }, { status: 400 });
@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
     date,
     file_url,
     file_name: file_name ?? null,
+    mission_id: mission_id ?? null,
     created_by: user.id,
   });
 

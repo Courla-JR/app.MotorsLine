@@ -79,6 +79,14 @@ const SERVICE_LABELS: Record<string, string> = {
   sur_mesure: "Sur Mesure",
 };
 
+type Invoice = {
+  id: string;
+  amount: number;
+  date: string;
+  file_url: string;
+  file_name: string | null;
+};
+
 // Progress steps mapped to status
 const STEPS = ["Planifiée", "Prise en charge", "En transit", "Livrée"] as const;
 
@@ -143,6 +151,10 @@ export default function ClientMissionDetailPage() {
   const [lightboxOpen,  setLightboxOpen]  = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
+  // ── Invoice ──
+  const [invoice,       setInvoice]       = useState<Invoice | null>(null);
+  const [downloadingInv, setDownloadingInv] = useState(false);
+
   // If Maps API is already loaded in the browser (cached from another page),
   // onLoad on the Script tag won't fire — detect it here instead.
   useEffect(() => {
@@ -185,6 +197,16 @@ export default function ClientMissionDetailPage() {
       if (error) console.error("[mission detail] fetch error:", error.message);
       if (!data) { router.push("/client/missions"); return; }
       setMission(data as Mission);
+
+      // Fetch invoice linked to this mission for this client
+      const { data: invData } = await supabase
+        .from("invoices")
+        .select("id, amount, date, file_url, file_name")
+        .eq("mission_id", missionId)
+        .eq("client_id", client.id)
+        .maybeSingle();
+      if (invData) setInvoice(invData as Invoice);
+
       setLoading(false);
     }
     fetchMission();
@@ -360,6 +382,17 @@ export default function ClientMissionDetailPage() {
       carMarkerRef.current.setPosition({ lat, lng });
       mapRef.current.panTo({ lat, lng });
     }
+  }
+
+  async function handleInvoiceDownload() {
+    if (!invoice) return;
+    setDownloadingInv(true);
+    const res = await fetch(`/api/billing/download-invoice?invoice_id=${invoice.id}`);
+    setDownloadingInv(false);
+    if (!res.ok) return;
+    const { url } = await res.json();
+    const w = window.open(url, "_blank");
+    if (!w || w.closed) window.location.href = url;
   }
 
   async function handleLogout() {
@@ -703,14 +736,14 @@ export default function ClientMissionDetailPage() {
                       {mission.delivery_date && (
                         <p className="text-[#949493] text-xs font-mono mt-1 capitalize">{formatDate(mission.delivery_date)}</p>
                       )}
+                      {(mission.distance_km || mission.duration) && (
+                        <p className="text-[#949493] text-xs mt-2" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          {[mission.distance_km, mission.duration ? `~${mission.duration}` : null].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
-                {(mission.distance_km || mission.duration) && (
-                  <p className="mt-4 text-[#949493] text-xs" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                    {[mission.distance_km, mission.duration].filter(Boolean).join(" · ")}
-                  </p>
-                )}
               </section>
 
               {/* ── TARIF ── */}
@@ -739,6 +772,43 @@ export default function ClientMissionDetailPage() {
                   </div>
                 )}
               </section>
+
+              {/* ── FACTURE ── */}
+              {invoice && (
+                <section className="bg-[#1c1b1b] rounded-2xl p-5 border border-white/[0.04]">
+                  <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-4" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    Facture
+                  </h3>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-[#2a2a2a] flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-white/60 text-lg">description</span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-white font-semibold text-sm truncate" style={{ fontFamily: "Inter, sans-serif" }}>
+                          {invoice.file_name ?? "Facture"}
+                        </p>
+                        <p className="text-[#949493] text-xs mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          {new Date(invoice.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}
+                          {" · "}
+                          <span className="font-semibold text-white">
+                            {new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(invoice.amount)}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleInvoiceDownload}
+                      disabled={downloadingInv}
+                      className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-[#0A0A0A] text-xs font-bold uppercase tracking-widest hover:bg-white/90 transition-colors disabled:opacity-50 active:scale-95"
+                      style={{ fontFamily: "Inter, sans-serif" }}
+                    >
+                      <span className="material-symbols-outlined text-sm">download</span>
+                      {downloadingInv ? "…" : "PDF"}
+                    </button>
+                  </div>
+                </section>
+              )}
 
               {/* ── NOTES ── */}
               {mission.notes && (

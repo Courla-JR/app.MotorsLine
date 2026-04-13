@@ -99,12 +99,7 @@ const EXPENSE_ICONS: Record<ExpenseType, string> = {
   autre:     "receipt",
 };
 
-const TIMELINE_STEPS = [
-  { label: "Planifiée",       icon: "schedule"       },
-  { label: "Prise en charge", icon: "handshake"      },
-  { label: "En transit",      icon: "local_shipping" },
-  { label: "Livrée",          icon: "where_to_vote"  },
-];
+const STEPS = ["Planifiée", "Prise en charge", "En transit", "Livrée"] as const;
 
 function activeStep(status: MissionStatus): number {
   if (status === "a_faire")  return 0;
@@ -418,7 +413,7 @@ export default function ConvoyeurMissionDetailPage() {
       </aside>
 
       {/* ── Main Content ── */}
-      <div className="md:ml-60 pb-32 md:pb-10">
+      <div className="md:ml-60 pb-32 md:pb-24">
 
         {/* TopAppBar (mobile only) */}
         <header className="md:hidden bg-[#0A0A0A]/80 backdrop-blur-xl fixed top-0 w-full z-50 flex items-center justify-between px-6 h-16">
@@ -522,48 +517,36 @@ export default function ConvoyeurMissionDetailPage() {
                 </section>
               )}
 
-              {/* ── Timeline ── */}
+              {/* ── Avancement ── */}
               {mission.status !== "annulee" && (
-                <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
-                  <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-6" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                    Suivi
+                <section className="bg-[#1c1b1b] rounded-2xl px-5 py-5 border border-white/[0.04]">
+                  <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-5" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    Avancement
                   </h3>
-                  <div className="flex flex-col gap-0">
-                    {TIMELINE_STEPS.map((s, i) => {
+                  <div className="flex items-center gap-0">
+                    {STEPS.map((label, i) => {
                       const isDone   = i < step;
                       const isActive = i === step;
+                      const isFuture = i > step;
                       return (
-                        <div key={s.label} className="flex gap-4">
-                          <div className="flex flex-col items-center">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all ${
-                              isDone   ? "bg-white/10 border border-white/20"  :
-                              isActive ? "bg-white shadow-[0_0_12px_rgba(255,255,255,0.25)]" :
-                                         "bg-[#1a1a1a] border border-[#2a2a2a]"
-                            }`}>
-                              {isDone ? (
-                                <span className="material-symbols-outlined text-[#66ff8e]" style={{ fontSize: "16px", fontVariationSettings: "'FILL' 1" }}>check</span>
-                              ) : (
-                                <span className={`material-symbols-outlined ${isActive ? "text-[#0A0A0A]" : "text-[#444748]"}`}
-                                  style={{ fontSize: "16px", fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
-                                  {s.icon}
-                                </span>
-                              )}
-                            </div>
-                            {i < TIMELINE_STEPS.length - 1 && (
-                              <div className={`w-0.5 h-8 my-1 rounded-full ${isDone ? "bg-white/20" : "bg-[#2a2a2a]"}`} />
-                            )}
-                          </div>
-                          <div className="pt-1 pb-8 last:pb-0">
-                            <p className={`text-sm font-semibold ${isActive ? "text-white" : isDone ? "text-[#c4c7c8]" : "text-[#444748]"}`}
-                              style={{ fontFamily: "Inter, sans-serif" }}>
-                              {s.label}
+                        <div key={label} className="flex items-center flex-1 last:flex-none">
+                          <div className="flex flex-col items-center gap-1.5 shrink-0">
+                            <div className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                              isDone   ? "bg-white"                                                       :
+                              isActive ? "bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)] animate-pulse" :
+                                         "bg-[#2a2a2a] border border-[#3a3a3a]"
+                            }`} />
+                            <p className={`text-[9px] font-semibold uppercase tracking-wide leading-none text-center ${
+                              isFuture ? "text-[#444748]" : "text-white"
+                            }`} style={{ fontFamily: "Montserrat, sans-serif", maxWidth: "52px" }}>
+                              {label}
                             </p>
-                            {isActive && i < TIMELINE_STEPS.length - 1 && (
-                              <p className="text-[10px] text-[#949493] mt-0.5 uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                                Étape en cours
-                              </p>
-                            )}
                           </div>
+                          {i < STEPS.length - 1 && (
+                            <div className="flex-1 h-0.5 mx-1.5 mb-5 rounded-full">
+                              <div className={`h-full rounded-full transition-all duration-500 ${isDone ? "bg-white/40" : "bg-[#2a2a2a]"}`} />
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -752,14 +735,14 @@ export default function ConvoyeurMissionDetailPage() {
                       {mission.delivery_date && (
                         <p className="text-[#949493] text-xs font-mono mt-1 capitalize">{formatDate(mission.delivery_date)}</p>
                       )}
+                      {(mission.distance_km || mission.duration) && (
+                        <p className="text-[#949493] text-xs mt-2" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          {[mission.distance_km, mission.duration ? `~${mission.duration}` : null].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
-                {(mission.distance_km || mission.duration) && (
-                  <p className="mt-4 text-[#949493] text-xs" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                    {[mission.distance_km, mission.duration].filter(Boolean).join(" · ")}
-                  </p>
-                )}
               </section>
 
               {/* ── Tarif ── */}
