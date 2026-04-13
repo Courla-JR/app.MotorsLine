@@ -37,6 +37,16 @@ const CONVOYEUR_NAV = [
   { icon: "person", label: "Profil", href: "/profile" },
 ];
 
+type MissionStatus = DbMission["status"];
+
+const STATUS_LABELS: Record<MissionStatus, string> = {
+  a_faire:         "À faire",
+  prise_en_charge: "Prise en charge",
+  en_cours:        "En cours",
+  terminee:        "Terminée",
+  annulee:         "Annulée",
+};
+
 function StatusBadge({ status }: { status: DbMission["status"] }) {
   const map = {
     a_faire:         { label: "À faire",          className: "bg-[#2a2a2a] text-[#c4c7c8]" },
@@ -66,6 +76,25 @@ export default function MissionsPage() {
   const [filter, setFilter] = useState<Filter>("toutes");
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  async function updateStatus(missionId: string, newStatus: MissionStatus) {
+    setUpdatingId(missionId);
+    const { error } = await supabase.from("missions").update({ status: newStatus }).eq("id", missionId);
+    if (!error) {
+      setMissions((prev) => prev.map((m) => m.id === missionId ? { ...m, status: newStatus } : m));
+      try {
+        await fetch("/api/missions/status-notification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mission_id: missionId, new_status: newStatus }),
+        });
+      } catch (err) {
+        console.error("[status-notification] fetch error:", err);
+      }
+    }
+    setUpdatingId(null);
+  }
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -329,17 +358,34 @@ export default function MissionsPage() {
                   </div>
 
                   {/* Footer */}
-                  <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between">
-                    {m.status === "terminee" ? (
-                      <span className="text-[10px] font-mono text-[#c4c7c8]/40">
-                        LIVRÉ {m.delivery_date ? formatDate(m.delivery_date) : ""}
-                      </span>
+                  <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between gap-3">
+                    {/* Status dropdown */}
+                    {m.status !== "terminee" && m.status !== "annulee" ? (
+                      <div className="relative shrink-0">
+                        <select
+                          value={m.status}
+                          disabled={updatingId === m.id}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => { e.stopPropagation(); updateStatus(m.id, e.target.value as MissionStatus); }}
+                          className="bg-[#131313] border border-[#2a2a2a] text-white text-xs rounded-lg px-3 py-2 pr-8 appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-white/20 disabled:opacity-50"
+                          style={{ fontFamily: "Inter, sans-serif" }}
+                        >
+                          {Object.entries(STATUS_LABELS).map(([val, label]) => (
+                            <option key={val} value={val}>{label}</option>
+                          ))}
+                        </select>
+                        <span className="material-symbols-outlined absolute right-2 top-2 text-[#949493] text-sm pointer-events-none">
+                          {updatingId === m.id ? "progress_activity" : "expand_more"}
+                        </span>
+                      </div>
                     ) : (
-                      <div />
+                      <span className="text-[10px] font-mono text-[#c4c7c8]/40">
+                        {m.status === "terminee" ? `LIVRÉ ${m.delivery_date ? formatDate(m.delivery_date) : ""}` : "ANNULÉE"}
+                      </span>
                     )}
                     <Link
                       href={`/missions/${m.id}`}
-                      className={`text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:opacity-70 transition-opacity ${m.status === "terminee" ? "text-white/40" : "text-white"}`}
+                      className={`text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:opacity-70 transition-opacity shrink-0 ${m.status === "terminee" ? "text-white/40" : "text-white"}`}
                       style={{ fontFamily: "Inter, sans-serif" }}
                     >
                       {m.status === "terminee" ? "Archives" : "Détails"}
