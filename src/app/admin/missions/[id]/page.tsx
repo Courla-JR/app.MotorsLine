@@ -5,16 +5,47 @@ import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-type MissionStatus = "a_faire" | "en_cours" | "terminee" | "annulee";
+type MissionStatus = "a_faire" | "prise_en_charge" | "en_cours" | "terminee" | "annulee";
 
 const STATUS_LABELS: Record<MissionStatus, string> = {
   a_faire: "À faire",
+  prise_en_charge: "Prise en charge",
   en_cours: "En cours",
   terminee: "Terminée",
   annulee: "Annulée",
 };
 
 type Client = { id: string; company_name: string };
+
+type ExpenseType = "carburant" | "peage" | "parking" | "repas" | "hotel" | "autre";
+
+type Expense = {
+  id: string;
+  mission_id: string;
+  type: ExpenseType;
+  amount: number;
+  description: string | null;
+  receipt_url: string | null;
+  created_at: string;
+};
+
+const EXPENSE_LABELS: Record<ExpenseType, string> = {
+  carburant: "Carburant",
+  peage:     "Péage",
+  parking:   "Parking",
+  repas:     "Repas",
+  hotel:     "Hôtel",
+  autre:     "Autre",
+};
+
+const EXPENSE_ICONS: Record<ExpenseType, string> = {
+  carburant: "local_gas_station",
+  peage:     "toll",
+  parking:   "local_parking",
+  repas:     "restaurant",
+  hotel:     "hotel",
+  autre:     "receipt",
+};
 
 const TIME_SLOTS: string[] = [];
 for (let h = 6; h <= 22; h++) {
@@ -33,6 +64,7 @@ export default function AdminEditMissionPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
 
   // Form fields
   const [brand, setBrand] = useState("");
@@ -60,13 +92,14 @@ export default function AdminEditMissionPage() {
         .single();
       if (profile?.role !== "admin") { router.push("/dashboard"); return; }
 
-      const [{ data: mission }, { data: clientsData }] = await Promise.all([
+      const [{ data: mission }, { data: clientsData }, { data: expensesData }] = await Promise.all([
         supabase
           .from("missions")
           .select("*")
           .eq("id", missionId)
           .single(),
         supabase.from("clients").select("id, company_name").order("company_name"),
+        supabase.from("mission_expenses").select("*").eq("mission_id", missionId).order("created_at", { ascending: true }),
       ]);
 
       if (!mission) { router.push("/admin"); return; }
@@ -91,6 +124,7 @@ export default function AdminEditMissionPage() {
       }
 
       setClients((clientsData as Client[]) ?? []);
+      setExpenses((expensesData as Expense[]) ?? []);
       setLoading(false);
     }
     bootstrap();
@@ -321,6 +355,49 @@ export default function AdminEditMissionPage() {
                   className="w-full bg-[#131313] rounded-lg p-3 text-white text-sm resize-none placeholder:text-[#444748] focus:outline-none focus:ring-[0.5px] focus:ring-white"
                   style={{ fontFamily: "Montserrat, sans-serif" }}
                 />
+              </div>
+            </section>
+
+            {/* Frais de mission (read-only) */}
+            <section className="space-y-4">
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#949493] text-sm">receipt_long</span>
+                Frais de mission
+              </h2>
+              <div className="bg-[#1A1A1A] p-5 rounded-xl">
+                {expenses.length === 0 ? (
+                  <p className="text-[#444748] text-xs text-center py-2" style={{ fontFamily: "Montserrat, sans-serif" }}>Aucun frais enregistré</p>
+                ) : (
+                  <div className="space-y-2">
+                    {expenses.map((exp) => (
+                      <div key={exp.id} className="flex items-center gap-3 bg-[#131313] rounded-xl px-4 py-3">
+                        <span className="material-symbols-outlined text-[#949493] shrink-0" style={{ fontSize: "18px", fontVariationSettings: "'FILL' 1" }}>
+                          {EXPENSE_ICONS[exp.type as ExpenseType]}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-sm font-medium" style={{ fontFamily: "Inter, sans-serif" }}>
+                            {EXPENSE_LABELS[exp.type as ExpenseType]}
+                            {exp.description && <span className="text-[#949493] font-normal"> · {exp.description}</span>}
+                          </p>
+                          {exp.receipt_url && (
+                            <a href={exp.receipt_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#949493] underline" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                              Voir le ticket
+                            </a>
+                          )}
+                        </div>
+                        <p className="text-white font-bold text-sm shrink-0" style={{ fontFamily: "Inter, sans-serif" }}>
+                          {exp.amount.toFixed(2)} €
+                        </p>
+                      </div>
+                    ))}
+                    <div className="flex justify-between items-center pt-3 border-t border-white/[0.06]">
+                      <span className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold" style={{ fontFamily: "Montserrat, sans-serif" }}>Total frais</span>
+                      <span className="text-white font-bold text-base" style={{ fontFamily: "Inter, sans-serif" }}>
+                        {expenses.reduce((sum, e) => sum + e.amount, 0).toFixed(2)} €
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
 

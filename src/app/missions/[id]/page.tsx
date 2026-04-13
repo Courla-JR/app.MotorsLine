@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-type MissionStatus = "a_faire" | "en_cours" | "terminee" | "annulee";
+type MissionStatus = "a_faire" | "prise_en_charge" | "en_cours" | "terminee" | "annulee";
 
 type Mission = {
   id: string;
@@ -34,10 +34,11 @@ const CONVOYEUR_NAV = [
 ];
 
 const STATUS_CONFIG: Record<MissionStatus, { label: string; color: string; bg: string; icon: string }> = {
-  a_faire:  { label: "Planifiée",  color: "text-[#c4c7c8]",  bg: "bg-[#353534]",    icon: "schedule"       },
-  en_cours: { label: "En cours",   color: "text-[#002109]",  bg: "bg-[#66ff8e]",   icon: "local_shipping" },
-  terminee: { label: "Terminée",   color: "text-[#c4c7c8]/60", bg: "bg-[#2a2a2a]/40", icon: "check_circle" },
-  annulee:  { label: "Annulée",    color: "text-[#ffb4ab]",  bg: "bg-[#ffb4ab]/10", icon: "cancel"         },
+  a_faire:         { label: "Planifiée",       color: "text-[#c4c7c8]",    bg: "bg-[#353534]",      icon: "schedule"       },
+  prise_en_charge: { label: "Prise en charge", color: "text-[#93c5fd]",    bg: "bg-[#3b82f6]/20",   icon: "car_rental"     },
+  en_cours:        { label: "En cours",        color: "text-[#002109]",    bg: "bg-[#66ff8e]",      icon: "local_shipping" },
+  terminee:        { label: "Terminée",        color: "text-[#c4c7c8]/60", bg: "bg-[#2a2a2a]/40",   icon: "check_circle"   },
+  annulee:         { label: "Annulée",         color: "text-[#ffb4ab]",    bg: "bg-[#ffb4ab]/10",   icon: "cancel"         },
 };
 
 const SERVICE_LABELS: Record<string, string> = {
@@ -102,9 +103,10 @@ const EXPENSE_ICONS: Record<ExpenseType, string> = {
 const STEPS = ["Planifiée", "Prise en charge", "En transit", "Livrée"] as const;
 
 function activeStep(status: MissionStatus): number {
-  if (status === "a_faire")  return 0;
-  if (status === "en_cours") return 2;
-  if (status === "terminee") return 3;
+  if (status === "a_faire")         return 0;
+  if (status === "prise_en_charge") return 1;
+  if (status === "en_cours")        return 2;
+  if (status === "terminee")        return 3;
   return -1;
 }
 
@@ -142,6 +144,9 @@ export default function ConvoyeurMissionDetailPage() {
   const [savingExp,       setSavingExp]       = useState(false);
   const [deletingExpId,   setDeletingExpId]   = useState<string | null>(null);
   const expReceiptRef = useRef<HTMLInputElement | null>(null);
+
+  // ── Status update ──
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   // ── Geolocation tracking ──
   const [isTracking, setIsTracking] = useState(false);
@@ -354,6 +359,28 @@ export default function ConvoyeurMissionDetailPage() {
     fetchMission();
   }, [missionId, router]);
 
+  async function handleUpdateStatus(newStatus: MissionStatus) {
+    if (!mission) return;
+    setUpdatingStatus(true);
+    const { error } = await supabase
+      .from("missions")
+      .update({ status: newStatus })
+      .eq("id", missionId);
+    if (!error) {
+      setMission({ ...mission, status: newStatus });
+      try {
+        await fetch("/api/missions/status-notification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mission_id: missionId, new_status: newStatus }),
+        });
+      } catch (err) {
+        console.error("[status-notification] fetch error:", err);
+      }
+    }
+    setUpdatingStatus(false);
+  }
+
   async function handleLogout() {
     await supabase.auth.signOut();
     document.cookie = "user-role=; path=/; Max-Age=0";
@@ -480,6 +507,50 @@ export default function ConvoyeurMissionDetailPage() {
                   {statusCfg.label}
                 </span>
               </div>
+
+              {/* ── Changer le statut ── */}
+              {mission.status !== "annulee" && mission.status !== "terminee" && (
+                <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
+                  <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-4" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    Avancer la mission
+                  </h3>
+                  <div className="flex flex-col gap-3">
+                    {mission.status === "a_faire" && (
+                      <button
+                        onClick={() => handleUpdateStatus("prise_en_charge")}
+                        disabled={updatingStatus}
+                        className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl font-semibold text-sm bg-[#3b82f6]/20 border border-[#3b82f6]/30 text-[#93c5fd] hover:bg-[#3b82f6]/30 active:scale-[0.98] transition-all disabled:opacity-50"
+                        style={{ fontFamily: "Inter, sans-serif" }}
+                      >
+                        <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>car_rental</span>
+                        {updatingStatus ? "Mise à jour..." : "Prendre en charge le véhicule"}
+                      </button>
+                    )}
+                    {mission.status === "prise_en_charge" && (
+                      <button
+                        onClick={() => handleUpdateStatus("en_cours")}
+                        disabled={updatingStatus}
+                        className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl font-semibold text-sm bg-white text-[#0A0A0A] hover:bg-[#e5e2e1] active:scale-[0.98] transition-all disabled:opacity-50"
+                        style={{ fontFamily: "Inter, sans-serif" }}
+                      >
+                        <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>local_shipping</span>
+                        {updatingStatus ? "Mise à jour..." : "Démarrer le transport"}
+                      </button>
+                    )}
+                    {mission.status === "en_cours" && (
+                      <button
+                        onClick={() => handleUpdateStatus("terminee")}
+                        disabled={updatingStatus}
+                        className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl font-semibold text-sm bg-[#66ff8e]/10 border border-[#66ff8e]/30 text-[#66ff8e] hover:bg-[#66ff8e]/20 active:scale-[0.98] transition-all disabled:opacity-50"
+                        style={{ fontFamily: "Inter, sans-serif" }}
+                      >
+                        <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                        {updatingStatus ? "Mise à jour..." : "Marquer comme livré"}
+                      </button>
+                    )}
+                  </div>
+                </section>
+              )}
 
               {/* ── Partage de position (en_cours seulement) ── */}
               {mission.status === "en_cours" && (

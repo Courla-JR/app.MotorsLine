@@ -6,7 +6,7 @@ import Script from "next/script";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-type MissionStatus = "a_faire" | "en_cours" | "terminee" | "annulee";
+type MissionStatus = "a_faire" | "prise_en_charge" | "en_cours" | "terminee" | "annulee";
 
 type Mission = {
   id: string;
@@ -67,10 +67,11 @@ const CLIENT_NAV = [
 ];
 
 const STATUS_CONFIG: Record<MissionStatus, { label: string; color: string; bg: string; icon: string }> = {
-  a_faire:  { label: "Planifiée",  color: "text-[#c4c7c8]",  bg: "bg-[#353534]",       icon: "schedule"       },
-  en_cours: { label: "En cours",   color: "text-[#0A0A0A]",  bg: "bg-[#F59E0B]",       icon: "local_shipping" },
-  terminee: { label: "Terminée",   color: "text-[#66ff8e]",  bg: "bg-[#353534]",       icon: "check_circle"   },
-  annulee:  { label: "Annulée",    color: "text-[#ffb4ab]",  bg: "bg-[#ffb4ab]/10",    icon: "cancel"         },
+  a_faire:          { label: "Planifiée",        color: "text-[#c4c7c8]",  bg: "bg-[#353534]",       icon: "schedule"       },
+  prise_en_charge:  { label: "Prise en charge",  color: "text-[#93c5fd]",  bg: "bg-[#3b82f6]/20",    icon: "car_rental"     },
+  en_cours:         { label: "En cours",         color: "text-[#0A0A0A]",  bg: "bg-[#F59E0B]",       icon: "local_shipping" },
+  terminee:         { label: "Terminée",         color: "text-[#66ff8e]",  bg: "bg-[#353534]",       icon: "check_circle"   },
+  annulee:          { label: "Annulée",          color: "text-[#ffb4ab]",  bg: "bg-[#ffb4ab]/10",    icon: "cancel"         },
 };
 
 const SERVICE_LABELS: Record<string, string> = {
@@ -91,9 +92,10 @@ type Invoice = {
 const STEPS = ["Planifiée", "Prise en charge", "En transit", "Livrée"] as const;
 
 function activeStep(status: MissionStatus): number {
-  if (status === "a_faire")  return 0;
-  if (status === "en_cours") return 2;
-  if (status === "terminee") return 3;
+  if (status === "a_faire")          return 0;
+  if (status === "prise_en_charge")  return 1;
+  if (status === "en_cours")         return 2;
+  if (status === "terminee")         return 3;
   return -1;
 }
 

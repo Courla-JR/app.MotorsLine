@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 
 // ─── Types ────────────────────────────────────────────────
 
-type MissionStatus = "a_faire" | "en_cours" | "terminee" | "annulee";
+type MissionStatus = "a_faire" | "prise_en_charge" | "en_cours" | "terminee" | "annulee";
 
 type Mission = {
   id: string;
@@ -35,7 +35,7 @@ type Client = {
 };
 
 type Tab = "missions" | "clients";
-type Filter = "toutes" | "a_faire" | "en_cours" | "terminee" | "annulee";
+type Filter = "toutes" | "a_faire" | "prise_en_charge" | "en_cours" | "terminee" | "annulee";
 
 type CreateClientForm = {
   company_name: string;
@@ -48,6 +48,7 @@ type CreateClientForm = {
 
 const STATUS_LABELS: Record<MissionStatus, string> = {
   a_faire: "À faire",
+  prise_en_charge: "Prise en charge",
   en_cours: "En cours",
   terminee: "Terminée",
   annulee: "Annulée",
@@ -55,6 +56,7 @@ const STATUS_LABELS: Record<MissionStatus, string> = {
 
 const STATUS_CLASSES: Record<MissionStatus, string> = {
   a_faire: "bg-[#2a2a2a] text-[#c4c7c8]",
+  prise_en_charge: "bg-[#3b82f6]/20 text-[#93c5fd]",
   en_cours: "bg-white text-[#0A0A0A]",
   terminee: "bg-[#66ff8e]/10 text-[#66ff8e]",
   annulee: "bg-[#ffb4ab]/10 text-[#ffb4ab]",
@@ -309,7 +311,7 @@ export default function AdminPage() {
           <>
             {/* Filter pills */}
             <div className="flex gap-2 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden mb-6">
-              {(["toutes", "a_faire", "en_cours", "terminee", "annulee"] as Filter[]).map((f) => (
+              {(["toutes", "a_faire", "prise_en_charge", "en_cours", "terminee", "annulee"] as Filter[]).map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}

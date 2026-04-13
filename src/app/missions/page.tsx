@@ -11,18 +11,20 @@ type DbMission = {
   vehicle_model: string;
   vehicle_plate: string;
   vehicle_image_url?: string | null;
-  status: "a_faire" | "en_cours" | "terminee" | "annulee";
+  status: "a_faire" | "prise_en_charge" | "en_cours" | "terminee" | "annulee";
   pickup_address: string;
   delivery_address: string;
   pickup_date: string | null;
   delivery_date: string | null;
+  clients: { company_name: string } | null;
 };
 
-type Filter = "toutes" | "a_faire" | "en_cours" | "terminee";
+type Filter = "toutes" | "a_faire" | "prise_en_charge" | "en_cours" | "terminee";
 
 const FILTERS: { label: string; value: Filter }[] = [
   { label: "Toutes", value: "toutes" },
   { label: "À faire", value: "a_faire" },
+  { label: "Prise en charge", value: "prise_en_charge" },
   { label: "En cours", value: "en_cours" },
   { label: "Terminées", value: "terminee" },
 ];
@@ -37,10 +39,11 @@ const CONVOYEUR_NAV = [
 
 function StatusBadge({ status }: { status: DbMission["status"] }) {
   const map = {
-    en_cours: { label: "En cours", className: "bg-[#66ff8e] text-[#002109]" },
-    a_faire: { label: "À faire", className: "bg-[#2a2a2a] text-[#c4c7c8]" },
-    terminee: { label: "Terminée", className: "bg-[#2a2a2a]/40 text-[#c4c7c8]/50" },
-    annulee: { label: "Annulée", className: "bg-[#ffb4ab]/10 text-[#ffb4ab]" },
+    a_faire:         { label: "À faire",          className: "bg-[#2a2a2a] text-[#c4c7c8]" },
+    prise_en_charge: { label: "Prise en charge",  className: "bg-[#3b82f6]/20 text-[#93c5fd]" },
+    en_cours:        { label: "En cours",         className: "bg-[#66ff8e] text-[#002109]" },
+    terminee:        { label: "Terminée",         className: "bg-[#2a2a2a]/40 text-[#c4c7c8]/50" },
+    annulee:         { label: "Annulée",          className: "bg-[#ffb4ab]/10 text-[#ffb4ab]" },
   };
   const { label, className } = map[status] ?? map.a_faire;
   return (
@@ -92,12 +95,12 @@ export default function MissionsPage() {
       };
 
       let { data, error } = await buildQuery(
-        "id, vehicle_brand, vehicle_model, vehicle_plate, vehicle_image_url, status, pickup_address, delivery_address, pickup_date, delivery_date"
+        "id, vehicle_brand, vehicle_model, vehicle_plate, vehicle_image_url, status, pickup_address, delivery_address, pickup_date, delivery_date, clients(company_name)"
       );
 
       if (error) {
         const fallback = await buildQuery(
-          "id, vehicle_brand, vehicle_model, vehicle_plate, status, pickup_address, delivery_address, pickup_date, delivery_date"
+          "id, vehicle_brand, vehicle_model, vehicle_plate, status, pickup_address, delivery_address, pickup_date, delivery_date, clients(company_name)"
         );
         data = fallback.data as any;
       }
@@ -293,6 +296,12 @@ export default function MissionsPage() {
                       <p className={`text-xs font-mono uppercase tracking-widest ${m.status === "terminee" ? "text-[#c4c7c8]/50" : "text-[#c4c7c8]"}`}>
                         {m.vehicle_plate}
                       </p>
+                      {m.clients?.company_name && (
+                        <p className={`text-xs mt-1.5 flex items-center gap-1 ${m.status === "terminee" ? "text-[#949493]/50" : "text-[#949493]"}`} style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: "12px" }}>business</span>
+                          {m.clients.company_name}
+                        </p>
+                      )}
                     </div>
                     {m.vehicle_image_url && m.vehicle_image_url.trim() !== "" && <StatusBadge status={m.status} />}
                   </div>

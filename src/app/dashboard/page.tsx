@@ -10,10 +10,13 @@ type DbMission = {
   vehicle_brand: string;
   vehicle_model: string;
   vehicle_plate: string;
-  status: "a_faire" | "en_cours" | "terminee" | "annulee";
+  vehicle_image_url?: string | null;
+  status: "a_faire" | "prise_en_charge" | "en_cours" | "terminee" | "annulee";
   pickup_address: string;
   delivery_address: string;
   pickup_date: string | null;
+  delivery_date: string | null;
+  clients: { company_name: string } | null;
 };
 
 const CONVOYEUR_NAV = [
@@ -34,6 +37,29 @@ function formatPickup(iso: string | null) {
 function isFuture(iso: string | null) {
   if (!iso) return false;
   return new Date(iso) > new Date();
+}
+
+function formatDate(iso: string | null) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleString("fr-FR", {
+    day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+  });
+}
+
+function StatusBadge({ status }: { status: DbMission["status"] }) {
+  const map: Record<DbMission["status"], { label: string; className: string }> = {
+    a_faire:         { label: "À faire",          className: "bg-[#2a2a2a] text-[#c4c7c8]" },
+    prise_en_charge: { label: "Prise en charge",  className: "bg-[#3b82f6]/20 text-[#93c5fd]" },
+    en_cours:        { label: "En cours",         className: "bg-[#66ff8e] text-[#002109]" },
+    terminee:        { label: "Terminée",         className: "bg-[#2a2a2a]/40 text-[#c4c7c8]/50" },
+    annulee:         { label: "Annulée",          className: "bg-[#ffb4ab]/10 text-[#ffb4ab]" },
+  };
+  const { label, className } = map[status] ?? map.a_faire;
+  return (
+    <span className={`px-3 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider ${className}`}>
+      {label}
+    </span>
+  );
 }
 
 export default function DashboardPage() {
@@ -61,12 +87,20 @@ export default function DashboardPage() {
         .single();
       setProfile(profileData);
 
-      const { data: allMissions } = await supabase
+      let { data: allMissions } = await supabase
         .from("missions")
-        .select("id, vehicle_brand, vehicle_model, vehicle_plate, status, pickup_address, delivery_address, pickup_date")
-        .order("pickup_date", { ascending: true });
+        .select("id, vehicle_brand, vehicle_model, vehicle_plate, vehicle_image_url, status, pickup_address, delivery_address, pickup_date, delivery_date, clients(company_name)")
+        .order("pickup_date", { ascending: true }) as { data: DbMission[] | null };
 
-      const list = (allMissions as DbMission[]) ?? [];
+      if (!allMissions) {
+        const fallback = await supabase
+          .from("missions")
+          .select("id, vehicle_brand, vehicle_model, vehicle_plate, status, pickup_address, delivery_address, pickup_date, delivery_date, clients(company_name)")
+          .order("pickup_date", { ascending: true });
+        allMissions = fallback.data as any;
+      }
+
+      const list = (allMissions as unknown as DbMission[]) ?? [];
       const now = new Date();
 
       // Missions ce mois
@@ -76,9 +110,9 @@ export default function DashboardPage() {
         return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
       });
       setStatsTotal(thisMonth.length);
-      setStatsEnCours(list.filter((m) => m.status === "en_cours").length);
+      setStatsEnCours(list.filter((m) => m.status === "en_cours" || m.status === "prise_en_charge").length);
 
-      setActiveMissions(list.filter((m) => m.status === "en_cours"));
+      setActiveMissions(list.filter((m) => m.status === "en_cours" || m.status === "prise_en_charge"));
       setUpcomingMissions(
         list.filter((m) => m.status === "a_faire" && isFuture(m.pickup_date)).slice(0, 4)
       );
@@ -238,44 +272,76 @@ export default function DashboardPage() {
               </p>
             )}
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-2">
               {activeMissions.map((m) => (
-                <Link key={m.id} href={`/missions/${m.id}`} className="bg-[#1c1b1b] rounded-3xl p-6 border border-white/[0.05] hover:bg-[#242323] transition-colors block">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h4 className="text-xl font-bold text-white" style={{ fontFamily: "Inter, sans-serif" }}>
-                        {m.vehicle_brand} {m.vehicle_model}
-                      </h4>
-                      <p className="text-[#949493] text-xs tracking-widest mt-0.5" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                        {m.vehicle_plate}
-                      </p>
+                <div
+                  key={m.id}
+                  className="bg-[#1c1b1b] rounded-2xl overflow-hidden relative group"
+                >
+                  {m.vehicle_image_url && m.vehicle_image_url.trim() !== "" && (
+                    <div className="h-[180px] w-full shrink-0">
+                      <img
+                        src={m.vehicle_image_url}
+                        alt={`${m.vehicle_brand} ${m.vehicle_model}`}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                    <span className="bg-[#66ff8e] text-[#002109] text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                      En cours
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-white" />
-                      <div className="w-0.5 h-6 bg-[#353534] rounded-full" />
-                      <div className="w-2 h-2 border border-[#949493] rounded-full" />
+                  )}
+                  <div className="p-5 relative">
+                    {(!m.vehicle_image_url || m.vehicle_image_url.trim() === "") && (
+                      <div className="absolute top-0 right-0 p-4">
+                        <StatusBadge status={m.status} />
+                      </div>
+                    )}
+                    <div className={`flex items-start justify-between gap-2 mb-4 ${(!m.vehicle_image_url || m.vehicle_image_url.trim() === "") ? "pr-16" : ""}`}>
+                      <div className="min-w-0">
+                        <h4 className="text-lg font-bold tracking-tight leading-tight mb-1 text-white" style={{ fontFamily: "Inter, sans-serif" }}>
+                          {m.vehicle_brand} {m.vehicle_model}
+                        </h4>
+                        <p className="text-xs font-mono uppercase tracking-widest text-[#c4c7c8]">
+                          {m.vehicle_plate}
+                        </p>
+                        {m.clients?.company_name && (
+                          <p className="text-xs mt-1.5 flex items-center gap-1 text-[#949493]" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: "12px" }}>business</span>
+                            {m.clients.company_name}
+                          </p>
+                        )}
+                      </div>
+                      {m.vehicle_image_url && m.vehicle_image_url.trim() !== "" && <StatusBadge status={m.status} />}
                     </div>
-                    <div className="flex flex-col gap-2">
-                      <span className="text-[#E0E0E0] text-sm truncate" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                        {m.pickup_address}
-                      </span>
-                      <span className="text-[#E0E0E0] text-sm truncate" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                        {m.delivery_address}
-                      </span>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-2 h-2 rounded-full shrink-0 bg-white" />
+                        <p className="text-sm font-medium truncate text-[#e5e2e1]" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          {m.pickup_address}
+                        </p>
+                        {m.pickup_date && (
+                          <span className="text-[#c4c7c8] text-xs font-mono ml-auto shrink-0">{formatDate(m.pickup_date)}</span>
+                        )}
+                      </div>
+                      <div className="ml-1 h-8 relative">
+                        <div className="absolute left-[3px] top-0 bottom-0 w-1 bg-[#353534] rounded-full" />
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="w-2 h-2 rounded-full shrink-0 bg-[#8e9192]" />
+                        <p className="text-sm font-medium truncate text-[#e5e2e1]" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          {m.delivery_address}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-end">
+                      <Link
+                        href={`/missions/${m.id}`}
+                        className="text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:opacity-70 transition-opacity text-white"
+                        style={{ fontFamily: "Inter, sans-serif" }}
+                      >
+                        Détails
+                        <span className="material-symbols-outlined text-sm">arrow_forward_ios</span>
+                      </Link>
                     </div>
                   </div>
-
-                  <div className="w-full flex items-center justify-center gap-2 border border-[#2A2A2A] text-white px-6 py-2.5 rounded-full text-sm font-semibold" style={{ fontFamily: "Inter, sans-serif" }}>
-                    Voir les détails
-                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                  </div>
-                </Link>
+                </div>
               ))}
             </div>
           </section>
@@ -304,6 +370,12 @@ export default function DashboardPage() {
                         <p className="text-[11px] text-[#949493] uppercase tracking-tighter capitalize" style={{ fontFamily: "Montserrat, sans-serif" }}>
                           {formatPickup(m.pickup_date) ?? "—"}
                         </p>
+                        {m.clients?.company_name && (
+                          <p className="text-[11px] text-[#666] mt-0.5 flex items-center gap-1" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>business</span>
+                            {m.clients.company_name}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <span className="material-symbols-outlined text-zinc-600 group-hover:text-white transition-colors">
