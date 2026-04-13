@@ -127,6 +127,10 @@ export default function ClientMissionDetailPage() {
   const [photos,   setPhotos]   = useState<MissionPhoto[]>([]);
   const [photoTab, setPhotoTab] = useState<PhotoType>("before");
 
+  // ── Lightbox ──
+  const [lightboxOpen,  setLightboxOpen]  = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
   // If Maps API is already loaded in the browser (cached from another page),
   // onLoad on the Script tag won't fire — detect it here instead.
   useEffect(() => {
@@ -558,9 +562,7 @@ export default function ClientMissionDetailPage() {
 
               {/* ── ÉTAT DU VÉHICULE (photos, read-only) ── */}
               {photos.length > 0 && (() => {
-                const beforePhotos = photos.filter(p => p.type === "before");
-                const afterPhotos  = photos.filter(p => p.type === "after");
-                const displayed    = photoTab === "before" ? beforePhotos : afterPhotos;
+                const displayed = photos.filter(p => p.type === photoTab);
                 return (
                   <section className="bg-[#1c1b1b] rounded-2xl p-5 border border-white/[0.04]">
                     {/* Header + tabs */}
@@ -589,20 +591,18 @@ export default function ClientMissionDetailPage() {
                     {/* Photo grid */}
                     {displayed.length > 0 ? (
                       <div className="grid grid-cols-3 gap-2">
-                        {displayed.map((photo) => (
-                          <a
+                        {displayed.map((photo, idx) => (
+                          <button
                             key={photo.id}
-                            href={photo.photo_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="aspect-square block"
+                            onClick={() => { setLightboxIndex(idx); setLightboxOpen(true); }}
+                            className="aspect-square block focus:outline-none"
                           >
                             <img
                               src={photo.photo_url}
                               alt={photo.caption ?? `Photo ${photo.type}`}
                               className="w-full h-full object-cover rounded-xl hover:opacity-90 transition-opacity"
                             />
-                          </a>
+                          </button>
                         ))}
                       </div>
                     ) : (
@@ -749,6 +749,61 @@ export default function ClientMissionDetailPage() {
         </nav>
 
       </div>
+
+      {/* ── LIGHTBOX ── */}
+      {lightboxOpen && (() => {
+        const displayed = photos.filter(p => p.type === photoTab);
+        const photo = displayed[lightboxIndex];
+        if (!photo) return null;
+        return (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center"
+            style={{ backgroundColor: "rgba(0,0,0,0.92)" }}
+            onClick={() => setLightboxOpen(false)}
+          >
+            {/* Close */}
+            <button
+              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors z-10"
+              onClick={() => setLightboxOpen(false)}
+            >
+              <span className="material-symbols-outlined text-white text-xl">close</span>
+            </button>
+
+            {/* Prev */}
+            {lightboxIndex > 0 && (
+              <button
+                className="absolute left-4 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors z-10"
+                onClick={(e) => { e.stopPropagation(); setLightboxIndex(i => i - 1); }}
+              >
+                <span className="material-symbols-outlined text-white text-xl">chevron_left</span>
+              </button>
+            )}
+
+            {/* Next */}
+            {lightboxIndex < displayed.length - 1 && (
+              <button
+                className="absolute right-4 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors z-10"
+                onClick={(e) => { e.stopPropagation(); setLightboxIndex(i => i + 1); }}
+              >
+                <span className="material-symbols-outlined text-white text-xl">chevron_right</span>
+              </button>
+            )}
+
+            {/* Image */}
+            <img
+              src={photo.photo_url}
+              alt={photo.caption ?? `Photo ${photo.type}`}
+              className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+
+            {/* Counter */}
+            <div className="absolute bottom-4 left-0 w-full flex justify-center">
+              <span className="text-[#949493] text-xs font-mono">{lightboxIndex + 1} / {displayed.length}</span>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

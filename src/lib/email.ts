@@ -266,3 +266,291 @@ export async function sendMissionCreatedEmail(data: MissionEmailData) {
   });
   if (error) console.error("[Resend] Failed to send mission email:", error);
 }
+
+// ─── Status change email ──────────────────────────────────
+
+const STATUS_LABELS_FR: Record<string, string> = {
+  a_faire:  "Planifiée",
+  en_cours: "En cours",
+  terminee: "Livrée",
+  annulee:  "Annulée",
+};
+
+export interface StatusChangeEmailData {
+  to: string;
+  vehicleBrand: string;
+  vehicleModel: string;
+  vehiclePlate: string;
+  oldStatus: string;
+  newStatus: string;
+  missionId: string;
+}
+
+export function buildStatusChangeEmail(data: StatusChangeEmailData): string {
+  const oldLabel = STATUS_LABELS_FR[data.oldStatus] ?? data.oldStatus;
+  const newLabel = STATUS_LABELS_FR[data.newStatus] ?? data.newStatus;
+  const missionUrl = `https://app.motorsline.fr/client/missions/${data.missionId}`;
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#0A0A0A;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0A0A0A;min-height:100vh;">
+    <tr>
+      <td align="center" style="padding:48px 16px;">
+        <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+
+          <!-- Logo -->
+          <tr>
+            <td style="padding-bottom:40px;">
+              <span style="font-size:22px;font-weight:700;font-style:italic;letter-spacing:-0.04em;font-family:Helvetica,sans-serif;color:#c0c0c0;">
+                Motors Line
+              </span>
+            </td>
+          </tr>
+
+          <!-- Heading -->
+          <tr>
+            <td style="padding-bottom:8px;">
+              <h1 style="margin:0;font-size:26px;font-weight:700;color:#ffffff;font-family:Helvetica,sans-serif;letter-spacing:-0.02em;">
+                Mise à jour de votre mission
+              </h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding-bottom:36px;">
+              <p style="margin:0;font-size:14px;color:#888;font-family:Helvetica,sans-serif;line-height:1.6;">
+                Le statut de votre mission pour <strong style="color:#e5e2e1;">${data.vehicleBrand} ${data.vehicleModel} — ${data.vehiclePlate}</strong> vient d'être mis à jour.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Status card -->
+          <tr>
+            <td style="background:#141414;border-radius:16px;padding:32px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width:45%;text-align:center;padding:20px;background:#1e1e1e;border-radius:12px;">
+                    <p style="margin:0 0 6px;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#555;font-family:Helvetica,sans-serif;">Avant</p>
+                    <p style="margin:0;font-size:16px;font-weight:700;color:#949493;font-family:Helvetica,sans-serif;">${oldLabel}</p>
+                  </td>
+                  <td style="width:10%;text-align:center;padding:0 8px;">
+                    <span style="font-size:20px;color:#555;">→</span>
+                  </td>
+                  <td style="width:45%;text-align:center;padding:20px;background:#1e1e1e;border-radius:12px;">
+                    <p style="margin:0 0 6px;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#555;font-family:Helvetica,sans-serif;">Maintenant</p>
+                    <p style="margin:0;font-size:16px;font-weight:700;color:#ffffff;font-family:Helvetica,sans-serif;">${newLabel}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- CTA -->
+          <tr>
+            <td style="padding-top:32px;text-align:center;">
+              <a href="${missionUrl}" style="display:inline-block;padding:14px 32px;background:#ffffff;color:#0A0A0A;font-size:14px;font-weight:700;font-family:Helvetica,sans-serif;border-radius:100px;text-decoration:none;">
+                Voir la mission
+              </a>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding-top:48px;text-align:center;">
+              <p style="margin:0;font-size:11px;color:#333;font-family:Helvetica,sans-serif;letter-spacing:0.06em;text-transform:uppercase;">
+                Motors Line — Transport premium de véhicules
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+export async function sendStatusChangeEmail(data: StatusChangeEmailData) {
+  const newLabel = STATUS_LABELS_FR[data.newStatus] ?? data.newStatus;
+  const { error } = await resend.emails.send({
+    from: "Motors Line <missions@motorsline.fr>",
+    to: data.to,
+    subject: `Mission ${newLabel.toLowerCase()} — ${data.vehicleBrand} ${data.vehicleModel}`,
+    html: buildStatusChangeEmail(data),
+  });
+  if (error) console.error("[Resend] Failed to send status change email:", error);
+}
+
+// ─── Delivery recap email ─────────────────────────────────
+
+export interface DeliveryRecapEmailData {
+  to: string;
+  vehicleBrand: string;
+  vehicleModel: string;
+  vehiclePlate: string;
+  pickupAddress: string;
+  deliveryAddress: string;
+  distance: string | null;
+  duration: string | null;
+  deliveryDate: string | null;
+  price: number | null;
+  serviceLevel: string | null;
+  missionId: string;
+  beforePhotoUrls: string[];
+  afterPhotoUrls: string[];
+}
+
+export function buildDeliveryRecapEmail(data: DeliveryRecapEmailData): string {
+  const missionUrl = `https://app.motorsline.fr/client/missions/${data.missionId}`;
+  const priceText = data.price !== null ? `${data.price}€ HT` : "Sur devis";
+  const deliveryText = data.deliveryDate
+    ? new Date(data.deliveryDate).toLocaleString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })
+    : new Date().toLocaleString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+  const photoRow = (urls: string[], label: string) => {
+    if (!urls.length) return "";
+    return `
+      <tr>
+        <td colspan="2" style="padding-top:20px;padding-bottom:8px;">
+          <span style="font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#555;font-family:Helvetica,sans-serif;">${label}</span>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2" style="padding-bottom:8px;">
+          <table cellpadding="0" cellspacing="4" style="width:100%;">
+            <tr>
+              ${urls.slice(0, 3).map(url => `
+                <td style="width:33%;">
+                  <a href="${url}" target="_blank" style="display:block;">
+                    <img src="${url}" width="160" style="width:100%;max-width:160px;height:100px;object-fit:cover;border-radius:8px;display:block;" />
+                  </a>
+                </td>
+              `).join("")}
+            </tr>
+          </table>
+        </td>
+      </tr>`;
+  };
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#0A0A0A;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0A0A0A;min-height:100vh;">
+    <tr>
+      <td align="center" style="padding:48px 16px;">
+        <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+
+          <!-- Logo -->
+          <tr>
+            <td style="padding-bottom:40px;">
+              <span style="font-size:22px;font-weight:700;font-style:italic;letter-spacing:-0.04em;font-family:Helvetica,sans-serif;color:#c0c0c0;">
+                Motors Line
+              </span>
+            </td>
+          </tr>
+
+          <!-- Heading -->
+          <tr>
+            <td style="padding-bottom:8px;">
+              <h1 style="margin:0;font-size:26px;font-weight:700;color:#ffffff;font-family:Helvetica,sans-serif;letter-spacing:-0.02em;">
+                Votre véhicule a été livré ✓
+              </h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding-bottom:36px;">
+              <p style="margin:0;font-size:14px;color:#888;font-family:Helvetica,sans-serif;line-height:1.6;">
+                Votre mission de convoyage est terminée. Voici le récapitulatif complet.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Card -->
+          <tr>
+            <td style="background:#141414;border-radius:16px;padding:28px 32px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+
+                <!-- Véhicule -->
+                <tr>
+                  <td colspan="2" style="padding-bottom:8px;">
+                    <span style="font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#555;font-family:Helvetica,sans-serif;">Véhicule</span>
+                  </td>
+                </tr>
+                ${row("Marque / Modèle", `${data.vehicleBrand} ${data.vehicleModel}`)}
+                ${row("Immatriculation", data.vehiclePlate)}
+
+                <!-- Itinéraire -->
+                <tr>
+                  <td colspan="2" style="padding-top:24px;padding-bottom:8px;">
+                    <span style="font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#555;font-family:Helvetica,sans-serif;">Itinéraire</span>
+                  </td>
+                </tr>
+                ${row("Départ", data.pickupAddress)}
+                ${row("Livraison", data.deliveryAddress)}
+                ${data.distance ? row("Distance", data.distance) : ""}
+                ${data.duration ? row("Durée", data.duration) : ""}
+                ${row("Livré le", deliveryText)}
+
+                <!-- Photos avant -->
+                ${photoRow(data.beforePhotoUrls, "Photos — Prise en charge")}
+
+                <!-- Photos après -->
+                ${photoRow(data.afterPhotoUrls, "Photos — Livraison")}
+
+              </table>
+
+              <!-- Price -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;background:#1e1e1e;border-radius:12px;">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <span style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#666;font-family:Helvetica,sans-serif;">Tarif</span>
+                    <br/>
+                    <span style="font-size:36px;font-weight:700;color:#ffffff;font-family:Helvetica,sans-serif;letter-spacing:-0.03em;">${priceText}</span>
+                    ${data.serviceLevel ? `<br/><span style="font-size:11px;color:#555;font-family:Helvetica,sans-serif;">${formatServiceLevel(data.serviceLevel)}</span>` : ""}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- CTA -->
+          <tr>
+            <td style="padding-top:32px;text-align:center;">
+              <a href="${missionUrl}" style="display:inline-block;padding:14px 32px;background:#ffffff;color:#0A0A0A;font-size:14px;font-weight:700;font-family:Helvetica,sans-serif;border-radius:100px;text-decoration:none;">
+                Voir le détail de la mission
+              </a>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding-top:48px;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#555;font-family:Helvetica,sans-serif;letter-spacing:0.06em;text-transform:uppercase;">
+                Par des pros. Pour des pros.
+              </p>
+              <p style="margin:4px 0 0;font-size:11px;color:#333;font-family:Helvetica,sans-serif;">
+                Motors Line — Transport premium de véhicules
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+export async function sendDeliveryRecapEmail(data: DeliveryRecapEmailData) {
+  const { error } = await resend.emails.send({
+    from: "Motors Line <missions@motorsline.fr>",
+    to: data.to,
+    subject: `Livraison confirmée — ${data.vehicleBrand} ${data.vehicleModel} · ${data.vehiclePlate}`,
+    html: buildDeliveryRecapEmail(data),
+  });
+  if (error) console.error("[Resend] Failed to send delivery recap email:", error);
+}
