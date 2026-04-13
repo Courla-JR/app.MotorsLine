@@ -128,7 +128,8 @@ export default function AdminEditMissionPage() {
       return;
     }
 
-    // Notify client of status change (always fire after successful update)
+    // Notify client of status change
+    console.log("AVANT FETCH NOTIFICATION", { missionId, status });
     try {
       const res = await fetch("/api/missions/status-notification", {
         method: "POST",
@@ -136,7 +137,7 @@ export default function AdminEditMissionPage() {
         body: JSON.stringify({ mission_id: missionId, new_status: status }),
       });
       const json = await res.json();
-      console.log("[status-notification] response:", json);
+      console.log("APRÈS FETCH NOTIFICATION", json);
     } catch (err) {
       console.error("[status-notification] fetch error:", err);
     }

@@ -146,12 +146,21 @@ export default function AdminPage() {
 
   async function updateStatus(missionId: string, newStatus: MissionStatus) {
     const { error } = await supabase.from("missions").update({ status: newStatus }).eq("id", missionId);
-    if (!error) {
-      await fetch("/api/missions/status-notification", {
+    if (error) {
+      console.error("[updateStatus] supabase error:", error.message);
+      return;
+    }
+    console.log("AVANT FETCH NOTIFICATION", { missionId, newStatus });
+    try {
+      const res = await fetch("/api/missions/status-notification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mission_id: missionId, new_status: newStatus }),
-      }).catch((err) => console.error("[status-notification] fetch error:", err));
+      });
+      const json = await res.json();
+      console.log("APRÈS FETCH NOTIFICATION", json);
+    } catch (err) {
+      console.error("[status-notification] fetch error:", err);
     }
     await fetchMissions();
   }
