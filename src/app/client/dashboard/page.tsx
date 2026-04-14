@@ -15,6 +15,7 @@ type DbMission = {
   pickup_address: string;
   delivery_address: string;
   pickup_date: string | null;
+  delivery_date: string | null;
   distance_km: string | null;
   duration: string | null;
 };
@@ -31,8 +32,9 @@ function formatPickup(iso: string | null) {
   });
 }
 
-function MissionCard({ mission: m, badge }: { mission: DbMission; badge: { label: string; className: string } }) {
+function MissionCard({ mission: m, badge, showDelivery }: { mission: DbMission; badge: { label: string; className: string }; showDelivery?: boolean }) {
   const distanceLine = [m.distance_km, m.duration].filter(Boolean).join(" · ");
+  const displayDate = showDelivery ? m.delivery_date : m.pickup_date;
   return (
     <div className="bg-[#1c1b1b] rounded-3xl overflow-hidden border border-white/[0.05] flex flex-col">
       {/* Vehicle image */}
@@ -58,9 +60,9 @@ function MissionCard({ mission: m, badge }: { mission: DbMission; badge: { label
         </div>
 
         {/* Date */}
-        {m.pickup_date && (
+        {displayDate && (
           <p className="text-[#949493] text-xs capitalize mb-3" style={{ fontFamily: "Montserrat, sans-serif" }}>
-            {formatPickup(m.pickup_date)}
+            {showDelivery ? "Livré le " : ""}{formatPickup(displayDate)}
           </p>
         )}
 
@@ -115,6 +117,7 @@ export default function ClientDashboardPage() {
   const [statsEnCours,   setStatsEnCours]   = useState(0);
   const [statsTerminees, setStatsTerminees] = useState(0);
   const [totalMissions,  setTotalMissions]  = useState(0);
+  const [lastCompletedMission, setLastCompletedMission] = useState<DbMission | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasPlanifiedMissions, setHasPlanifiedMissions] = useState(false);
 
@@ -145,7 +148,7 @@ export default function ClientDashboardPage() {
 
       const { data: missions } = await supabase
         .from("missions")
-        .select("id, vehicle_brand, vehicle_model, vehicle_plate, vehicle_image_url, status, pickup_address, delivery_address, pickup_date, distance_km, duration")
+        .select("id, vehicle_brand, vehicle_model, vehicle_plate, vehicle_image_url, status, pickup_address, delivery_address, pickup_date, delivery_date, distance_km, duration")
         .eq("client_id", client.id)
         .order("pickup_date", { ascending: true });
 
@@ -168,6 +171,10 @@ export default function ClientDashboardPage() {
       setTotalMissions(list.length);
       setHasPlanifiedMissions(list.some((m) => m.status === "a_faire"));
       setActiveMissions(list.filter((m) => m.status === "en_cours" || m.status === "prise_en_charge"));
+      const completed = list
+        .filter((m) => m.status === "terminee")
+        .sort((a, b) => new Date(b.delivery_date ?? b.pickup_date ?? "").getTime() - new Date(a.delivery_date ?? a.pickup_date ?? "").getTime());
+      setLastCompletedMission(completed[0] ?? null);
       setUpcomingMissions(
         list.filter((m) => m.status === "a_faire" && isFuture(m.pickup_date)).slice(0, 4)
       );
@@ -365,30 +372,44 @@ export default function ClientDashboardPage() {
                 </div>
 
                 {!loading && activeMissions.length === 0 && !hasPlanifiedMissions && (
-                  <div className="bg-[#1A1A1A] rounded-2xl border border-white/[0.06] p-8 flex flex-col items-center gap-5 text-center">
-                    <div className="w-12 h-12 rounded-xl bg-[#242424] flex items-center justify-center">
-                      <span
-                        className="material-symbols-outlined text-[#c4c7c8] text-2xl"
-                        style={{ fontVariationSettings: "'FILL' 0, 'wght' 200" }}
+                  <div className="flex flex-col gap-4">
+                    {lastCompletedMission && (
+                      <>
+                        <p className="text-[10px] uppercase tracking-widest font-semibold text-[#949493]" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          Dernière mission terminée
+                        </p>
+                        <MissionCard
+                          mission={lastCompletedMission}
+                          badge={{ label: "Livrée", className: "bg-[#353534] text-[#c4c7c8]" }}
+                          showDelivery
+                        />
+                      </>
+                    )}
+                    <div className="bg-[#1A1A1A] rounded-2xl border border-white/[0.06] p-8 flex flex-col items-center gap-5 text-center">
+                      <div className="w-12 h-12 rounded-xl bg-[#242424] flex items-center justify-center">
+                        <span
+                          className="material-symbols-outlined text-[#c4c7c8] text-2xl"
+                          style={{ fontVariationSettings: "'FILL' 0, 'wght' 200" }}
+                        >
+                          route
+                        </span>
+                      </div>
+                      <div>
+                        <h4 className="text-white font-semibold text-base mb-1" style={{ fontFamily: "Inter, sans-serif" }}>
+                          Planifiez votre prochain convoyage
+                        </h4>
+                        <p className="text-[#949493] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          Créez une mission en quelques clics
+                        </p>
+                      </div>
+                      <Link
+                        href="/client/missions/new"
+                        className="px-6 py-2.5 bg-white text-[#0A0A0A] rounded-full text-sm font-bold hover:bg-zinc-100 transition-colors active:scale-95"
+                        style={{ fontFamily: "Inter, sans-serif" }}
                       >
-                        route
-                      </span>
+                        Créer une mission
+                      </Link>
                     </div>
-                    <div>
-                      <h4 className="text-white font-semibold text-base mb-1" style={{ fontFamily: "Inter, sans-serif" }}>
-                        Planifiez votre prochain convoyage
-                      </h4>
-                      <p className="text-[#949493] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                        Créez une mission en quelques clics
-                      </p>
-                    </div>
-                    <Link
-                      href="/client/missions/new"
-                      className="px-6 py-2.5 bg-white text-[#0A0A0A] rounded-full text-sm font-bold hover:bg-zinc-100 transition-colors active:scale-95"
-                      style={{ fontFamily: "Inter, sans-serif" }}
-                    >
-                      Créer une mission
-                    </Link>
                   </div>
                 )}
 
