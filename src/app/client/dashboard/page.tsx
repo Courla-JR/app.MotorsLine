@@ -114,6 +114,7 @@ export default function ClientDashboardPage() {
   const [statsTotal,     setStatsTotal]     = useState(0);
   const [statsEnCours,   setStatsEnCours]   = useState(0);
   const [statsTerminees, setStatsTerminees] = useState(0);
+  const [totalMissions,  setTotalMissions]  = useState(0);
   const [loading, setLoading] = useState(true);
 
   const today = new Date().toLocaleDateString("fr-FR", {
@@ -163,6 +164,7 @@ export default function ClientDashboardPage() {
         return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
       }).length);
 
+      setTotalMissions(list.length);
       setActiveMissions(list.filter((m) => m.status === "en_cours" || m.status === "prise_en_charge"));
       setUpcomingMissions(
         list.filter((m) => m.status === "a_faire" && isFuture(m.pickup_date)).slice(0, 4)
@@ -293,53 +295,125 @@ export default function ClientDashboardPage() {
             </div>
           </section>
 
-          {/* Active Missions */}
-          <section className="mb-12">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold tracking-tight text-white" style={{ fontFamily: "Inter, sans-serif" }}>
-                Missions en cours
-              </h3>
-              {activeMissions.length > 0 && (
-                <Link
-                  href={`/client/missions/${activeMissions[0].id}`}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#22C55E]/10 border border-[#22C55E]/30 hover:bg-[#22C55E]/20 transition-colors"
-                >
-                  <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse shadow-[0_0_6px_#22C55E]" />
-                  <span className="text-[10px] font-bold text-[#22C55E] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                    En direct
-                  </span>
-                </Link>
-              )}
-            </div>
-
-            {!loading && activeMissions.length === 0 && (
-              <p className="text-[#949493] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                Aucune mission en cours.
-              </p>
-            )}
-
-            <div className="grid gap-4 md:grid-cols-2">
-              {activeMissions.map((m) => {
-                const badge = m.status === "prise_en_charge"
-                  ? { label: "Prise en charge", className: "bg-[#3b82f6]/20 text-[#93c5fd]" }
-                  : { label: "En cours", className: "bg-white text-black" };
-                return <MissionCard key={m.id} mission={m} badge={badge} />;
-              })}
-            </div>
-          </section>
-
-          {/* Upcoming */}
-          {upcomingMissions.length > 0 && (
-            <section className="mb-8">
+          {/* Onboarding (nouveau compte, 0 missions) */}
+          {!loading && totalMissions === 0 ? (
+            <section className="mb-12">
               <h3 className="text-lg font-semibold tracking-tight text-white mb-6" style={{ fontFamily: "Inter, sans-serif" }}>
-                Prochaines missions
+                Comment ça marche
               </h3>
-              <div className="grid gap-4 md:grid-cols-2">
-                {upcomingMissions.map((m) => (
-                  <MissionCard key={m.id} mission={m} badge={{ label: "Planifiée", className: "bg-[#353534] text-[#c4c7c8]" }} />
-                ))}
+              <div className="flex flex-col gap-3">
+                <Link
+                  href="/client/missions/new"
+                  className="bg-[#1A1A1A] rounded-2xl border border-white/[0.06] p-6 flex items-start gap-5 hover:bg-[#222] transition-colors group"
+                >
+                  <span className="text-3xl font-bold text-white/15 shrink-0 font-mono leading-none mt-0.5" style={{ fontFamily: "Inter, sans-serif" }}>01</span>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-white font-semibold text-sm mb-1" style={{ fontFamily: "Inter, sans-serif" }}>
+                      Créez votre première mission
+                    </h4>
+                    <p className="text-[#949493] text-xs" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      Renseignez le véhicule, les adresses et le créneau
+                    </p>
+                  </div>
+                  <span className="material-symbols-outlined text-[#444748] group-hover:text-white transition-colors shrink-0 mt-0.5">arrow_forward</span>
+                </Link>
+                <div className="bg-[#1A1A1A] rounded-2xl border border-white/[0.03] p-6 flex items-start gap-5 opacity-50">
+                  <span className="text-3xl font-bold text-white/15 shrink-0 font-mono leading-none mt-0.5" style={{ fontFamily: "Inter, sans-serif" }}>02</span>
+                  <div>
+                    <h4 className="text-white font-semibold text-sm mb-1" style={{ fontFamily: "Inter, sans-serif" }}>
+                      Suivez-la en temps réel
+                    </h4>
+                    <p className="text-[#949493] text-xs" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      Statut, itinéraire et état du véhicule à chaque étape
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-[#1A1A1A] rounded-2xl border border-white/[0.03] p-6 flex items-start gap-5 opacity-50">
+                  <span className="text-3xl font-bold text-white/15 shrink-0 font-mono leading-none mt-0.5" style={{ fontFamily: "Inter, sans-serif" }}>03</span>
+                  <div>
+                    <h4 className="text-white font-semibold text-sm mb-1" style={{ fontFamily: "Inter, sans-serif" }}>
+                      Recevez le récapitulatif
+                    </h4>
+                    <p className="text-[#949493] text-xs" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      Photos, kilométrage et rapport de livraison par email
+                    </p>
+                  </div>
+                </div>
               </div>
             </section>
+          ) : (
+            <>
+              {/* Active Missions */}
+              <section className="mb-12">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold tracking-tight text-white" style={{ fontFamily: "Inter, sans-serif" }}>
+                    Missions en cours
+                  </h3>
+                  {activeMissions.length > 0 && (
+                    <Link
+                      href={`/client/missions/${activeMissions[0].id}`}
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#22C55E]/10 border border-[#22C55E]/30 hover:bg-[#22C55E]/20 transition-colors"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse shadow-[0_0_6px_#22C55E]" />
+                      <span className="text-[10px] font-bold text-[#22C55E] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                        En direct
+                      </span>
+                    </Link>
+                  )}
+                </div>
+
+                {!loading && activeMissions.length === 0 && (
+                  <div className="bg-[#1A1A1A] rounded-2xl border border-white/[0.06] p-8 flex flex-col items-center gap-5 text-center">
+                    <div className="w-12 h-12 rounded-xl bg-[#242424] flex items-center justify-center">
+                      <span
+                        className="material-symbols-outlined text-[#c4c7c8] text-2xl"
+                        style={{ fontVariationSettings: "'FILL' 0, 'wght' 200" }}
+                      >
+                        route
+                      </span>
+                    </div>
+                    <div>
+                      <h4 className="text-white font-semibold text-base mb-1" style={{ fontFamily: "Inter, sans-serif" }}>
+                        Planifiez votre prochain convoyage
+                      </h4>
+                      <p className="text-[#949493] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                        Créez une mission en quelques clics
+                      </p>
+                    </div>
+                    <Link
+                      href="/client/missions/new"
+                      className="px-6 py-2.5 bg-white text-[#0A0A0A] rounded-full text-sm font-bold hover:bg-zinc-100 transition-colors active:scale-95"
+                      style={{ fontFamily: "Inter, sans-serif" }}
+                    >
+                      Créer une mission
+                    </Link>
+                  </div>
+                )}
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  {activeMissions.map((m) => {
+                    const badge = m.status === "prise_en_charge"
+                      ? { label: "Prise en charge", className: "bg-[#3b82f6]/20 text-[#93c5fd]" }
+                      : { label: "En cours", className: "bg-white text-black" };
+                    return <MissionCard key={m.id} mission={m} badge={badge} />;
+                  })}
+                </div>
+              </section>
+
+              {/* Upcoming */}
+              {upcomingMissions.length > 0 && (
+                <section className="mb-8">
+                  <h3 className="text-lg font-semibold tracking-tight text-white mb-6" style={{ fontFamily: "Inter, sans-serif" }}>
+                    Prochaines missions
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {upcomingMissions.map((m) => (
+                      <MissionCard key={m.id} mission={m} badge={{ label: "Planifiée", className: "bg-[#353534] text-[#c4c7c8]" }} />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
           )}
         </main>
 

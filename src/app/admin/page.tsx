@@ -102,6 +102,17 @@ export default function AdminPage() {
     terminee: missions.filter((m) => m.status === "terminee").length,
   };
 
+  const now = new Date();
+  const thisMonthTerminees = missions.filter((m) => {
+    if (m.status !== "terminee" || !m.pickup_date) return false;
+    const d = new Date(m.pickup_date);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }).length;
+  const activeClientsCount = new Set(missions.filter((m) => m.client_id).map((m) => m.client_id)).size;
+  const nextPlannedMission = missions
+    .filter((m) => m.status === "a_faire" && m.pickup_date && new Date(m.pickup_date) > now)
+    .sort((a, b) => new Date(a.pickup_date!).getTime() - new Date(b.pickup_date!).getTime())[0] ?? null;
+
   const filtered = filter === "toutes" ? missions : missions.filter((m) => m.status === filter);
 
   useEffect(() => {
@@ -330,7 +341,51 @@ export default function AdminPage() {
               </div>
             )}
 
-            {!loading && filtered.length === 0 && (
+            {!loading && filtered.length === 0 && (filter === "toutes" || filter === "en_cours") && (
+              <div className="bg-[#1A1A1A] rounded-2xl border border-white/[0.05] p-6 mb-4">
+                <p className="text-[10px] uppercase tracking-widest font-semibold text-[#949493] mb-4" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                  Récap du mois
+                </p>
+                <div className="flex gap-3 mb-5">
+                  <div className="flex-1 bg-[#141414] rounded-xl p-4">
+                    <p className="text-[#949493] text-xs mb-1.5" style={{ fontFamily: "Montserrat, sans-serif" }}>Terminées</p>
+                    <p className="text-2xl font-bold text-white" style={{ fontFamily: "Inter, sans-serif" }}>{thisMonthTerminees}</p>
+                  </div>
+                  <div className="flex-1 bg-[#141414] rounded-xl p-4">
+                    <p className="text-[#949493] text-xs mb-1.5" style={{ fontFamily: "Montserrat, sans-serif" }}>Clients actifs</p>
+                    <p className="text-2xl font-bold text-white" style={{ fontFamily: "Inter, sans-serif" }}>{activeClientsCount}</p>
+                  </div>
+                </div>
+                {nextPlannedMission && (
+                  <div className="border-t border-white/5 pt-4">
+                    <p className="text-[10px] uppercase tracking-widest font-semibold text-[#949493] mb-3" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      Prochaine mission planifiée
+                    </p>
+                    <div
+                      className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => router.push(`/admin/missions/${nextPlannedMission.id}`)}
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-[#2a2a2a] flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-white/60 text-sm">directions_car</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-white text-sm font-semibold truncate" style={{ fontFamily: "Inter, sans-serif" }}>
+                          {nextPlannedMission.vehicle_brand} {nextPlannedMission.vehicle_model}
+                          {nextPlannedMission.clients?.company_name && (
+                            <span className="text-[#949493] font-normal"> · {nextPlannedMission.clients.company_name}</span>
+                          )}
+                        </p>
+                        <p className="text-[#949493] text-xs truncate" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          {formatDate(nextPlannedMission.pickup_date)} · {nextPlannedMission.delivery_address}
+                        </p>
+                      </div>
+                      <span className="material-symbols-outlined text-zinc-600 shrink-0">chevron_right</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {!loading && filtered.length === 0 && filter !== "toutes" && filter !== "en_cours" && (
               <div className="flex flex-col items-center py-20 gap-3">
                 <span className="material-symbols-outlined text-[#444748] text-5xl">local_shipping</span>
                 <p className="text-[#949493] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>Aucune mission</p>

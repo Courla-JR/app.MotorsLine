@@ -16,6 +16,7 @@ type DbMission = {
   delivery_address: string;
   pickup_date: string | null;
   delivery_date: string | null;
+  distance_km?: string | null;
   clients: { company_name: string } | null;
 };
 
@@ -67,6 +68,8 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<{ full_name: string | null; role: string | null } | null>(null);
   const [statsTotal, setStatsTotal] = useState(0);
   const [statsEnCours, setStatsEnCours] = useState(0);
+  const [statsTerminees, setStatsTerminees] = useState(0);
+  const [totalKm, setTotalKm] = useState(0);
   const [activeMissions, setActiveMissions] = useState<DbMission[]>([]);
   const [upcomingMissions, setUpcomingMissions] = useState<DbMission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,13 +92,13 @@ export default function DashboardPage() {
 
       let { data: allMissions } = await supabase
         .from("missions")
-        .select("id, vehicle_brand, vehicle_model, vehicle_plate, vehicle_image_url, status, pickup_address, delivery_address, pickup_date, delivery_date, clients(company_name)")
+        .select("id, vehicle_brand, vehicle_model, vehicle_plate, vehicle_image_url, status, pickup_address, delivery_address, pickup_date, delivery_date, distance_km, clients(company_name)")
         .order("pickup_date", { ascending: true }) as { data: DbMission[] | null };
 
       if (!allMissions) {
         const fallback = await supabase
           .from("missions")
-          .select("id, vehicle_brand, vehicle_model, vehicle_plate, status, pickup_address, delivery_address, pickup_date, delivery_date, clients(company_name)")
+          .select("id, vehicle_brand, vehicle_model, vehicle_plate, status, pickup_address, delivery_address, pickup_date, delivery_date, distance_km, clients(company_name)")
           .order("pickup_date", { ascending: true });
         allMissions = fallback.data as any;
       }
@@ -111,6 +114,14 @@ export default function DashboardPage() {
       });
       setStatsTotal(thisMonth.length);
       setStatsEnCours(list.filter((m) => m.status === "en_cours" || m.status === "prise_en_charge").length);
+
+      const doneThisMonth = thisMonth.filter((m) => m.status === "terminee");
+      setStatsTerminees(doneThisMonth.length);
+      const km = doneThisMonth.reduce((acc, m) => {
+        const parsed = parseFloat(m.distance_km ?? "");
+        return isNaN(parsed) ? acc : acc + parsed;
+      }, 0);
+      setTotalKm(Math.round(km));
 
       setActiveMissions(list.filter((m) => m.status === "en_cours" || m.status === "prise_en_charge"));
       setUpcomingMissions(
@@ -267,9 +278,42 @@ export default function DashboardPage() {
             </div>
 
             {!loading && activeMissions.length === 0 && (
-              <p className="text-[#949493] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                Aucune mission en cours.
-              </p>
+              <div className="bg-[#1c1b1b] rounded-2xl border border-white/[0.05] p-6">
+                <p className="text-[10px] uppercase tracking-widest font-semibold text-[#949493] mb-4" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                  Récap du mois
+                </p>
+                <div className="flex gap-3 mb-5">
+                  <div className="flex-1 bg-[#141414] rounded-xl p-4">
+                    <p className="text-[#949493] text-xs mb-1.5" style={{ fontFamily: "Montserrat, sans-serif" }}>Terminées</p>
+                    <p className="text-2xl font-bold text-white" style={{ fontFamily: "Inter, sans-serif" }}>{statsTerminees}</p>
+                  </div>
+                  <div className="flex-1 bg-[#141414] rounded-xl p-4">
+                    <p className="text-[#949493] text-xs mb-1.5" style={{ fontFamily: "Montserrat, sans-serif" }}>Km parcourus</p>
+                    <p className="text-2xl font-bold text-white" style={{ fontFamily: "Inter, sans-serif" }}>{totalKm > 0 ? `${totalKm} km` : "—"}</p>
+                  </div>
+                </div>
+                {upcomingMissions.length > 0 && (
+                  <div className="border-t border-white/5 pt-4">
+                    <p className="text-[10px] uppercase tracking-widest font-semibold text-[#949493] mb-3" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      Prochaine mission
+                    </p>
+                    <Link href={`/missions/${upcomingMissions[0].id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                      <div className="w-8 h-8 rounded-lg bg-[#2a2a2a] flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-white/60 text-sm">directions_car</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-white text-sm font-semibold truncate" style={{ fontFamily: "Inter, sans-serif" }}>
+                          {upcomingMissions[0].vehicle_brand} {upcomingMissions[0].vehicle_model}
+                        </p>
+                        <p className="text-[#949493] text-xs truncate capitalize" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                          {formatPickup(upcomingMissions[0].pickup_date)} · {upcomingMissions[0].delivery_address}
+                        </p>
+                      </div>
+                      <span className="material-symbols-outlined text-zinc-600 shrink-0">chevron_right</span>
+                    </Link>
+                  </div>
+                )}
+              </div>
             )}
 
             <div className="grid gap-6 md:grid-cols-2">
