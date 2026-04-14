@@ -49,12 +49,6 @@ export function buildInvitationEmail({ company_name, inviteUrl }: InvitationEmai
           <!-- Card -->
           <tr>
             <td style="background:#1A1A1A;border:1px solid #2A2A2A;border-radius:12px;padding:32px;">
-              <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#949493;font-family:Helvetica,sans-serif;">
-                Lien d'invitation
-              </p>
-              <p style="margin:0 0 24px;font-size:13px;color:#E0E0E0;font-family:Helvetica,sans-serif;word-break:break-all;">
-                ${inviteUrl}
-              </p>
               <a href="${inviteUrl}"
                  style="display:inline-block;padding:14px 32px;background:#FFFFFF;color:#0A0A0A;font-size:14px;font-weight:700;font-family:Helvetica,sans-serif;border-radius:8px;text-decoration:none;letter-spacing:-0.01em;">
                 Créer mon mot de passe
