@@ -13,6 +13,7 @@ type Mission = {
   vehicle_model: string;
   vehicle_plate: string;
   vehicle_color: string | null;
+  vehicle_image_url: string | null;
   status: MissionStatus;
   pickup_address: string;
   delivery_address: string;
@@ -822,29 +823,62 @@ export default function ConvoyeurMissionDetailPage() {
               })()}
 
               {/* ── Véhicule ── */}
-              <section className="bg-[#1c1b1b] rounded-2xl p-6 border border-white/[0.04]">
-                <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-4" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                  Véhicule
-                </h3>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                  <div>
-                    <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>Marque</p>
-                    <p className="text-white font-medium text-sm" style={{ fontFamily: "Inter, sans-serif" }}>{mission.vehicle_brand || "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>Modèle</p>
-                    <p className="text-white font-medium text-sm" style={{ fontFamily: "Inter, sans-serif" }}>{mission.vehicle_model || "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>Immatriculation</p>
-                    <p className="text-white font-medium text-sm font-mono uppercase">{mission.vehicle_plate || "—"}</p>
-                  </div>
-                  {mission.vehicle_color && (
+              <section className="bg-[#1c1b1b] rounded-2xl overflow-hidden border border-white/[0.04]">
+                {mission.vehicle_image_url && mission.vehicle_image_url.trim() !== "" && (
+                  <img
+                    src={mission.vehicle_image_url}
+                    alt={`${mission.vehicle_brand} ${mission.vehicle_model}`}
+                    className="w-full h-48 object-cover"
+                  />
+                )}
+                <div className="p-6">
+                  <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-4" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    Véhicule
+                  </h3>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>Couleur</p>
-                      <p className="text-white font-medium text-sm" style={{ fontFamily: "Inter, sans-serif" }}>{mission.vehicle_color}</p>
+                      <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>Marque</p>
+                      <p className="text-white font-medium text-sm" style={{ fontFamily: "Inter, sans-serif" }}>{mission.vehicle_brand || "—"}</p>
                     </div>
-                  )}
+                    <div>
+                      <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>Modèle</p>
+                      <p className="text-white font-medium text-sm" style={{ fontFamily: "Inter, sans-serif" }}>{mission.vehicle_model || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>Immatriculation</p>
+                      <p className="text-white font-medium text-sm font-mono uppercase">{mission.vehicle_plate || "—"}</p>
+                    </div>
+                    {mission.vehicle_color && (
+                      <div>
+                        <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>Couleur</p>
+                        <p className="text-white font-medium text-sm" style={{ fontFamily: "Inter, sans-serif" }}>{mission.vehicle_color}</p>
+                      </div>
+                    )}
+                    {mission.mileage_start != null && (
+                      <div>
+                        <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>Km départ</p>
+                        <p className="text-white font-medium text-sm font-mono">{mission.mileage_start.toLocaleString("fr-FR")} km</p>
+                      </div>
+                    )}
+                    {mission.fuel_level_start && (
+                      <div>
+                        <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>Carburant départ</p>
+                        <p className="text-white font-medium text-sm">{mission.fuel_level_start}</p>
+                      </div>
+                    )}
+                    {mission.status === "terminee" && mission.mileage_end != null && (
+                      <div>
+                        <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>Km arrivée</p>
+                        <p className="text-white font-medium text-sm font-mono">{mission.mileage_end.toLocaleString("fr-FR")} km</p>
+                      </div>
+                    )}
+                    {mission.status === "terminee" && mission.fuel_level_end && (
+                      <div>
+                        <p className="text-[10px] text-[#949493] uppercase tracking-widest mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>Carburant arrivée</p>
+                        <p className="text-white font-medium text-sm">{mission.fuel_level_end}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </section>
 

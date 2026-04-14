@@ -183,7 +183,7 @@ export function buildMissionEmail(data: MissionEmailData): string {
                   </td>
                 </tr>
                 ${row("Marque / Modèle", `${data.vehicleBrand} ${data.vehicleModel}`)}
-                ${row("Immatriculation", data.vehiclePlate)}
+                ${row("Plaque", data.vehiclePlate)}
 
                 <!-- Section: Itinéraire -->
                 <tr>
@@ -484,7 +484,7 @@ export function buildDeliveryRecapEmail(data: DeliveryRecapEmailData): string {
                   </td>
                 </tr>
                 ${row("Marque / Modèle", `${data.vehicleBrand} ${data.vehicleModel}`)}
-                ${row("Immatriculation", data.vehiclePlate)}
+                ${row("Plaque", data.vehiclePlate)}
 
                 <!-- Itinéraire -->
                 <tr>
