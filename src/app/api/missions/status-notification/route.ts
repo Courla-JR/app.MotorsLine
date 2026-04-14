@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
   if (mission.client_id) {
     const { data: client, error: clientError } = await serviceSupabase
       .from("clients")
-      .select("email")
+      .select("email, user_id")
       .eq("id", mission.client_id)
       .single();
 
@@ -63,6 +63,20 @@ export async function POST(request: NextRequest) {
       console.error("[status-notification] client fetch error:", clientError.message);
     } else {
       clientEmail = client?.email ?? null;
+
+      // Check notifications preference
+      if (client?.user_id) {
+        const { data: profile } = await serviceSupabase
+          .from("profiles")
+          .select("notifications_email")
+          .eq("id", client.user_id)
+          .single();
+
+        if (profile?.notifications_email === false) {
+          console.log("[status-notification] notifications disabled for user_id:", client.user_id, "— skipping");
+          return NextResponse.json({ ok: true, skipped: "notifications disabled" });
+        }
+      }
     }
   }
 

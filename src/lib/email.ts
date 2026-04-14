@@ -23,7 +23,7 @@ export function buildInvitationEmail({ company_name, inviteUrl }: InvitationEmai
           <!-- Logo -->
           <tr>
             <td style="padding-bottom:40px;">
-              <span style="font-size:22px;font-weight:700;font-style:italic;letter-spacing:-0.04em;font-family:Helvetica,sans-serif;color:#c0c0c0;">
+              <span style="font-size:22px;font-weight:700;font-style:italic;letter-spacing:-0.04em;font-family:Helvetica,sans-serif;color:#E0E0E0;">
                 Motors Line
               </span>
             </td>
@@ -32,15 +32,15 @@ export function buildInvitationEmail({ company_name, inviteUrl }: InvitationEmai
           <!-- Heading -->
           <tr>
             <td style="padding-bottom:8px;">
-              <h1 style="margin:0;font-size:26px;font-weight:700;color:#ffffff;font-family:Helvetica,sans-serif;letter-spacing:-0.02em;">
+              <h1 style="margin:0;font-size:26px;font-weight:700;color:#FFFFFF;font-family:Helvetica,sans-serif;letter-spacing:-0.02em;">
                 Votre espace client vous attend
               </h1>
             </td>
           </tr>
           <tr>
             <td style="padding-bottom:36px;">
-              <p style="margin:0;font-size:14px;color:#888;font-family:Helvetica,sans-serif;line-height:1.6;">
-                L'équipe Motors Line a créé un compte pour <strong style="color:#e5e2e1;">${company_name}</strong>.
+              <p style="margin:0;font-size:14px;color:#E0E0E0;font-family:Helvetica,sans-serif;line-height:1.6;">
+                L'équipe Motors Line a créé un compte pour <strong style="color:#FFFFFF;">${company_name}</strong>.
                 Cliquez sur le bouton ci-dessous pour choisir votre mot de passe et accéder à votre espace.
               </p>
             </td>
@@ -48,18 +48,18 @@ export function buildInvitationEmail({ company_name, inviteUrl }: InvitationEmai
 
           <!-- Card -->
           <tr>
-            <td style="background:#141414;border-radius:16px;padding:32px;">
-              <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#555;font-family:Helvetica,sans-serif;">
+            <td style="background:#1A1A1A;border:1px solid #2A2A2A;border-radius:12px;padding:32px;">
+              <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#949493;font-family:Helvetica,sans-serif;">
                 Lien d'invitation
               </p>
-              <p style="margin:0 0 24px;font-size:13px;color:#666;font-family:Helvetica,sans-serif;word-break:break-all;">
+              <p style="margin:0 0 24px;font-size:13px;color:#E0E0E0;font-family:Helvetica,sans-serif;word-break:break-all;">
                 ${inviteUrl}
               </p>
               <a href="${inviteUrl}"
-                 style="display:inline-block;padding:14px 32px;background:#ffffff;color:#0A0A0A;font-size:14px;font-weight:700;font-family:Helvetica,sans-serif;border-radius:100px;text-decoration:none;letter-spacing:-0.01em;">
+                 style="display:inline-block;padding:14px 32px;background:#FFFFFF;color:#0A0A0A;font-size:14px;font-weight:700;font-family:Helvetica,sans-serif;border-radius:8px;text-decoration:none;letter-spacing:-0.01em;">
                 Créer mon mot de passe
               </a>
-              <p style="margin:24px 0 0;font-size:12px;color:#444;font-family:Helvetica,sans-serif;">
+              <p style="margin:24px 0 0;font-size:12px;color:#949493;font-family:Helvetica,sans-serif;">
                 Ce lien expire dans 7 jours et n'est valable qu'une seule fois.
               </p>
             </td>
@@ -68,7 +68,7 @@ export function buildInvitationEmail({ company_name, inviteUrl }: InvitationEmai
           <!-- Footer -->
           <tr>
             <td style="padding-top:48px;text-align:center;">
-              <p style="margin:0;font-size:11px;color:#333;font-family:Helvetica,sans-serif;letter-spacing:0.06em;text-transform:uppercase;">
+              <p style="margin:0;font-size:11px;color:#949493;font-family:Helvetica,sans-serif;letter-spacing:0.06em;text-transform:uppercase;">
                 Motors Line — Transport premium de véhicules
               </p>
             </td>
