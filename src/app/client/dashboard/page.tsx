@@ -112,14 +112,13 @@ export default function ClientDashboardPage() {
   const [contactName, setContactName] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [activeMissions, setActiveMissions] = useState<DbMission[]>([]);
-  const [upcomingMissions, setUpcomingMissions] = useState<DbMission[]>([]);
+  const [plannedMissions, setPlannedMissions] = useState<DbMission[]>([]);
   const [statsTotal,     setStatsTotal]     = useState(0);
   const [statsEnCours,   setStatsEnCours]   = useState(0);
   const [statsTerminees, setStatsTerminees] = useState(0);
   const [totalMissions,  setTotalMissions]  = useState(0);
   const [lastCompletedMission, setLastCompletedMission] = useState<DbMission | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hasPlanifiedMissions, setHasPlanifiedMissions] = useState(false);
 
   const today = new Date().toLocaleDateString("fr-FR", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
@@ -169,15 +168,12 @@ export default function ClientDashboardPage() {
       }).length);
 
       setTotalMissions(list.length);
-      setHasPlanifiedMissions(list.some((m) => m.status === "a_faire"));
       setActiveMissions(list.filter((m) => m.status === "en_cours" || m.status === "prise_en_charge"));
+      setPlannedMissions(list.filter((m) => m.status === "a_faire"));
       const completed = list
         .filter((m) => m.status === "terminee")
         .sort((a, b) => new Date(b.delivery_date ?? b.pickup_date ?? "").getTime() - new Date(a.delivery_date ?? a.pickup_date ?? "").getTime());
       setLastCompletedMission(completed[0] ?? null);
-      setUpcomingMissions(
-        list.filter((m) => m.status === "a_faire" && isFuture(m.pickup_date)).slice(0, 4)
-      );
 
       setLoading(false);
     }
@@ -304,8 +300,8 @@ export default function ClientDashboardPage() {
             </div>
           </section>
 
-          {/* Onboarding (nouveau compte, 0 missions) */}
-          {!loading && totalMissions === 0 ? (
+          {/* Priorité 0 — onboarding (nouveau compte, 0 missions) */}
+          {!loading && totalMissions === 0 && (
             <section className="mb-12">
               <h3 className="text-lg font-semibold tracking-tight text-white mb-6" style={{ fontFamily: "Inter, sans-serif" }}>
                 Comment ça marche
@@ -350,93 +346,93 @@ export default function ClientDashboardPage() {
                 </div>
               </div>
             </section>
-          ) : (
-            <>
-              {/* Active Missions */}
-              <section className="mb-12">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold tracking-tight text-white" style={{ fontFamily: "Inter, sans-serif" }}>
-                    Missions en cours
-                  </h3>
-                  {activeMissions.length > 0 && (
-                    <Link
-                      href={`/client/missions/${activeMissions[0].id}`}
-                      className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#22C55E]/10 border border-[#22C55E]/30 hover:bg-[#22C55E]/20 transition-colors"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse shadow-[0_0_6px_#22C55E]" />
-                      <span className="text-[10px] font-bold text-[#22C55E] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                        En direct
-                      </span>
-                    </Link>
-                  )}
-                </div>
+          )}
 
-                {!loading && activeMissions.length === 0 && !hasPlanifiedMissions && (
-                  <div className="flex flex-col gap-4">
-                    {lastCompletedMission && (
-                      <>
-                        <p className="text-[10px] uppercase tracking-widest font-semibold text-[#949493]" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                          Dernière mission terminée
-                        </p>
-                        <MissionCard
-                          mission={lastCompletedMission}
-                          badge={{ label: "Livrée", className: "bg-[#353534] text-[#c4c7c8]" }}
-                          showDelivery
-                        />
-                      </>
-                    )}
-                    <div className="bg-[#1A1A1A] rounded-2xl border border-white/[0.06] p-8 flex flex-col items-center gap-5 text-center">
-                      <div className="w-12 h-12 rounded-xl bg-[#242424] flex items-center justify-center">
-                        <span
-                          className="material-symbols-outlined text-[#c4c7c8] text-2xl"
-                          style={{ fontVariationSettings: "'FILL' 0, 'wght' 200" }}
-                        >
-                          route
-                        </span>
-                      </div>
-                      <div>
-                        <h4 className="text-white font-semibold text-base mb-1" style={{ fontFamily: "Inter, sans-serif" }}>
-                          Planifiez votre prochain convoyage
-                        </h4>
-                        <p className="text-[#949493] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                          Créez une mission en quelques clics
-                        </p>
-                      </div>
-                      <Link
-                        href="/client/missions/new"
-                        className="px-6 py-2.5 bg-white text-[#0A0A0A] rounded-full text-sm font-bold hover:bg-zinc-100 transition-colors active:scale-95"
-                        style={{ fontFamily: "Inter, sans-serif" }}
-                      >
-                        Créer une mission
-                      </Link>
-                    </div>
-                  </div>
-                )}
+          {/* Priorité 1 — missions en cours (prise_en_charge ou en_cours) */}
+          {!loading && activeMissions.length > 0 && (
+            <section className="mb-12">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold tracking-tight text-white" style={{ fontFamily: "Inter, sans-serif" }}>
+                  Missions en cours
+                </h3>
+                <Link
+                  href={`/client/missions/${activeMissions[0].id}`}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#22C55E]/10 border border-[#22C55E]/30 hover:bg-[#22C55E]/20 transition-colors"
+                >
+                  <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse shadow-[0_0_6px_#22C55E]" />
+                  <span className="text-[10px] font-bold text-[#22C55E] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    En direct
+                  </span>
+                </Link>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                {activeMissions.map((m) => {
+                  const badge = m.status === "prise_en_charge"
+                    ? { label: "Prise en charge", className: "bg-[#3b82f6]/20 text-[#93c5fd]" }
+                    : { label: "En cours", className: "bg-white text-black" };
+                  return <MissionCard key={m.id} mission={m} badge={badge} />;
+                })}
+              </div>
+            </section>
+          )}
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  {activeMissions.map((m) => {
-                    const badge = m.status === "prise_en_charge"
-                      ? { label: "Prise en charge", className: "bg-[#3b82f6]/20 text-[#93c5fd]" }
-                      : { label: "En cours", className: "bg-white text-black" };
-                    return <MissionCard key={m.id} mission={m} badge={badge} />;
-                  })}
-                </div>
-              </section>
+          {/* Priorité 2 — mission planifiée (a_faire), aucune en cours */}
+          {!loading && activeMissions.length === 0 && plannedMissions.length > 0 && (
+            <section className="mb-12">
+              <h3 className="text-lg font-semibold tracking-tight text-white mb-6" style={{ fontFamily: "Inter, sans-serif" }}>
+                Prochaine mission
+              </h3>
+              <div className="grid gap-4 md:grid-cols-2">
+                {plannedMissions.map((m) => (
+                  <MissionCard key={m.id} mission={m} badge={{ label: "Planifiée", className: "bg-[#353534] text-[#c4c7c8]" }} />
+                ))}
+              </div>
+            </section>
+          )}
 
-              {/* Upcoming */}
-              {upcomingMissions.length > 0 && (
-                <section className="mb-8">
+          {/* Priorité 3 — aucune mission en cours ni planifiée */}
+          {!loading && totalMissions > 0 && activeMissions.length === 0 && plannedMissions.length === 0 && (
+            <section className="mb-12">
+              {lastCompletedMission && (
+                <>
                   <h3 className="text-lg font-semibold tracking-tight text-white mb-6" style={{ fontFamily: "Inter, sans-serif" }}>
-                    Prochaines missions
+                    Dernière mission terminée
                   </h3>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {upcomingMissions.map((m) => (
-                      <MissionCard key={m.id} mission={m} badge={{ label: "Planifiée", className: "bg-[#353534] text-[#c4c7c8]" }} />
-                    ))}
+                  <div className="grid gap-4 md:grid-cols-2 mb-6">
+                    <MissionCard
+                      mission={lastCompletedMission}
+                      badge={{ label: "Livrée", className: "bg-[#353534] text-[#c4c7c8]" }}
+                      showDelivery
+                    />
                   </div>
-                </section>
+                </>
               )}
-            </>
+              <div className="bg-[#1A1A1A] rounded-2xl border border-white/[0.06] p-8 flex flex-col items-center gap-5 text-center">
+                <div className="w-12 h-12 rounded-xl bg-[#242424] flex items-center justify-center">
+                  <span
+                    className="material-symbols-outlined text-[#c4c7c8] text-2xl"
+                    style={{ fontVariationSettings: "'FILL' 0, 'wght' 200" }}
+                  >
+                    route
+                  </span>
+                </div>
+                <div>
+                  <h4 className="text-white font-semibold text-base mb-1" style={{ fontFamily: "Inter, sans-serif" }}>
+                    Planifiez votre prochain convoyage
+                  </h4>
+                  <p className="text-[#949493] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    Créez une mission en quelques clics
+                  </p>
+                </div>
+                <Link
+                  href="/client/missions/new"
+                  className="px-6 py-2.5 bg-white text-[#0A0A0A] rounded-full text-sm font-bold hover:bg-zinc-100 transition-colors active:scale-95"
+                  style={{ fontFamily: "Inter, sans-serif" }}
+                >
+                  Créer une mission
+                </Link>
+              </div>
+            </section>
           )}
         </main>
 
