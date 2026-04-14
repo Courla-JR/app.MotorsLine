@@ -578,33 +578,30 @@ export default function ClientMissionDetailPage() {
                   <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold mb-5" style={{ fontFamily: "Montserrat, sans-serif" }}>
                     Avancement
                   </h3>
-                  <div className="flex items-center gap-0">
+                  <div className="flex flex-col gap-0">
                     {STEPS.map((label, i) => {
                       const isDone   = i < step;
                       const isActive = i === step;
                       const isFuture = i > step;
                       return (
-                        <div key={label} className="flex items-center flex-1 last:flex-none">
-                          {/* Step dot + label */}
-                          <div className="flex flex-col items-center gap-1.5 shrink-0">
+                        <div key={label} className="flex items-start gap-3">
+                          <div className="flex flex-col items-center shrink-0">
                             <div className={`w-3 h-3 rounded-full transition-all duration-300 ${
                               isDone   ? "bg-white"                                                            :
                               isActive ? "bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)] animate-pulse"      :
                                          "bg-[#2a2a2a] border border-[#3a3a3a]"
                             }`} />
-                            <p className={`text-[9px] font-semibold uppercase tracking-wide leading-none text-center ${
-                              isFuture ? "text-[#444748]" : "text-white"
-                            }`} style={{ fontFamily: "Montserrat, sans-serif", maxWidth: "52px" }}>
-                              {label}
-                            </p>
+                            {i < STEPS.length - 1 && (
+                              <div className="w-0.5 h-5 rounded-full mt-0.5">
+                                <div className={`h-full w-full rounded-full transition-all duration-500 ${isDone ? "bg-white/40" : "bg-[#2a2a2a]"}`} />
+                              </div>
+                            )}
                           </div>
-
-                          {/* Connector line (not after last) */}
-                          {i < STEPS.length - 1 && (
-                            <div className="flex-1 h-0.5 mx-1.5 mb-5 rounded-full">
-                              <div className={`h-full rounded-full transition-all duration-500 ${isDone ? "bg-white/40" : "bg-[#2a2a2a]"}`} />
-                            </div>
-                          )}
+                          <p className={`text-[9px] font-semibold uppercase tracking-wide leading-none pt-0.5 whitespace-nowrap ${
+                            isFuture ? "text-[#444748]" : "text-white"
+                          }`} style={{ fontFamily: "Montserrat, sans-serif" }}>
+                            {label}
+                          </p>
                         </div>
                       );
                     })}
@@ -626,11 +623,11 @@ export default function ClientMissionDetailPage() {
                 return (
                   <section className="bg-[#1c1b1b] rounded-2xl p-5 border border-white/[0.04]">
                     {/* Header + tabs */}
-                    <div className="flex items-center justify-between mb-5">
-                      <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    <div className="flex flex-col gap-3 mb-5">
+                      <h3 className="text-[10px] text-[#949493] uppercase tracking-widest font-semibold whitespace-nowrap" style={{ fontFamily: "Montserrat, sans-serif" }}>
                         État du véhicule
                       </h3>
-                      <div className="flex gap-1 bg-[#111] rounded-lg p-0.5">
+                      <div className="flex gap-1 bg-[#111] rounded-lg p-0.5 self-start">
                         {(["before", "after"] as PhotoType[]).map((tab) => (
                           <button
                             key={tab}

@@ -483,7 +483,7 @@ export function buildDeliveryRecapEmail(data: DeliveryRecapEmailData): string {
                     <span style="font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#555;font-family:Helvetica,sans-serif;">Véhicule</span>
                   </td>
                 </tr>
-                ${row("Marque / Modèle", `${data.vehicleBrand} ${data.vehicleModel}`)}
+                ${row("Modèle", `${data.vehicleBrand} ${data.vehicleModel}`)}
                 ${row("Plaque", data.vehiclePlate)}
 
                 <!-- Itinéraire -->

@@ -529,13 +529,10 @@ export default function ClientNewMissionPage() {
                     <div className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-[#949493] text-base">schedule</span>
                       <div>
-                        <p className="text-[10px] text-[#949493] uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>Durée estimée</p>
-                        <p className="text-white text-sm font-bold" style={{ fontFamily: "Inter, sans-serif" }}>{routeInfo.duration}</p>
+                        <p className="text-[10px] text-[#949493] uppercase tracking-widest whitespace-nowrap" style={{ fontFamily: "Montserrat, sans-serif" }}>Durée estimée</p>
+                        <p className="text-white text-sm font-bold whitespace-nowrap" style={{ fontFamily: "Inter, sans-serif" }}>{routeInfo.duration}</p>
                       </div>
                     </div>
-                    <span className="ml-auto text-[10px] text-[#444748] uppercase tracking-wider" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                      via Google Maps
-                    </span>
                   </div>
                 )}
 
