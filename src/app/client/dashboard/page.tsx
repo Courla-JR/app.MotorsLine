@@ -116,6 +116,7 @@ export default function ClientDashboardPage() {
   const [statsTerminees, setStatsTerminees] = useState(0);
   const [totalMissions,  setTotalMissions]  = useState(0);
   const [loading, setLoading] = useState(true);
+  const [hasPlanifiedMissions, setHasPlanifiedMissions] = useState(false);
 
   const today = new Date().toLocaleDateString("fr-FR", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
@@ -165,6 +166,7 @@ export default function ClientDashboardPage() {
       }).length);
 
       setTotalMissions(list.length);
+      setHasPlanifiedMissions(list.some((m) => m.status === "a_faire"));
       setActiveMissions(list.filter((m) => m.status === "en_cours" || m.status === "prise_en_charge"));
       setUpcomingMissions(
         list.filter((m) => m.status === "a_faire" && isFuture(m.pickup_date)).slice(0, 4)
@@ -362,7 +364,7 @@ export default function ClientDashboardPage() {
                   )}
                 </div>
 
-                {!loading && activeMissions.length === 0 && (
+                {!loading && activeMissions.length === 0 && !hasPlanifiedMissions && (
                   <div className="bg-[#1A1A1A] rounded-2xl border border-white/[0.06] p-8 flex flex-col items-center gap-5 text-center">
                     <div className="w-12 h-12 rounded-xl bg-[#242424] flex items-center justify-center">
                       <span

@@ -72,6 +72,8 @@ export default function DashboardPage() {
   const [totalKm, setTotalKm] = useState(0);
   const [activeMissions, setActiveMissions] = useState<DbMission[]>([]);
   const [upcomingMissions, setUpcomingMissions] = useState<DbMission[]>([]);
+  const [lastCompletedMission, setLastCompletedMission] = useState<DbMission | null>(null);
+  const [hasAnyPendingMission, setHasAnyPendingMission] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const today = new Date().toLocaleDateString("fr-FR", {
@@ -123,10 +125,15 @@ export default function DashboardPage() {
       }, 0);
       setTotalKm(Math.round(km));
 
+      setHasAnyPendingMission(list.some((m) => m.status === "a_faire" || m.status === "prise_en_charge" || m.status === "en_cours"));
       setActiveMissions(list.filter((m) => m.status === "en_cours" || m.status === "prise_en_charge"));
       setUpcomingMissions(
         list.filter((m) => m.status === "a_faire" && isFuture(m.pickup_date)).slice(0, 4)
       );
+      const completed = list
+        .filter((m) => m.status === "terminee")
+        .sort((a, b) => new Date(b.pickup_date ?? "").getTime() - new Date(a.pickup_date ?? "").getTime());
+      setLastCompletedMission(completed[0] ?? null);
 
       setLoading(false);
     }
@@ -277,42 +284,95 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            {!loading && activeMissions.length === 0 && (
-              <div className="bg-[#1c1b1b] rounded-2xl border border-white/[0.05] p-6">
-                <p className="text-[10px] uppercase tracking-widest font-semibold text-[#949493] mb-4" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                  Récap du mois
-                </p>
-                <div className="flex gap-3 mb-5">
-                  <div className="flex-1 bg-[#141414] rounded-xl p-4">
-                    <p className="text-[#949493] text-xs mb-1.5" style={{ fontFamily: "Montserrat, sans-serif" }}>Terminées</p>
-                    <p className="text-2xl font-bold text-white" style={{ fontFamily: "Inter, sans-serif" }}>{statsTerminees}</p>
-                  </div>
-                  <div className="flex-1 bg-[#141414] rounded-xl p-4">
-                    <p className="text-[#949493] text-xs mb-1.5" style={{ fontFamily: "Montserrat, sans-serif" }}>Km parcourus</p>
-                    <p className="text-2xl font-bold text-white" style={{ fontFamily: "Inter, sans-serif" }}>{totalKm > 0 ? `${totalKm} km` : "—"}</p>
+            {!loading && !hasAnyPendingMission && (
+              <div className="space-y-4">
+                {lastCompletedMission && (
+                  <>
+                    <p className="text-[10px] uppercase tracking-widest font-semibold text-[#949493] mb-2" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                      Dernière mission terminée
+                    </p>
+                    <div className="bg-[#1c1b1b] rounded-2xl overflow-hidden relative">
+                      {lastCompletedMission.vehicle_image_url && lastCompletedMission.vehicle_image_url.trim() !== "" && (
+                        <div className="h-[180px] w-full shrink-0">
+                          <img
+                            src={lastCompletedMission.vehicle_image_url}
+                            alt={`${lastCompletedMission.vehicle_brand} ${lastCompletedMission.vehicle_model}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="p-5 relative">
+                        {(!lastCompletedMission.vehicle_image_url || lastCompletedMission.vehicle_image_url.trim() === "") && (
+                          <div className="absolute top-0 right-0 p-4">
+                            <StatusBadge status={lastCompletedMission.status} />
+                          </div>
+                        )}
+                        <div className={`flex items-start justify-between gap-2 mb-4 ${(!lastCompletedMission.vehicle_image_url || lastCompletedMission.vehicle_image_url.trim() === "") ? "pr-16" : ""}`}>
+                          <div className="min-w-0">
+                            <h4 className="text-lg font-bold tracking-tight leading-tight mb-1 text-white" style={{ fontFamily: "Inter, sans-serif" }}>
+                              {lastCompletedMission.vehicle_brand} {lastCompletedMission.vehicle_model}
+                            </h4>
+                            <p className="text-xs font-mono uppercase tracking-widest text-[#c4c7c8]">
+                              {lastCompletedMission.vehicle_plate}
+                            </p>
+                            {lastCompletedMission.clients?.company_name && (
+                              <p className="text-xs mt-1.5 flex items-center gap-1 text-[#949493]" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: "12px" }}>business</span>
+                                {lastCompletedMission.clients.company_name}
+                              </p>
+                            )}
+                          </div>
+                          {lastCompletedMission.vehicle_image_url && lastCompletedMission.vehicle_image_url.trim() !== "" && <StatusBadge status={lastCompletedMission.status} />}
+                        </div>
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-2 h-2 rounded-full shrink-0 bg-white" />
+                            <p className="text-sm font-medium truncate text-[#e5e2e1]" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                              {lastCompletedMission.pickup_address}
+                            </p>
+                          </div>
+                          <div className="ml-1 h-8 relative">
+                            <div className="absolute left-[3px] top-0 bottom-0 w-1 bg-[#353534] rounded-full" />
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="w-2 h-2 rounded-full shrink-0 bg-[#8e9192]" />
+                            <p className="text-sm font-medium truncate text-[#e5e2e1]" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                              {lastCompletedMission.delivery_address}
+                            </p>
+                            {lastCompletedMission.delivery_date && (
+                              <span className="text-[#c4c7c8] text-xs font-mono ml-auto shrink-0">{formatDate(lastCompletedMission.delivery_date)}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-end">
+                          <Link
+                            href={`/missions/${lastCompletedMission.id}`}
+                            className="text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:opacity-70 transition-opacity text-white"
+                            style={{ fontFamily: "Inter, sans-serif" }}
+                          >
+                            Détails
+                            <span className="material-symbols-outlined text-sm">arrow_forward_ios</span>
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+                <div className="bg-[#1c1b1b] rounded-2xl border border-white/[0.05] p-6">
+                  <p className="text-[10px] uppercase tracking-widest font-semibold text-[#949493] mb-4" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    Récap du mois
+                  </p>
+                  <div className="flex gap-3">
+                    <div className="flex-1 bg-[#141414] rounded-xl p-4">
+                      <p className="text-[#949493] text-xs mb-1.5" style={{ fontFamily: "Montserrat, sans-serif" }}>Terminées</p>
+                      <p className="text-2xl font-bold text-white" style={{ fontFamily: "Inter, sans-serif" }}>{statsTerminees}</p>
+                    </div>
+                    <div className="flex-1 bg-[#141414] rounded-xl p-4">
+                      <p className="text-[#949493] text-xs mb-1.5" style={{ fontFamily: "Montserrat, sans-serif" }}>Km parcourus</p>
+                      <p className="text-2xl font-bold text-white" style={{ fontFamily: "Inter, sans-serif" }}>{totalKm > 0 ? `${totalKm} km` : "—"}</p>
+                    </div>
                   </div>
                 </div>
-                {upcomingMissions.length > 0 && (
-                  <div className="border-t border-white/5 pt-4">
-                    <p className="text-[10px] uppercase tracking-widest font-semibold text-[#949493] mb-3" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                      Prochaine mission
-                    </p>
-                    <Link href={`/missions/${upcomingMissions[0].id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                      <div className="w-8 h-8 rounded-lg bg-[#2a2a2a] flex items-center justify-center shrink-0">
-                        <span className="material-symbols-outlined text-white/60 text-sm">directions_car</span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-white text-sm font-semibold truncate" style={{ fontFamily: "Inter, sans-serif" }}>
-                          {upcomingMissions[0].vehicle_brand} {upcomingMissions[0].vehicle_model}
-                        </p>
-                        <p className="text-[#949493] text-xs truncate capitalize" style={{ fontFamily: "Montserrat, sans-serif" }}>
-                          {formatPickup(upcomingMissions[0].pickup_date)} · {upcomingMissions[0].delivery_address}
-                        </p>
-                      </div>
-                      <span className="material-symbols-outlined text-zinc-600 shrink-0">chevron_right</span>
-                    </Link>
-                  </div>
-                )}
               </div>
             )}
 

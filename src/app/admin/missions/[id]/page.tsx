@@ -63,6 +63,9 @@ export default function AdminEditMissionPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [vehicleImageUrl, setVehicleImageUrl] = useState<string | null>(null);
+  const [vehicleImageFile, setVehicleImageFile] = useState<File | null>(null);
+  const [vehicleImagePreview, setVehicleImagePreview] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
@@ -110,6 +113,7 @@ export default function AdminEditMissionPage() {
 
       if (!mission) { router.push("/admin"); return; }
 
+      setVehicleImageUrl(mission.vehicle_image_url ?? null);
       setBrand(mission.vehicle_brand ?? "");
       setModel(mission.vehicle_model ?? "");
       setPlate(mission.vehicle_plate ?? "");
@@ -149,6 +153,22 @@ export default function AdminEditMissionPage() {
       ? new Date(`${pickupDate}T${pickupTime}`).toISOString()
       : pickupDate ? new Date(pickupDate).toISOString() : null;
 
+    let finalImageUrl = vehicleImageUrl;
+    if (vehicleImageFile) {
+      const ext = vehicleImageFile.name.split(".").pop();
+      const path = `${crypto.randomUUID()}.${ext}`;
+      const { error: storageError } = await supabase.storage
+        .from("vehicle-images")
+        .upload(path, vehicleImageFile, { contentType: vehicleImageFile.type });
+      if (storageError) {
+        setError("Erreur upload photo : " + storageError.message);
+        setSaving(false);
+        return;
+      }
+      const { data: { publicUrl } } = supabase.storage.from("vehicle-images").getPublicUrl(path);
+      finalImageUrl = publicUrl;
+    }
+
     const { error: updateError } = await supabase
       .from("missions")
       .update({
@@ -157,6 +177,7 @@ export default function AdminEditMissionPage() {
         vehicle_plate: plate,
         vehicle_color: color || null,
         vehicle_vin: vin || null,
+        vehicle_image_url: finalImageUrl,
         pickup_address: pickupAddress,
         delivery_address: deliveryAddress,
         pickup_date: pickupDatetime,
@@ -257,6 +278,49 @@ export default function AdminEditMissionPage() {
                   <label className="text-[10px] text-[#c4c7c8] uppercase font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>Numéro VIN</label>
                   <input value={vin} onChange={(e) => setVin(e.target.value)}
                     className="w-full bg-[#131313] rounded-lg p-3 text-white text-sm font-mono focus:outline-none focus:ring-[0.5px] focus:ring-white" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] text-[#c4c7c8] uppercase font-medium" style={{ fontFamily: "Montserrat, sans-serif" }}>Photo véhicule</label>
+                  {(vehicleImagePreview || vehicleImageUrl) ? (
+                    <div className="relative rounded-xl overflow-hidden h-44 bg-[#131313]">
+                      <img
+                        src={vehicleImagePreview ?? vehicleImageUrl!}
+                        alt="Photo véhicule"
+                        className="w-full h-full object-cover"
+                      />
+                      <label className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/50 opacity-0 hover:opacity-100 transition-opacity cursor-pointer">
+                        <span className="material-symbols-outlined text-white text-2xl">photo_camera</span>
+                        <span className="text-white text-xs font-semibold" style={{ fontFamily: "Montserrat, sans-serif" }}>Remplacer</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setVehicleImageFile(file);
+                            setVehicleImagePreview(URL.createObjectURL(file));
+                          }}
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center gap-2 h-32 rounded-xl border border-dashed border-[#353534] cursor-pointer hover:border-[#555] transition-colors bg-[#131313]">
+                      <span className="material-symbols-outlined text-[#949493] text-2xl">add_photo_alternate</span>
+                      <span className="text-[#949493] text-xs" style={{ fontFamily: "Montserrat, sans-serif" }}>Ajouter une photo</span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setVehicleImageFile(file);
+                          setVehicleImagePreview(URL.createObjectURL(file));
+                        }}
+                      />
+                    </label>
+                  )}
                 </div>
               </div>
             </section>
