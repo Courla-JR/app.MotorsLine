@@ -169,9 +169,9 @@ export default function ClientMissionsPage() {
               Motors Line
             </h1>
           </Link>
-          <Link href="/client/profile" className="w-10 h-10 rounded-full border border-white/10 bg-[#1A1A1A] flex items-center justify-center hover:bg-[#2a2a2a] transition-colors">
-            <span className="material-symbols-outlined text-[#c4c7c8] text-lg">person</span>
-          </Link>
+          <a href="https://wa.me/33761238105?text=Bonjour%2C%20je%20vous%20contacte%20via%20votre%20site" target="_blank" rel="noopener noreferrer" aria-label="Contacter Motors Line sur WhatsApp" className="w-10 h-10 rounded-full border border-white/10 bg-[#1A1A1A] flex items-center justify-center hover:bg-[#2a2a2a] transition-colors">
+            <span className="material-symbols-outlined text-[#c4c7c8] text-lg">chat</span>
+          </a>
         </header>
 
         <main className="pt-24 md:pt-8 pb-8 px-4 md:px-6 max-w-lg md:max-w-5xl mx-auto">
