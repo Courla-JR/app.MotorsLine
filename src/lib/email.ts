@@ -99,6 +99,175 @@ export interface MissionEmailData {
   serviceLevel: string;
   price: number | null;
   pickupDate: string | null;
+  missionId?: string;
+}
+
+// ─── Admin mission notification email ────────────────────
+
+export interface AdminMissionEmailData {
+  adminEmail: string;
+  missionId: string;
+  clientName: string | null;
+  clientCompany: string | null;
+  vehicleBrand: string;
+  vehicleModel: string;
+  vehiclePlate: string;
+  pickupAddress: string;
+  deliveryAddress: string;
+  distance: string;
+  duration: string;
+  serviceLevel: string;
+  price: number | null;
+  pickupDate: string | null;
+}
+
+export function buildAdminMissionEmail(data: AdminMissionEmailData): string {
+  const priceText = data.price !== null ? `${data.price}€ HT` : "Sur devis";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.motorsline.fr";
+  const missionUrl = `${appUrl}/admin/missions/${data.missionId}`;
+  const clientLabel = [data.clientName, data.clientCompany].filter(Boolean).join(" — ") || "—";
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#0A0A0A;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0A0A0A;min-height:100vh;">
+    <tr>
+      <td align="center" style="padding:48px 16px;">
+        <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+
+          <!-- Logo -->
+          <tr>
+            <td style="padding-bottom:40px;">
+              <span style="font-size:22px;font-weight:700;font-style:italic;letter-spacing:-0.04em;font-family:Helvetica,sans-serif;color:#c0c0c0;">
+                Motors Line
+              </span>
+            </td>
+          </tr>
+
+          <!-- Heading -->
+          <tr>
+            <td style="padding-bottom:8px;">
+              <h1 style="margin:0;font-size:26px;font-weight:700;color:#ffffff;font-family:Helvetica,sans-serif;letter-spacing:-0.02em;">
+                Nouvelle mission reçue
+              </h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding-bottom:36px;">
+              <p style="margin:0;font-size:14px;color:#888;font-family:Helvetica,sans-serif;line-height:1.6;">
+                Une nouvelle mission de convoyage vient d'être créée.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Card -->
+          <tr>
+            <td style="background:#141414;border-radius:16px;padding:28px 32px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+
+                <!-- Section: Client -->
+                <tr>
+                  <td colspan="2" style="padding-bottom:8px;">
+                    <span style="font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#555;font-family:Helvetica,sans-serif;">
+                      Client
+                    </span>
+                  </td>
+                </tr>
+                ${row("Nom / Entreprise", clientLabel)}
+
+                <!-- Section: Véhicule -->
+                <tr>
+                  <td colspan="2" style="padding-top:24px;padding-bottom:8px;">
+                    <span style="font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#555;font-family:Helvetica,sans-serif;">
+                      Véhicule
+                    </span>
+                  </td>
+                </tr>
+                ${row("Marque / Modèle", `${data.vehicleBrand} ${data.vehicleModel}`)}
+                ${row("Plaque", data.vehiclePlate)}
+
+                <!-- Section: Itinéraire -->
+                <tr>
+                  <td colspan="2" style="padding-top:24px;padding-bottom:8px;">
+                    <span style="font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#555;font-family:Helvetica,sans-serif;">
+                      Itinéraire
+                    </span>
+                  </td>
+                </tr>
+                ${row("Départ", data.pickupAddress)}
+                ${row("Arrivée", data.deliveryAddress)}
+                ${row("Distance", data.distance)}
+                ${row("Durée estimée", data.duration)}
+                ${data.pickupDate ? row("Date prévue", formatDate(data.pickupDate)) : ""}
+
+                <!-- Section: Service -->
+                <tr>
+                  <td colspan="2" style="padding-top:24px;padding-bottom:8px;">
+                    <span style="font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#555;font-family:Helvetica,sans-serif;">
+                      Service
+                    </span>
+                  </td>
+                </tr>
+                ${row("Niveau", formatServiceLevel(data.serviceLevel))}
+
+              </table>
+
+              <!-- Price highlight -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;background:#1e1e1e;border-radius:12px;">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <span style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#666;font-family:Helvetica,sans-serif;">
+                      Tarif estimé
+                    </span>
+                    <br/>
+                    <span style="font-size:36px;font-weight:700;color:#ffffff;font-family:Helvetica,sans-serif;letter-spacing:-0.03em;">
+                      ${priceText}
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- CTA -->
+          <tr>
+            <td style="padding-top:32px;text-align:center;">
+              <a href="${missionUrl}" style="display:inline-block;padding:14px 32px;background:#ffffff;color:#0A0A0A;font-size:14px;font-weight:700;font-family:Helvetica,sans-serif;border-radius:100px;text-decoration:none;letter-spacing:-0.01em;">
+                Voir la mission
+              </a>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding-top:48px;text-align:center;border-top:1px solid #1a1a1a;margin-top:48px;">
+              <p style="margin:16px 0 4px;font-size:12px;color:#555;font-family:Helvetica,sans-serif;letter-spacing:0.06em;text-transform:uppercase;">
+                Par des pros. Pour des pros.
+              </p>
+              <p style="margin:0;font-size:11px;color:#333;font-family:Helvetica,sans-serif;">
+                Motors Line — Transport premium de véhicules
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+export async function sendAdminMissionNotificationEmail(data: AdminMissionEmailData): Promise<{ error: unknown }> {
+  const { error } = await resend.emails.send({
+    from: "Motors Line <missions@motorsline.fr>",
+    to: data.adminEmail,
+    subject: `Nouvelle mission créée — ${data.vehicleBrand} ${data.vehicleModel}`,
+    html: buildAdminMissionEmail(data),
+  });
+  if (error) console.error("[Resend] sendAdminMissionNotificationEmail error:", error);
+  return { error: error ?? null };
 }
 
 function formatServiceLevel(level: string): string {

@@ -208,7 +208,7 @@ export default function NewMissionPage() {
       ? new Date(`${pickupDate}T${pickupTime}`).toISOString()
       : pickupDate ? new Date(pickupDate).toISOString() : null;
 
-    const { error: insertError } = await supabase.from("missions").insert({
+    const { data: missionInserted, error: insertError } = await supabase.from("missions").insert({
       status: "a_faire",
       convoyeur_id: user.id,
       client_id: userRole === "admin" ? (selectedClientId || null) : null,
@@ -226,7 +226,7 @@ export default function NewMissionPage() {
       service_level: selectedLevel,
       distance_km: routeInfo?.distance ?? null,
       duration: routeInfo?.duration ?? null,
-    });
+    }).select("id").single();
 
     if (insertError) {
       const msg = insertError.message;
@@ -260,6 +260,7 @@ export default function NewMissionPage() {
           pickupDate: pickupDate && pickupTime
             ? new Date(`${pickupDate}T${pickupTime}`).toISOString()
             : pickupDate ? new Date(pickupDate).toISOString() : null,
+          missionId: missionInserted?.id,
         }),
       }).catch(() => {}); // silent — email failure must not block navigation
     }

@@ -201,7 +201,7 @@ export default function ClientNewMissionPage() {
       ? new Date(`${pickupDate}T${pickupTime}`).toISOString()
       : pickupDate ? new Date(pickupDate).toISOString() : null;
 
-    const { error: insertError } = await supabase.from("missions").insert({
+    const { data: missionInserted, error: insertError } = await supabase.from("missions").insert({
       status: "a_faire",
       client_id: client.id,
       convoyeur_id: adminProfile?.id ?? null,
@@ -219,7 +219,7 @@ export default function ClientNewMissionPage() {
       service_level: selectedLevel,
       distance_km: routeInfo?.distance ?? null,
       duration: routeInfo?.duration ?? null,
-    });
+    }).select("id").single();
 
     if (insertError) {
       const msg = insertError.message;
@@ -251,6 +251,7 @@ export default function ClientNewMissionPage() {
           serviceLevel: selectedLevel,
           price: selectedPrice,
           pickupDate: pickupDatetime,
+          missionId: missionInserted?.id,
         }),
       }).catch(() => {});
     }
