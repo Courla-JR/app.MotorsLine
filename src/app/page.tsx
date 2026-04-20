@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Truck, User, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function HomePage() {
@@ -100,9 +101,7 @@ export default function HomePage() {
             className="flex-1 py-4 bg-white text-[#0A0A0A] font-bold text-lg rounded-lg flex items-center justify-center gap-2 hover:bg-zinc-100 active:scale-95 transition-all duration-150 shadow-[0_0_24px_rgba(255,255,255,0.08)] whitespace-nowrap"
             style={{ fontFamily: "Inter, sans-serif" }}
           >
-            <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
-              local_shipping
-            </span>
+            <Truck size={18} />
             Espace Convoyeur
           </Link>
           <Link
@@ -110,9 +109,7 @@ export default function HomePage() {
             className="flex-1 py-4 bg-transparent text-white font-bold text-lg rounded-lg flex items-center justify-center gap-2 border border-[#2A2A2A] hover:bg-white/5 hover:border-white/20 active:scale-95 transition-all duration-150 whitespace-nowrap"
             style={{ fontFamily: "Inter, sans-serif" }}
           >
-            <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
-              person
-            </span>
+            <User size={18} />
             Espace Client
           </Link>
         </div>
@@ -126,7 +123,7 @@ export default function HomePage() {
           style={{ fontFamily: "Montserrat, sans-serif" }}
         >
           motorsline.fr
-          <span className="material-symbols-outlined text-sm leading-none">open_in_new</span>
+          <ExternalLink size={14} />
         </a>
       </main>
 

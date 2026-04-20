@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft, User, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
@@ -62,7 +63,7 @@ export default function LoginPage() {
         className="absolute top-6 left-6 flex items-center gap-1.5 text-[#949493] hover:text-white transition-colors text-sm z-10"
         style={{ fontFamily: "Montserrat, sans-serif" }}
       >
-        <span className="material-symbols-outlined text-base">arrow_back</span>
+        <ArrowLeft size={16} />
         Accueil
       </Link>
 
@@ -125,9 +126,7 @@ export default function LoginPage() {
                 className="w-full h-14 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg px-4 pr-12 text-white placeholder:text-[#8e9192]/40 focus:outline-none focus:ring-1 focus:ring-white/20 focus:bg-[#3a3939] transition-all duration-200"
                 style={{ fontFamily: "Inter, sans-serif" }}
               />
-              <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[#444748] select-none">
-                person
-              </span>
+              <User className="absolute right-4 top-1/2 -translate-y-1/2 text-[#444748] select-none" size={18} />
             </div>
           </div>
 
@@ -152,9 +151,7 @@ export default function LoginPage() {
                 className="w-full h-14 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg px-4 pr-12 text-white placeholder:text-[#8e9192]/40 focus:outline-none focus:ring-1 focus:ring-white/20 focus:bg-[#3a3939] transition-all duration-200"
                 style={{ fontFamily: "Inter, sans-serif" }}
               />
-              <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[#444748] select-none">
-                lock
-              </span>
+              <Lock className="absolute right-4 top-1/2 -translate-y-1/2 text-[#444748] select-none" size={18} />
             </div>
           </div>
 

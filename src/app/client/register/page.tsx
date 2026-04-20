@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { Lock, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type InvitationState = "loading" | "invalid" | "valid" | "success";
@@ -135,7 +136,7 @@ function RegisterForm() {
   if (state === "invalid") {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center gap-4 px-6">
-        <span className="material-symbols-outlined text-[#444748] text-5xl">lock</span>
+        <Lock className="text-[#444748]" size={48} />
         <h1
           className="text-white text-2xl font-bold tracking-tight text-center"
           style={{ fontFamily: "Inter, sans-serif" }}
@@ -156,7 +157,7 @@ function RegisterForm() {
   if (state === "success") {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center gap-4 px-6">
-        <span className="material-symbols-outlined text-[#66ff8e] text-5xl">check_circle</span>
+        <CheckCircle className="text-[#66ff8e]" size={48} />
         <h1
           className="text-white text-2xl font-bold tracking-tight"
           style={{ fontFamily: "Inter, sans-serif" }}
@@ -216,9 +217,7 @@ function RegisterForm() {
                 Mot de passe
               </label>
               <div className="relative group">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors select-none">
-                  lock
-                </span>
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors select-none" size={18} />
                 <input
                   id="password"
                   type="password"
@@ -243,9 +242,7 @@ function RegisterForm() {
                 Confirmer le mot de passe
               </label>
               <div className="relative group">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors select-none">
-                  lock_reset
-                </span>
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors select-none" size={18} />
                 <input
                   id="confirm"
                   type="password"
